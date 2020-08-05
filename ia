@@ -1,0 +1,425 @@
+#!/usr/bin/env rakudo
+
+use Config::INI;
+
+our enum Command <setup dump tag>;
+
+our Str constant SCRIPT_VERSION = "2020.08";
+
+our IO::Path constant CONFIG_FILE = $*HOME.add(".config/ia.conf");
+
+our %config;
+
+if CONFIG_FILE.e {
+    %config = Config::INI::parse(slurp CONFIG_FILE);
+}
+
+# Custom exception thrown when an unknown command is used.
+class X::ImageArchive::BadCommand is Exception {
+    method message() {
+        "Unexpected command. Cannot proceed.";
+    }
+}
+
+# Custom exception thrown when an unknown keyword is used.
+class X::ImageArchive::BadKeyword is Exception {
+    has Set $.offenders;
+    method message {
+        my $label = ($!offenders.elems == 1) ?? "keyword" !! "keywords";
+        "Invalid {$label}: {$!offenders.keys.join(', ')}";
+    }
+}
+
+# Custom exception thrown when a context exists but no keywords reference it.
+class X::ImageArchive::EmptyContext is Exception {
+    has Seq $.offenders;
+    method message {
+        my $label = ($!offenders.elems == 1) ?? "context has" !! "contexts have";
+        "The following {$label} no keywords: {$!offenders.join(', ')}";
+    }
+}
+
+# Custom exception thrown when no keywords are provided for a context.
+class X::ImageArchive::MissingContext is Exception {
+    has Seq $.offenders;
+    method message {
+        my $label = ($!offenders.elems == 1) ?? "context" !! "contexts";
+        "Keywords missing for {$!offenders.elems} {$label}: {$!offenders.join(', ')}";
+    }
+
+    method suggest {
+        my %contexts = $!offenders.list Z=> %config<contexts>{$!offenders.list};
+
+        for %contexts.kv -> $context, $aliases {
+            my @keywords = keywordsInContext($context);
+            say "Keywords for {$context}: " ~ @keywords.join(", ") ~ "\n";
+
+        }
+    }
+}
+
+# Entry point for --version flag.
+multi sub MAIN(Bool :$version) {
+    say SCRIPT_VERSION if $version;
+}
+
+# Entry point for commands that take no arguments.
+multi sub MAIN(Command $command) {
+    given $command {
+        when dump {
+            use Data::Dump;
+            say Dump(%config, :no-postfix);
+        }
+
+        default {
+            die X::ImageArchive::BadCommand.new;
+        }
+    }
+}
+
+# Entry point for commands dealing with directories.
+multi sub MAIN(Command $command, Str $directory where *.IO.d) {
+    given $command {
+        when setup {
+            writeStarterConfig($directory.IO);
+        }
+
+        default {
+            die X::ImageArchive::BadCommand.new;
+        }
+    }
+}
+
+# Entry point for commands dealing with files and keywords.
+multi sub MAIN(Command $command, Str $file where *.IO.f, *@keywords) {
+    given $command {
+        when tag {
+            testKeywords(@keywords);
+
+            my %tags = keywordsToTags(@keywords);
+
+            my @contexts = activeContexts(@keywords);
+
+            testContexts(@contexts);
+
+            testContextCoverage(@contexts, %tags);
+
+            %tags.append(askQuestions());
+
+            tagFile($file.IO, %tags);
+        }
+
+        default {
+            die X::ImageArchive::BadCommand.new;
+        }
+    }
+
+    CATCH {
+        my @usualSuspects = (
+            X::ImageArchive::BadCommand,
+            X::ImageArchive::EmptyContext,
+            X::ImageArchive::BadKeyword,
+        );
+
+        if ($_ ~~ any @usualSuspects) {
+            note $_.message;
+            exit 1;
+        }
+
+        when X::ImageArchive::MissingContext {
+            note $_.message;
+            $_.suggest();
+            exit 1;
+        }
+    }
+}
+
+# Apply one or more tags specified as keywords to a file.
+sub tagFile(IO $file, %tags) {
+    my @commands = tagsToExiftool(%tags);
+
+    say @commands.join(' ');
+}
+
+# Determine the set of negation keywords for all known contexts.
+# A negation keyword is the name of a context prefixed with "no".
+sub contextNegationKeywords() {
+    %config<contexts>.keys.map({ "no" ~ $_ });
+}
+
+# List the contexts that have not been explicity disabled by a
+# negation keyword.
+sub activeContexts(@keywords) {
+    my @keywordsWithoutNegation = @keywords.map({ $_.subst(/^no/, '')});
+    (%config<contexts>.keys (-) @keywordsWithoutNegation).keys;
+}
+
+# Determine if the provided keywords are valid.
+sub testKeywords(@keywords) {
+    my $duds = @keywords (-) %config.keys (-) contextNegationKeywords();
+
+    if ($duds) {
+        die X::ImageArchive::BadKeyword.new(:offenders($duds));
+    }
+}
+
+# Gather the tags that correspond to the given keywords.
+sub keywordsToTags(@keywords) {
+    my %tags;
+
+    for %config.kv -> $key, %values {
+        %tags.append(%values) if $key ~~ any @keywords;
+    }
+
+    return %tags;
+}
+
+# Convert a comma-delimited list of values to a list.
+sub commaSplit(Str $value) {
+    $value.split(/ \s* \, \s* /);
+}
+
+# Find all known keywords for a given context.
+sub keywordsInContext($context) {
+    my @keywords;
+
+    my @aliases = commaSplit(%config<contexts>{$context});
+
+    for %config.kv -> $section, %members {
+        next if $section ~~ any <_ aliases prompts contexts>;
+        next unless %members.keys (&) @aliases;
+        @keywords.push($section)
+    }
+
+    return @keywords;
+}
+
+# See if there are contexts with no keywords.
+sub testContexts(@contexts) {
+    my $bag = BagHash.new;
+
+    for @contexts -> $context {
+        ($bag{$context}++ if keywordsInContext($context));
+    }
+
+    my Set $empties = @contexts (-) $bag.keys;
+
+    if ($empties) {
+        die X::ImageArchive::EmptyContext.new(:offenders($empties.keys));
+    }
+}
+
+# See if there are any contexts with no tags.
+sub testContextCoverage(@contexts, %tags) {
+
+    # zipwith meta operator
+    # See https://rosettacode.org/wiki/Hash_from_two_arrays#Raku
+    my %contexts = @contexts Z=> %config<contexts>{@contexts};
+
+    my $bag = BagHash.new;
+
+    for %contexts.kv -> $key, $values {
+        my @tags = commaSplit($values);
+        ($bag{$key}++ if @tags (&) %tags.keys);
+    }
+
+    my Set $empties = @contexts (-) $bag.keys;
+
+    if ($empties.elems > 0) {
+        die X::ImageArchive::MissingContext.new(:offenders($empties.keys));
+    }
+}
+
+# Prompt for tag values that are unique to the image.
+sub askQuestions() {
+    my %answers;
+
+    for %config<prompts>.sort(*.key) {
+        my $answer = prompt "{$_.value}: ";
+        $answer .= trim;
+        next unless $answer;
+        %answers{$_.key} = ($_.trim for $answer.split(','))
+    }
+
+    return %answers;
+}
+
+# Convert a set of tag keywords to a list of arguments suitable exiftool.
+sub tagsToExiftool(%tags) {
+    my @commands;
+
+
+    for %tags.keys -> $tag {
+        my $formalTag = %config<aliases>{$tag};
+
+        my $operator = "=";
+        if (%tags{$tag} ~~ List) {
+            for %tags{$tag}.list -> $value {
+                say $value.^name;
+                $operator = ($value ~~ %tags{$tag}.first) ?? "=" !! "+=";
+                @commands.push("-{$formalTag}{$operator}'{$value}'");
+            }
+        } else {
+            @commands.push("-{$formalTag}{$operator}'{%tags{$tag}}'");
+        }
+
+    }
+
+    return @commands;
+}
+
+# Create a config file based on a default template.
+sub writeStarterConfig(IO::Path $root) {
+    if CONFIG_FILE.f {
+        say "The configuration file {CONFIG_FILE} already exists.";
+        say "It is an ordinary text file and can be edited directly.";
+        return;
+    }
+
+    spurt CONFIG_FILE, qq:to/END/;
+    ; This is the configuration file for image-archive (ia)
+    ; It uses the INI file format.
+
+    [_]
+    ; Where the images are stored.
+    root = {$root.absolute}
+
+    ; Questions that should be asked during tagging. They are the opposite
+    ; of keywords.
+    ;
+    ; Use this to gather tag information that varies from file to file.
+    ; Keys are aliases and values are the question text.
+    [prompts]
+    datecreated = Date the picture was taked (YYYY-MM-DD or partial)
+    caption     = Caption
+    keyword     = Additional keywords
+    series      = Series or batch
+    seriesid    = ID within series
+
+    ; Aliases for tag names.
+    ;
+    ; Since tag names are verbose and akward to type, map them to more friendly
+    ; equivalents. Keys are the informal name and values are the formal counterpart.
+    [aliases]
+    caption     = XML-dc:description
+    colormode   = XMP-photoshop:ColorMode
+    datecreated = XMP-photoshop:DateCreated
+    location    = XMP-iptcExt:LocationCreated
+    model       = Model
+    object      = ArtworkOrObject
+    person      = XMP-iptcExt:PersonInImage
+    keyword     = XMP-dc:subject
+    scene       = XMP-iptcCore:Scene
+    series      = XMP-iptcExt:SeriesName
+    seriesid    = XMP-iptcExt:SeriesIdentifier
+    sourcetype  = XMP-iptcExt:DigitalSourceType
+    subjectcode = XMP-iptcCore:SubjectCode
+
+    ; Contexts
+    ;
+    ; A context is a list of comma-separated tag aliases. They are a way to
+    ; enforce comprehensive tagging by requiring at least one keyword from
+    ; each list to be present.
+    [contexts]
+    location = location
+    object = object
+    people = person
+    relationship = subjectcode
+    scene = scene
+    source = model, sourcetype, colormode
+
+    ; Keywords
+    ;
+    ; The rest of this file defines tagging keywords. The keyword is the
+    ; section name, the keys are aliases, and the values are what will be
+    ; ulatimatley be written to the image.
+    ;
+    ;
+    ; Keywords are for applying the same tag value to multiple files, both
+    ; for convenience and consistency. They are the opposite of prompts.
+
+
+    ;; Color mode keywords
+    ;; See https://exiftool.org/TagNames/XMP.html#photoshop
+    [blackandwhite]
+    colormode = 1
+
+    [color]
+    colormode = 3
+
+    ;; Scene keywords
+    ;; See http://cv.iptc.org/newscodes/scene
+    [action]
+    scene = 011900
+
+    [aerialview]
+    scene = 011200
+
+    [closeup]
+    scene = 011800
+
+    [couple]
+    scene = 010700
+
+    [exteriorview]
+    scene = 011600
+
+    [fulllength]
+    scene = 010300
+
+    [generalview]
+    scene = 011000
+
+    [group]
+    scene = 010900
+
+    [halflength]
+    scene = 010200
+
+    [headshot]
+    scene = 010100
+
+    [interiorview]
+    scene = 011700
+
+    [nightscene]
+    scene = 011400
+
+    [offbeat]
+    scene = 012300
+
+    [panoramicview]
+    scene = 011100
+
+    [performing]
+    scene = 012000
+
+    [posing]
+    scene = 012100
+
+    [profile]
+    scene = 010400
+
+    [rearview]
+    scene = 010500
+
+    [satellite]
+    scene = 011500
+
+    [single]
+    scene = 010600
+
+    [symbolic]
+    scene = 012200
+
+    [two]
+    scene = 010800
+
+    [underwater]
+    scene = 011300
+
+    END
+
+    say "Default configuration written to {CONFIG_FILE}";
+    say "Using {$root.absolute} as the archive root.";
+}
