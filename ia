@@ -338,7 +338,6 @@ sub writeStarterConfig(IO::Path $root) {
     ; Keywords are for applying the same tag value to multiple files, both
     ; for convenience and consistency. They are the opposite of prompts.
 
-
     ;; Color mode keywords
     ;; See https://exiftool.org/TagNames/XMP.html#photoshop
     [blackandwhite]
@@ -346,6 +345,24 @@ sub writeStarterConfig(IO::Path $root) {
 
     [color]
     colormode = 3
+
+    ;; Source type keywords
+    ;; See http://cv.iptc.org/newscodes/digitalsourcetype/
+    [digital]
+    sourcetype = digitalCapture
+
+    [negative]
+    sourcetype = negativeFilm
+
+    [slide]
+    sourcetype = positiveFilm
+    keyword = slide
+
+    [photo]
+    sourcetype = print
+
+    [software]
+    sourcetype = softwareImage
 
     ;; Scene keywords
     ;; See http://cv.iptc.org/newscodes/scene
@@ -417,6 +434,8 @@ sub writeStarterConfig(IO::Path $root) {
 
     [underwater]
     scene = 011300
+
+    ; ---- End of the default keyword set ----
 
     END
 
