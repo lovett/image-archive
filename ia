@@ -1,6 +1,7 @@
 #!/usr/bin/env rakudo
 
 use Config::INI;
+use Terminal::ANSIColor;
 
 our enum Command <setup dump tag>;
 
@@ -44,15 +45,17 @@ class X::ImageArchive::MissingContext is Exception {
     has Seq $.offenders;
     method message {
         my $label = ($!offenders.elems == 1) ?? "context" !! "contexts";
-        "Keywords missing for {$!offenders.elems} {$label}: {$!offenders.join(', ')}";
+        "Keywords are missing for {$!offenders.elems} {$label}: {$!offenders.join(', ')}";
     }
 
     method suggest {
         my %contexts = $!offenders.list Z=> %config<contexts>{$!offenders.list};
 
+        say "";
+
         for %contexts.kv -> $context, $aliases {
             my @keywords = keywordsInContext($context);
-            say "Keywords for {$context}: " ~ @keywords.join(", ") ~ "\n";
+            say colored("{$context} keywords", 'cyan') ~ "\n" ~ @keywords.sort.join(", ") ~ "\n";
 
         }
     }
@@ -122,12 +125,12 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, *@keywords) {
         );
 
         if ($_ ~~ any @usualSuspects) {
-            note $_.message;
+            note colored($_.message, 'red bold');
             exit 1;
         }
 
         when X::ImageArchive::MissingContext {
-            note $_.message;
+            note colored($_.message, 'red bold');
             $_.suggest();
             exit 1;
         }
@@ -255,7 +258,6 @@ sub tagsToExiftool(%tags) {
         my $operator = "=";
         if (%tags{$tag} ~~ List) {
             for %tags{$tag}.list -> $value {
-                say $value.^name;
                 $operator = ($value ~~ %tags{$tag}.first) ?? "=" !! "+=";
                 @commands.push("-{$formalTag}{$operator}'{$value}'");
             }
