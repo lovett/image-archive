@@ -61,6 +61,15 @@ class X::ImageArchive::MissingContext is Exception {
     }
 }
 
+# Custom exception thrown when an exiftool invocation exits nonzero.
+class X::ImageArchive::ExifToolIsDispleased is Exception {
+    has Str $.err;
+
+    method message {
+        say $!err;
+    }
+}
+
 # Entry point for --version flag.
 multi sub MAIN(Bool :$version) {
     say SCRIPT_VERSION if $version;
@@ -141,7 +150,14 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, *@keywords) {
 sub tagFile(IO $file, %tags) {
     my @commands = tagsToExiftool(%tags);
 
-    say @commands.join(' ');
+    my $proc = run 'exiftool', @commands, $file.Str, :out, :err;
+
+    my $err = $proc.err.slurp(:close);
+    my $out = $proc.out.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+    }
 }
 
 # Determine the set of negation keywords for all known contexts.
@@ -259,10 +275,10 @@ sub tagsToExiftool(%tags) {
         if (%tags{$tag} ~~ List) {
             for %tags{$tag}.list -> $value {
                 $operator = ($value ~~ %tags{$tag}.first) ?? "=" !! "+=";
-                @commands.push("-{$formalTag}{$operator}'{$value}'");
+                @commands.push("-{$formalTag}{$operator}{$value}");
             }
         } else {
-            @commands.push("-{$formalTag}{$operator}'{%tags{$tag}}'");
+            @commands.push("-{$formalTag}{$operator}{%tags{$tag}}");
         }
 
     }
@@ -343,10 +359,10 @@ sub writeStarterConfig(IO::Path $root) {
     ;; Color mode keywords
     ;; See https://exiftool.org/TagNames/XMP.html#photoshop
     [blackandwhite]
-    colormode = 1
+    colormode = Grayscale
 
     [color]
-    colormode = 3
+    colormode = RGB
 
     ;; Source type keywords
     ;; See http://cv.iptc.org/newscodes/digitalsourcetype/
