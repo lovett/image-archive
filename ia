@@ -3,7 +3,7 @@
 use Config::INI;
 use Terminal::ANSIColor;
 
-our enum Command <setup dump tag>;
+our enum Command <import setup dump tag>;
 
 our Str constant SCRIPT_VERSION = "2020.08";
 
@@ -39,6 +39,16 @@ class X::ImageArchive::EmptyContext is Exception {
         "The following {$label} no keywords: {$!offenders.join(', ')}";
     }
 }
+
+# Custom exception thrown during import when a destination already exists.
+class X::ImageArchive::FileExists is Exception {
+    has IO $.path;
+    method message {
+        my $relpath = $!path.relative(%config<_><root>);
+        "A file has already been imported as {$relpath}";
+    }
+}
+
 
 # Custom exception thrown when no keywords are provided for a context.
 class X::ImageArchive::MissingContext is Exception {
@@ -98,6 +108,32 @@ multi sub MAIN(Command $command, Str $directory where *.IO.d) {
 
         default {
             die X::ImageArchive::BadCommand.new;
+        }
+    }
+}
+
+# Entry point for commands dealing with files.
+multi sub MAIN(Command $command, Str $file where *.IO.f) {
+    given $command {
+        when import {
+            my $tagValue = readTag($file.IO, 'datecreated');
+            if (!$tagValue) {
+                my Str $answer = prompt "No date tag found. Still continue? [y/N]: ";
+                unless ($answer eq "y") {
+                    exit;
+                }
+            }
+
+            my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
+
+            moveFile($file.IO, $destinationDir);
+        }
+
+        CATCH {
+            when X::ImageArchive::FileExists {
+                note colored($_.message, 'red bold');
+                exit 1;
+            }
         }
     }
 }
@@ -212,6 +248,39 @@ sub keywordsInContext($context) {
 
     return @keywords;
 }
+
+# Move a file to a subfolder under the archive root.
+sub moveFile(IO $file, IO $parent) {
+    unless ($parent ~~ :d) {
+        $parent.mkdir();
+    }
+
+    my $destination = $parent.add($file.basename);
+
+    if ($destination.IO ~~ :f) {
+        die X::ImageArchive::FileExists.new(:path($destination));
+    }
+
+    move($file, $destination);
+
+    say "Imported to {$destination}";
+}
+
+# Extract a tag specified from a file.
+sub readTag(IO $file, $tag) {
+    my $formalTag = %config<aliases>{$tag} || $tag;
+
+    my $proc = run <exiftool -s3 -n>, "-{$formalTag}", $file.Str, :out, :err;
+    my $err = $proc.err.slurp(:close);
+    my $out = $proc.out.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+    }
+
+    return chomp($out);
+}
+
 
 # See if there are contexts with no keywords.
 sub testContexts(@contexts) {
