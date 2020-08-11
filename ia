@@ -263,7 +263,9 @@ sub moveFile(IO $file, IO $parent) {
 
     move($file, $destination);
 
-    say "Imported to {$destination}";
+    $destination.IO.chmod(0o400);
+
+    say "Imported {$file.basename} to {$destination}";
 }
 
 # Extract a tag specified from a file.
