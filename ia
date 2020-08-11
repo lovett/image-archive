@@ -3,7 +3,7 @@
 use Config::INI;
 use Terminal::ANSIColor;
 
-our enum Command <import setup dump tag>;
+our enum Command <import setup tag>;
 
 our Str constant SCRIPT_VERSION = "2020.08";
 
@@ -83,20 +83,6 @@ class X::ImageArchive::ExifToolIsDispleased is Exception {
 # Entry point for --version flag.
 multi sub MAIN(Bool :$version) {
     say SCRIPT_VERSION if $version;
-}
-
-# Entry point for commands that take no arguments.
-multi sub MAIN(Command $command) {
-    given $command {
-        when dump {
-            use Data::Dump;
-            say Dump(%config, :no-postfix);
-        }
-
-        default {
-            die X::ImageArchive::BadCommand.new;
-        }
-    }
 }
 
 # Entry point for commands dealing with directories.
