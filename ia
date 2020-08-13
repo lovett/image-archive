@@ -377,6 +377,8 @@ sub readTag(IO $file, $tag) {
 
 # Apply one or more tags specified as keywords to a file.
 sub tagFile(IO $file, %tags) {
+    %tags<datetagged> = DateTime.now();
+
     my @commands = tagsToExiftool(%tags);
 
     my $proc = run 'exiftool', @commands, $file.Str, :out, :err;
@@ -530,6 +532,7 @@ sub writeStarterConfig(IO::Path $root) {
     caption     = XML-dc:description
     colormode   = XMP-photoshop:ColorMode
     datecreated = XMP-photoshop:DateCreated
+    datetagged  = XMP-xmp:MetadataDate
     location    = XMP-iptcExt:LocationCreated
     model       = Model
     object      = ArtworkOrObject
