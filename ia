@@ -301,7 +301,7 @@ sub generateUuid() {
 sub indexFile(IO $file) {
     my $uuid = readTag($file, 'id');
     my $rootRelativePath = $file.relative(%config<_><root>);
-    my $proc = run <exiftool -j -g -struct>, $file.Str, :out, :err;
+    my $proc = run <exiftool -x File:Directory -x File:FilePermissions -j -g -struct>, $file.Str, :out, :err;
     my Str $json = chomp($proc.out.slurp(:close));
     my $err  = $proc.err.slurp(:close);
 
@@ -558,7 +558,7 @@ sub writeStarterConfig(IO::Path $root) {
     ; Since tag names are verbose and akward to type, map them to more friendly
     ; equivalents. Keys are the informal name and values are the formal counterpart.
     [aliases]
-    caption     = XML-dc:description
+    caption     = XMP-dc:description
     colormode   = XMP-photoshop:ColorMode
     datecreated = XMP-photoshop:DateCreated
     datetagged  = XMP-xmp:MetadataDate
