@@ -241,13 +241,13 @@ sub defineDatabaseSchema() {
         id INTEGER PRIMARY KEY,
         uuid TEXT,
         path TEXT,
-        pairs TEXT
+        tags TEXT
     )
     STATEMENT
 
     $dbh.execute(q:to/STATEMENT/);
     CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(
-        pairs, content=metadata, content_rowid=id
+        tags, content=metadata, content_rowid=id
     )
     STATEMENT
 
@@ -255,7 +255,7 @@ sub defineDatabaseSchema() {
     CREATE TRIGGER IF NOT EXISTS metadata_after_insert
     AFTER INSERT ON metadata
     BEGIN
-    INSERT INTO fts(rowid, pairs) VALUES (new.id, new.pairs);
+    INSERT INTO fts(rowid, tags) VALUES (new.id, new.tags);
     END
     STATEMENT
 
@@ -263,7 +263,7 @@ sub defineDatabaseSchema() {
     CREATE TRIGGER IF NOT EXISTS metadata_after_delete
     AFTER DELETE ON metadata
     BEGIN
-    INSERT INTO fts(fts, rowid, pairs) VALUES('delete', old.id, old.pairs);
+    INSERT INTO fts(fts, rowid, tags) VALUES('delete', old.id, old.tags);
     END
     STATEMENT
 
@@ -271,8 +271,8 @@ sub defineDatabaseSchema() {
     CREATE TRIGGER IF NOT EXISTS metadata_after_update
     AFTER UPDATE ON metadata
     BEGIN
-    INSERT INTO fts(fts, rowid, pairs) VALUES('delete', old.id, old.pairs);
-    INSERT INTO fts(rowid, pairs) VALUES (new.id, new.pairs);
+    INSERT INTO fts(fts, rowid, tags) VALUES('delete', old.id, old.tags);
+    INSERT INTO fts(rowid, tags) VALUES (new.id, new.tags);
     END
     STATEMENT
 
@@ -301,21 +301,25 @@ sub generateUuid() {
 sub indexFile(IO $file) {
     my $uuid = readTag($file, 'id');
     my $rootRelativePath = $file.relative(%config<_><root>);
-    my $proc = run 'exiftool', $file.Str, :out, :err;
-    my $tags = $proc.out.slurp(:close);
+    my $proc = run <exiftool -j -g -struct>, $file.Str, :out, :err;
+    my Str $json = chomp($proc.out.slurp(:close));
     my $err  = $proc.err.slurp(:close);
 
     if ($proc.exitcode !== 0) {
         die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
     }
 
+    # Exiftool generates a JSON array of one element.
+    # Mangle it to just the element.
+    $json ~~ s:g/ ^\[ | \]$ //;
+
     my $dbh = openDatabase();
     my $sth = $dbh.prepare(q:to/STATEMENT/);
-    INSERT INTO metadata (uuid, path, pairs)
+    INSERT INTO metadata (uuid, path, tags)
     VALUES (?, ?, ?)
     STATEMENT
 
-    $sth.execute($uuid, $rootRelativePath, $tags);
+    $sth.execute($uuid, $rootRelativePath, $json);
     $dbh.dispose;
 }
 
