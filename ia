@@ -44,6 +44,15 @@ class X::ImageArchive::EmptyContext is Exception {
     }
 }
 
+# Custom exception thrown when an exiftool call exits nonzero.
+class X::ImageArchive::ExifToolIsDispleased is Exception {
+    has Str $.err;
+
+    method message {
+        say $!err;
+    }
+}
+
 # Custom exception thrown during import when a destination already exists.
 class X::ImageArchive::FileExists is Exception {
     has IO $.path;
@@ -74,12 +83,10 @@ class X::ImageArchive::MissingContext is Exception {
     }
 }
 
-# Custom exception thrown when an exiftool call exits nonzero.
-class X::ImageArchive::ExifToolIsDispleased is Exception {
-    has Str $.err;
-
+# Custom exception thrown when a UUID cannot be created.
+class X::ImageArchive::UUID is Exception {
     method message {
-        say $!err;
+        "Unable to generate a unique id.";
     }
 }
 
@@ -269,14 +276,31 @@ sub defineDatabaseSchema() {
     STATEMENT
 
     $dbh.dispose;
+}
 
+# Create a new UUID using external utilities.
+sub generateId() {
+    my @generators = </proc/sys/kernel/random/uuid /usr/bin/uuidgen>;
+
+    for @generators -> $generator {
+        next unless ($generator.IO.f);
+
+        my $proc = run $generator, :out, :err;
+        my $id = $proc.out.slurp(:close);
+
+        if ($proc.exitcode == 0) {
+            return chomp($id);
+        }
+    }
+
+    die X::ImageArchive::UUID.new();
 }
 
 # Store a file's tags in a database.
 sub indexFile(IO $file) {
     my $proc = run 'exiftool', $file.Str, :out, :err;
     my $tags = $proc.out.slurp(:close);
-    my $err  = $proc.out.slurp(:close);
+    my $err  = $proc.err.slurp(:close);
 
     if ($proc.exitcode !== 0) {
         die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
@@ -369,6 +393,12 @@ sub readTag(IO $file, $tag) {
 
 # Apply one or more tags specified as keywords to a file.
 sub tagFile(IO $file, %tags) {
+    my $uuid = readTag($file.IO, 'id');
+
+    unless ($uuid) {
+        %tags<id> = generateId();
+    }
+
     %tags<datetagged> = DateTime.now();
 
     my @commands = tagsToExiftool(%tags);
