@@ -239,6 +239,7 @@ sub defineDatabaseSchema() {
     $dbh.execute(q:to/STATEMENT/);
     CREATE TABLE IF NOT EXISTS metadata (
         id INTEGER PRIMARY KEY,
+        uuid TEXT,
         path TEXT,
         pairs TEXT
     )
@@ -267,7 +268,7 @@ sub defineDatabaseSchema() {
     STATEMENT
 
     $dbh.execute(q:to/STATEMENT/);
-    CREATE TRIGGER IF NOT EXISTS metadta_after_update
+    CREATE TRIGGER IF NOT EXISTS metadata_after_update
     AFTER UPDATE ON metadata
     BEGIN
     INSERT INTO fts(fts, rowid, pairs) VALUES('delete', old.id, old.pairs);
@@ -279,7 +280,7 @@ sub defineDatabaseSchema() {
 }
 
 # Create a new UUID using external utilities.
-sub generateId() {
+sub generateUuid() {
     my @generators = </proc/sys/kernel/random/uuid /usr/bin/uuidgen>;
 
     for @generators -> $generator {
@@ -298,6 +299,7 @@ sub generateId() {
 
 # Store a file's tags in a database.
 sub indexFile(IO $file) {
+    my $uuid = readTag($file, 'id');
     my $proc = run 'exiftool', $file.Str, :out, :err;
     my $tags = $proc.out.slurp(:close);
     my $err  = $proc.err.slurp(:close);
@@ -308,11 +310,11 @@ sub indexFile(IO $file) {
 
     my $dbh = openDatabase();
     my $sth = $dbh.prepare(q:to/STATEMENT/);
-    INSERT INTO metadata (path, pairs)
-    VALUES (?, ?)
+    INSERT INTO metadata (uuid, path, pairs)
+    VALUES (?, ?, ?)
     STATEMENT
 
-    $sth.execute($file.Str, $tags);
+    $sth.execute($uuid, $file.Str, $tags);
     $dbh.dispose;
 }
 
@@ -396,7 +398,7 @@ sub tagFile(IO $file, %tags) {
     my $uuid = readTag($file.IO, 'id');
 
     unless ($uuid) {
-        %tags<id> = generateId();
+        %tags<id> = generateUuid();
     }
 
     %tags<datetagged> = DateTime.now();
