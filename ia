@@ -1,8 +1,8 @@
 #!/usr/bin/env rakudo
 
 use Config::INI;
-use Terminal::ANSIColor;
 use DBIish;
+use Terminal::ANSIColor;
 
 our enum Command <completion import setup tag>;
 
@@ -15,6 +15,9 @@ our %config;
 if CONFIG_FILE.e {
     readConfig();
 }
+
+# Exceptions
+# ------------------------------------------------------------------------
 
 # Custom exception thrown when an unknown command is used.
 class X::ImageArchive::BadCommand is Exception {
@@ -71,7 +74,7 @@ class X::ImageArchive::MissingContext is Exception {
     }
 }
 
-# Custom exception thrown when an exiftool invocation exits nonzero.
+# Custom exception thrown when an exiftool call exits nonzero.
 class X::ImageArchive::ExifToolIsDispleased is Exception {
     has Str $.err;
 
@@ -79,6 +82,9 @@ class X::ImageArchive::ExifToolIsDispleased is Exception {
         say $!err;
     }
 }
+
+# Entry points
+# ------------------------------------------------------------------------
 
 # Entry point for --version flag.
 multi sub MAIN(Bool :$version) {
@@ -184,31 +190,39 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, *@keywords) {
     }
 }
 
-sub indexFile(IO $file) {
-    my $proc = run 'exiftool', $file.Str, :out, :err;
-    my $tags = $proc.out.slurp(:close);
-    my $err  = $proc.out.slurp(:close);
+# Internal functions
+# ------------------------------------------------------------------------
 
-    if ($proc.exitcode !== 0) {
-        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
-    }
-
-    my $dbh = openDatabase();
-    my $sth = $dbh.prepare(q:to/STATEMENT/);
-    INSERT INTO metadata (path, pairs)
-    VALUES (?, ?)
-    STATEMENT
-
-    $sth.execute($file.Str, $tags);
-    $dbh.dispose;
+# List the contexts that have not been explicity disabled by a
+# negation keyword.
+sub activeContexts(@keywords) {
+    my @keywordsWithoutNegation = @keywords.map({ $_.subst(/^no/, '')});
+    (%config<contexts>.keys (-) @keywordsWithoutNegation).keys;
 }
 
-# Open a connection to the SQLite database.
-#
-# Caller is responsible for disposing of the returned handle.
-sub openDatabase() {
-    my $dbPath = %config<_><root>.IO.add("ia.db");
-    return DBIish.connect("SQLite", database => $dbPath);
+# Prompt for tag values that are unique to the image.
+sub askQuestions() {
+    my %answers;
+
+    for %config<prompts>.sort(*.key) {
+        my $answer = prompt "{$_.value}: ";
+        $answer .= trim;
+        next unless $answer;
+        %answers{$_.key} = ($_.trim for $answer.split(','))
+    }
+
+    return %answers;
+}
+
+# Convert a comma-delimited list of values to a list.
+sub commaSplit(Str $value) {
+    $value.split(/ \s* \, \s* /);
+}
+
+# Determine the set of negation keywords for all known contexts.
+# A negation keyword is the name of a context prefixed with "no".
+sub contextNegationKeywords() {
+    %config<contexts>.keys.map({ "no" ~ $_ });
 }
 
 # Define the SQLite database used for full-text search.
@@ -258,64 +272,24 @@ sub defineDatabaseSchema() {
 
 }
 
-# Apply one or more tags specified as keywords to a file.
-sub tagFile(IO $file, %tags) {
-    my @commands = tagsToExiftool(%tags);
-
-    my $proc = run 'exiftool', @commands, $file.Str, :out, :err;
-
-    my $err = $proc.err.slurp(:close);
-    my $out = $proc.out.slurp(:close);
+# Store a file's tags in a database.
+sub indexFile(IO $file) {
+    my $proc = run 'exiftool', $file.Str, :out, :err;
+    my $tags = $proc.out.slurp(:close);
+    my $err  = $proc.out.slurp(:close);
 
     if ($proc.exitcode !== 0) {
         die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
     }
-}
 
-# Determine the set of negation keywords for all known contexts.
-# A negation keyword is the name of a context prefixed with "no".
-sub contextNegationKeywords() {
-    %config<contexts>.keys.map({ "no" ~ $_ });
-}
+    my $dbh = openDatabase();
+    my $sth = $dbh.prepare(q:to/STATEMENT/);
+    INSERT INTO metadata (path, pairs)
+    VALUES (?, ?)
+    STATEMENT
 
-# List the contexts that have not been explicity disabled by a
-# negation keyword.
-sub activeContexts(@keywords) {
-    my @keywordsWithoutNegation = @keywords.map({ $_.subst(/^no/, '')});
-    (%config<contexts>.keys (-) @keywordsWithoutNegation).keys;
-}
-
-# Determine if the provided keywords are valid.
-sub testKeywords(@keywords) {
-    my $duds = @keywords (-) %config.keys (-) contextNegationKeywords();
-
-    if ($duds) {
-        die X::ImageArchive::BadKeyword.new(:offenders($duds));
-    }
-}
-
-# Print the list of keywords to stdout for use with shell completion.
-sub printKeywords() {
-    for %config.keys.sort -> $section {
-        next if $section ~~ any <_ aliases prompts contexts>;
-        say $section;
-    }
-}
-
-# Gather the tags that correspond to the given keywords.
-sub keywordsToTags(@keywords) {
-    my %tags;
-
-    for %config.kv -> $key, %values {
-        %tags.append(%values) if $key ~~ any @keywords;
-    }
-
-    return %tags;
-}
-
-# Convert a comma-delimited list of values to a list.
-sub commaSplit(Str $value) {
-    $value.split(/ \s* \, \s* /);
+    $sth.execute($file.Str, $tags);
+    $dbh.dispose;
 }
 
 # Find all known keywords for a given context.
@@ -331,6 +305,17 @@ sub keywordsInContext($context) {
     }
 
     return @keywords;
+}
+
+# Gather the tags that correspond to the given keywords.
+sub keywordsToTags(@keywords) {
+    my %tags;
+
+    for %config.kv -> $key, %values {
+        %tags.append(%values) if $key ~~ any @keywords;
+    }
+
+    return %tags;
 }
 
 # Move a file to a subfolder under the archive root.
@@ -354,6 +339,27 @@ sub moveFile(IO $file, IO $parent) {
     say "Imported {$file.basename} to {$destination}";
 }
 
+# Open a connection to the SQLite database.
+#
+# Caller is responsible for disposing of the returned handle.
+sub openDatabase() {
+    my $dbPath = %config<_><root>.IO.add("ia.db");
+    return DBIish.connect("SQLite", database => $dbPath);
+}
+
+# Print the list of keywords to stdout for use with shell completion.
+sub printKeywords() {
+    for %config.keys.sort -> $section {
+        next if $section ~~ any <_ aliases prompts contexts>;
+        say $section;
+    }
+}
+
+# Load the application configuration file.
+sub readConfig() {
+    %config = Config::INI::parse(slurp CONFIG_FILE);
+}
+
 # Extract a tag specified from a file.
 sub readTag(IO $file, $tag) {
     my $formalTag = %config<aliases>{$tag} || $tag;
@@ -369,20 +375,40 @@ sub readTag(IO $file, $tag) {
     return chomp($out);
 }
 
+# Apply one or more tags specified as keywords to a file.
+sub tagFile(IO $file, %tags) {
+    my @commands = tagsToExiftool(%tags);
 
-# See if there are contexts with no keywords.
-sub testContexts(@contexts) {
-    my $bag = BagHash.new;
+    my $proc = run 'exiftool', @commands, $file.Str, :out, :err;
 
-    for @contexts -> $context {
-        ($bag{$context}++ if keywordsInContext($context));
+    my $err = $proc.err.slurp(:close);
+    my $out = $proc.out.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+    }
+}
+
+# Convert a set of tag keywords to a list of arguments suitable exiftool.
+sub tagsToExiftool(%tags) {
+    my @commands;
+
+    for %tags.keys -> $tag {
+        my $formalTag = %config<aliases>{$tag};
+
+        my $operator = "=";
+        if (%tags{$tag} ~~ List) {
+            for %tags{$tag}.list -> $value {
+                $operator = ($value ~~ %tags{$tag}.first) ?? "=" !! "+=";
+                @commands.push("-{$formalTag}{$operator}{$value}");
+            }
+        } else {
+            @commands.push("-{$formalTag}{$operator}{%tags{$tag}}");
+        }
+
     }
 
-    my Set $empties = @contexts (-) $bag.keys;
-
-    if ($empties) {
-        die X::ImageArchive::EmptyContext.new(:offenders($empties.keys));
-    }
+    return @commands;
 }
 
 # See if there are any contexts with no tags.
@@ -404,47 +430,31 @@ sub testContextCoverage(@contexts, %tags) {
     if ($empties.elems > 0) {
         die X::ImageArchive::MissingContext.new(:offenders($empties.keys));
     }
+
 }
 
-# Prompt for tag values that are unique to the image.
-sub askQuestions() {
-    my %answers;
+# See if there are contexts with no keywords.
+sub testContexts(@contexts) {
+    my $bag = BagHash.new;
 
-    for %config<prompts>.sort(*.key) {
-        my $answer = prompt "{$_.value}: ";
-        $answer .= trim;
-        next unless $answer;
-        %answers{$_.key} = ($_.trim for $answer.split(','))
+    for @contexts -> $context {
+        ($bag{$context}++ if keywordsInContext($context));
     }
 
-    return %answers;
-}
+    my Set $empties = @contexts (-) $bag.keys;
 
-sub readConfig() {
-    %config = Config::INI::parse(slurp CONFIG_FILE);
-}
-
-# Convert a set of tag keywords to a list of arguments suitable exiftool.
-sub tagsToExiftool(%tags) {
-    my @commands;
-
-
-    for %tags.keys -> $tag {
-        my $formalTag = %config<aliases>{$tag};
-
-        my $operator = "=";
-        if (%tags{$tag} ~~ List) {
-            for %tags{$tag}.list -> $value {
-                $operator = ($value ~~ %tags{$tag}.first) ?? "=" !! "+=";
-                @commands.push("-{$formalTag}{$operator}{$value}");
-            }
-        } else {
-            @commands.push("-{$formalTag}{$operator}{%tags{$tag}}");
-        }
-
+    if ($empties) {
+        die X::ImageArchive::EmptyContext.new(:offenders($empties.keys));
     }
+}
 
-    return @commands;
+# Determine if the provided keywords are valid.
+sub testKeywords(@keywords) {
+    my $duds = @keywords (-) %config.keys (-) contextNegationKeywords();
+
+    if ($duds) {
+        die X::ImageArchive::BadKeyword.new(:offenders($duds));
+    }
 }
 
 sub writeShellCompletion() {
