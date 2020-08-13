@@ -2,6 +2,7 @@
 
 use Config::INI;
 use Terminal::ANSIColor;
+use DBIish;
 
 our enum Command <completion import setup tag>;
 
@@ -12,7 +13,7 @@ our IO::Path constant CONFIG_FILE = $*HOME.add(".config/ia.conf");
 our %config;
 
 if CONFIG_FILE.e {
-    %config = Config::INI::parse(slurp CONFIG_FILE);
+    readConfig();
 }
 
 # Custom exception thrown when an unknown command is used.
@@ -48,7 +49,6 @@ class X::ImageArchive::FileExists is Exception {
         "A file has already been imported as {$relpath}";
     }
 }
-
 
 # Custom exception thrown when no keywords are provided for a context.
 class X::ImageArchive::MissingContext is Exception {
@@ -103,6 +103,8 @@ multi sub MAIN(Command $command, Str $directory where *.IO.d) {
     given $command {
         when setup {
             writeStarterConfig($directory.IO);
+            readConfig();
+            defineDatabaseSchema();
             writeShellCompletion();
         }
 
@@ -180,6 +182,80 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, *@keywords) {
             exit 1;
         }
     }
+}
+
+sub indexFile(IO $file) {
+    my $proc = run 'exiftool', $file.Str, :out, :err;
+    my $tags = $proc.out.slurp(:close);
+    my $err  = $proc.out.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+    }
+
+    my $dbh = openDatabase();
+    my $sth = $dbh.prepare(q:to/STATEMENT/);
+    INSERT INTO metadata (path, pairs)
+    VALUES (?, ?)
+    STATEMENT
+
+    $sth.execute($file.Str, $tags);
+    $dbh.dispose;
+}
+
+# Open a connection to the SQLite database.
+#
+# Caller is responsible for disposing of the returned handle.
+sub openDatabase() {
+    my $dbPath = %config<_><root>.IO.add("ia.db");
+    return DBIish.connect("SQLite", database => $dbPath);
+}
+
+# Define the SQLite database used for full-text search.
+sub defineDatabaseSchema() {
+    my $dbh = openDatabase();
+
+    $dbh.execute(q:to/STATEMENT/);
+    CREATE TABLE IF NOT EXISTS metadata (
+        id INTEGER PRIMARY KEY,
+        path TEXT,
+        pairs TEXT
+    )
+    STATEMENT
+
+    $dbh.execute(q:to/STATEMENT/);
+    CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(
+        pairs, content=metadata, content_rowid=id
+    )
+    STATEMENT
+
+    $dbh.execute(q:to/STATEMENT/);
+    CREATE TRIGGER IF NOT EXISTS metadata_after_insert
+    AFTER INSERT ON metadata
+    BEGIN
+    INSERT INTO fts(rowid, pairs) VALUES (new.id, new.pairs);
+    END
+    STATEMENT
+
+    $dbh.execute(q:to/STATEMENT/);
+    CREATE TRIGGER IF NOT EXISTS metadata_after_delete
+    AFTER DELETE ON metadata
+    BEGIN
+    INSERT INTO fts(fts, rowid, pairs) VALUES('delete', old.id, old.pairs);
+    END
+    STATEMENT
+
+    $dbh.execute(q:to/STATEMENT/);
+    CREATE TRIGGER IF NOT EXISTS metadta_after_update
+    AFTER UPDATE ON metadata
+    BEGIN
+    INSERT INTO fts(fts, rowid, pairs) VALUES('delete', old.id, old.pairs);
+    INSERT INTO fts(rowid, pairs) VALUES (new.id, new.pairs);
+    END
+    STATEMENT
+
+    $dbh.dispose;
+
 }
 
 # Apply one or more tags specified as keywords to a file.
@@ -273,6 +349,8 @@ sub moveFile(IO $file, IO $parent) {
 
     $destination.IO.chmod(0o400);
 
+    indexFile($destination);
+
     say "Imported {$file.basename} to {$destination}";
 }
 
@@ -340,6 +418,10 @@ sub askQuestions() {
     }
 
     return %answers;
+}
+
+sub readConfig() {
+    %config = Config::INI::parse(slurp CONFIG_FILE);
 }
 
 # Convert a set of tag keywords to a list of arguments suitable exiftool.
