@@ -347,14 +347,6 @@ sub openDatabase() {
     return DBIish.connect("SQLite", database => $dbPath);
 }
 
-# Print the list of keywords to stdout for use with shell completion.
-sub printKeywords() {
-    for %config.keys.sort -> $section {
-        next if $section ~~ any <_ aliases prompts contexts>;
-        say $section;
-    }
-}
-
 # Load the application configuration file.
 sub readConfig() {
     %config = Config::INI::parse(slurp CONFIG_FILE);
