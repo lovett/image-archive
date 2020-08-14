@@ -402,13 +402,18 @@ sub readTag(IO $file, $tag) {
 sub tagFile(IO $file, %tags) {
     my $uuid = readTag($file.IO, 'id');
 
+    # Store the informal tag names (aliases), minus anything auto-generated.
+    # Just in case it would be useful during a subsequent tagging operation.
+    %tags<informaltag> = %tags.keys.sort;
+
     unless ($uuid) {
         %tags<id> = generateUuid();
     }
 
     %tags<datetagged> = DateTime.now();
 
-    my @commands = tagsToExiftool(%tags);
+
+    my @commands = tagsToExifTool(%tags);
 
     my $proc = run 'exiftool', @commands, $file.Str, :out, :err;
 
@@ -421,7 +426,7 @@ sub tagFile(IO $file, %tags) {
 }
 
 # Convert a set of tag keywords to a list of arguments suitable exiftool.
-sub tagsToExiftool(%tags) {
+sub tagsToExifTool(%tags) {
     my @commands;
 
     for %tags.keys -> $tag {
@@ -558,10 +563,12 @@ sub writeStarterConfig(IO::Path $root) {
     ; Since tag names are verbose and akward to type, map them to more friendly
     ; equivalents. Keys are the informal name and values are the formal counterpart.
     [aliases]
-    caption     = XMP-dc:description
+    caption     = XMP-xmp:Description
     colormode   = XMP-photoshop:ColorMode
-    datecreated = XMP-photoshop:DateCreated
+    datecreated = XMP-xmp:CreateDate
     datetagged  = XMP-xmp:MetadataDate
+    id          = XMP-dc:Identifier
+    informaltag = XMP-photoshop:SupplementalCategories
     location    = XMP-iptcExt:LocationCreated
     model       = Model
     object      = ArtworkOrObject
