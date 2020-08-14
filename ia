@@ -246,6 +246,11 @@ sub defineDatabaseSchema() {
     STATEMENT
 
     $dbh.execute(q:to/STATEMENT/);
+    CREATE UNIQUE INDEX IF NOT EXISTS metadata_uuid
+    ON metadata(uuid)
+    STATEMENT
+
+    $dbh.execute(q:to/STATEMENT/);
     CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(
         tags, content=metadata, content_rowid=id
     )
@@ -317,6 +322,8 @@ sub indexFile(IO $file) {
     my $sth = $dbh.prepare(q:to/STATEMENT/);
     INSERT INTO metadata (uuid, path, tags)
     VALUES (?, ?, ?)
+    ON CONFLICT (uuid) DO UPDATE
+    SET path=excluded.path, tags=excluded.tags
     STATEMENT
 
     $sth.execute($uuid, $rootRelativePath, $json);
