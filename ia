@@ -5,12 +5,15 @@ use DBIish;
 use Terminal::ANSIColor;
 
 our enum Command <completion import setup tag>;
+our enum Mode <normal dryrun>;
 
 our Str constant SCRIPT_VERSION = "2020.08";
 
 our IO::Path constant CONFIG_FILE = $*HOME.add(".config/ia.conf");
 
 our %config;
+
+our $operatingMode = normal;
 
 if CONFIG_FILE.e {
     readConfig();
@@ -128,7 +131,9 @@ multi sub MAIN(Command $command, Str $directory where *.IO.d) {
 }
 
 # Entry point for commands dealing with files.
-multi sub MAIN(Command $command, Str $file where *.IO.f) {
+multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False) {
+    setOperatingMode($dryrun);
+
     given $command {
         when import {
             my $tagValue = readTag($file.IO, 'datecreated');
@@ -154,7 +159,9 @@ multi sub MAIN(Command $command, Str $file where *.IO.f) {
 }
 
 # Entry point for commands dealing with files and keywords.
-multi sub MAIN(Command $command, Str $file where *.IO.f, *@keywords) {
+multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
+    setOperatingMode($dryrun);
+
     given $command {
         when tag {
             testKeywords(@keywords);
@@ -364,7 +371,14 @@ sub keywordsToTags(@keywords) {
 # Move a file to a subfolder under the archive root.
 sub moveFile(IO $file, IO $parent) {
     unless ($parent ~~ :d) {
-        $parent.mkdir();
+        given $operatingMode {
+            when dryrun {
+                wouldHaveDone("mkdir {$parent}");
+            }
+            default {
+                $parent.mkdir();
+            }
+        }
     }
 
     my $destination = $parent.add($file.basename);
@@ -373,13 +387,20 @@ sub moveFile(IO $file, IO $parent) {
         die X::ImageArchive::FileExists.new(:path($destination));
     }
 
-    move($file, $destination);
+    given $operatingMode {
+        when dryrun {
+            wouldHaveDone("Move {$file} to {$destination}");
+            wouldHaveDone("Chmod {$destination} to read-only");
+            wouldHaveDone("Add {$destination} to the database.");
+        }
 
-    $destination.IO.chmod(0o400);
-
-    indexFile($destination);
-
-    say "Imported {$file.basename} to {$destination}";
+        default {
+            move($file, $destination);
+            $destination.IO.chmod(0o400);
+            indexFile($destination);
+            say "Imported {$file.basename} to {$destination}";
+        }
+    }
 }
 
 # Open a connection to the SQLite database.
@@ -432,6 +453,11 @@ sub restoreOriginal(IO $file) {
     }
 }
 
+# Change to an alternate mode of behavior.
+sub setOperatingMode($dryRun) {
+    $operatingMode = ($dryRun) ?? dryrun !! normal;
+}
+
 # Apply one or more tags specified as keywords to a file.
 sub tagFile(IO $file, %tags, @keywords) {
     my $uuid = readTag($file.IO, 'id');
@@ -449,22 +475,30 @@ sub tagFile(IO $file, %tags, @keywords) {
 
     my @commands = tagsToExifTool(%tags);
 
-    my $proc = run 'exiftool', @commands, $file.Str, :out, :err;
+    given $operatingMode {
+        when dryrun {
+            wouldHaveDone("exiftool {@commands} {$file}");
+        }
 
-    my $err = $proc.err.slurp(:close);
-    my $out = $proc.out.slurp(:close);
+        default {
+            my $proc = run 'exiftool', @commands, $file.Str, :out, :err;
 
-    if ($proc.exitcode !== 0) {
-        restoreOriginal($file);
-        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+            my $err = $proc.err.slurp(:close);
+            my $out = $proc.out.slurp(:close);
+
+            if ($proc.exitcode !== 0) {
+                restoreOriginal($file);
+                die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+            }
+
+            if ($err) {
+                restoreOriginal($file);
+                die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+            }
+
+            removeOriginal($file);
+        }
     }
-
-    if ($err) {
-        restoreOriginal($file);
-        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
-    }
-
-    removeOriginal($file);
 }
 
 # Convert a set of tag keywords to a list of arguments suitable exiftool.
@@ -572,6 +606,13 @@ sub writeShellCompletion() {
         }
     }
 }
+
+# Print a messsage to stdout indicating what would have happened if
+# the --dryrun flag had not been specified.
+sub wouldHaveDone(Str $message) {
+    say colored("DRYRUN", "magenta") ~ " " ~ $message;
+}
+
 
 # Create a config file based on a default template.
 sub writeStarterConfig(IO::Path $root) {
