@@ -409,9 +409,9 @@ sub readTag(IO $file, $tag) {
 sub tagFile(IO $file, %tags) {
     my $uuid = readTag($file.IO, 'id');
 
-    # Store the informal tag names (aliases), minus anything auto-generated.
-    # Just in case it would be useful during a subsequent tagging operation.
-    %tags<informaltag> = %tags.keys.sort;
+    # Storing the aliases makes it possible to locate images based on
+    # how they were tagged (as opposed to what they were tagged with).
+    %tags<aliases> = %tags.keys.sort;
 
     unless ($uuid) {
         %tags<id> = generateUuid();
@@ -573,12 +573,13 @@ sub writeStarterConfig(IO::Path $root) {
     ; Since tag names are verbose and akward to type, map them to more friendly
     ; equivalents. Keys are the informal name and values are the formal counterpart.
     [aliases]
+    alias       = XMP-photoshop:SupplementalCategories
+    author      = XMP-xmp:Author
     caption     = XMP-xmp:Description
     colormode   = XMP-photoshop:ColorMode
     datecreated = XMP-xmp:CreateDate
     datetagged  = XMP-xmp:MetadataDate
     id          = XMP-dc:Identifier
-    informaltag = XMP-photoshop:SupplementalCategories
     location    = XMP-iptcExt:LocationCreated
     model       = Model
     object      = ArtworkOrObject
