@@ -169,7 +169,7 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, *@keywords) {
 
             %tags.append(askQuestions());
 
-            tagFile($file.IO, %tags);
+            tagFile($file.IO, %tags, @keywords);
         }
 
         default {
@@ -406,12 +406,12 @@ sub readTag(IO $file, $tag) {
 }
 
 # Apply one or more tags specified as keywords to a file.
-sub tagFile(IO $file, %tags) {
+sub tagFile(IO $file, %tags, @keywords) {
     my $uuid = readTag($file.IO, 'id');
 
     # Storing the aliases makes it possible to locate images based on
     # how they were tagged (as opposed to what they were tagged with).
-    %tags<aliases> = %tags.keys.sort;
+    %tags<alias> = @keywords.sort;
 
     unless ($uuid) {
         %tags<id> = generateUuid();
