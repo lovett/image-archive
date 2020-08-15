@@ -44,12 +44,12 @@ class X::ImageArchive::EmptyContext is Exception {
     }
 }
 
-# Custom exception thrown when an exiftool call exits nonzero.
+# Custom exception thrown when an exiftool call exits nonzero or writes to stderr.
 class X::ImageArchive::ExifToolIsDispleased is Exception {
     has Str $.err;
 
     method message {
-        say $!err;
+        $!err;
     }
 }
 
@@ -192,6 +192,11 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, *@keywords) {
         when X::ImageArchive::MissingContext {
             note colored($_.message, 'red bold');
             $_.suggest();
+            exit 1;
+        }
+
+        when X::ImageArchive::ExifToolIsDispleased {
+            note colored($_.message, 'red bold');
             exit 1;
         }
     }
@@ -405,6 +410,28 @@ sub readTag(IO $file, $tag) {
     return chomp($out);
 }
 
+# Discard the backup copy of a file Exiftool has modified.
+#
+# Equivalent to exiftool -delete_original! but handled directly.
+sub removeOriginal(IO $file) {
+    my $original = $file.Str ~ "_original";
+
+    if ($original.IO.f) {
+        $original.IO.unlink();
+    }
+}
+
+# Recover the backup copy of a file Exiftool has modified.
+#
+# Equivalent to exiftool -restore_original but handled directly.
+sub restoreOriginal(IO $file) {
+    my $original = $file.Str ~ "_original";
+
+    if ($original.IO.f) {
+        rename($original.IO, $file);
+    }
+}
+
 # Apply one or more tags specified as keywords to a file.
 sub tagFile(IO $file, %tags, @keywords) {
     my $uuid = readTag($file.IO, 'id');
@@ -428,8 +455,16 @@ sub tagFile(IO $file, %tags, @keywords) {
     my $out = $proc.out.slurp(:close);
 
     if ($proc.exitcode !== 0) {
+        restoreOriginal($file);
         die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
     }
+
+    if ($err) {
+        restoreOriginal($file);
+        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+    }
+
+    removeOriginal($file);
 }
 
 # Convert a set of tag keywords to a list of arguments suitable exiftool.
