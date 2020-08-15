@@ -548,6 +548,9 @@ sub writeStarterConfig(IO::Path $root) {
     spurt CONFIG_FILE, qq:to/END/;
     ; This is the configuration file for image-archive (ia)
     ; It uses the INI file format.
+    ;
+    ; After making changes to this file, regenerate the shell completion
+    ; file by running: ia completion
 
     [_]
     ; Where the images are stored.
