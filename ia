@@ -4,7 +4,7 @@ use Config::INI;
 use DBIish;
 use Terminal::ANSIColor;
 
-our enum Command <completion import setup tag>;
+our enum Command <completion deport import setup tag trash>;
 our enum Mode <normal dryrun>;
 
 our Str constant SCRIPT_VERSION = "2020.08";
@@ -56,12 +56,18 @@ class X::ImageArchive::ExifToolIsDispleased is Exception {
     }
 }
 
-# Custom exception thrown during import when a destination already exists.
+# Custom exception thrown when a destination path already exists.
 class X::ImageArchive::FileExists is Exception {
     has IO $.path;
     method message {
-        my $relpath = $!path.relative(%config<_><root>);
-        "A file has already been imported as {$relpath}";
+        "The file {$!path} already exists.";
+    }
+}
+
+# Custom exception thrown during deport when a target file is not found.
+class X::ImageArchive::FileNotFoundInArchive is Exception {
+    method message {
+        "No such file found under {%config<_><root>}";
     }
 }
 
@@ -83,6 +89,13 @@ class X::ImageArchive::MissingContext is Exception {
             say colored("{$context} keywords", 'cyan') ~ "\n" ~ @keywords.sort.join(", ") ~ "\n";
 
         }
+    }
+}
+
+# Custom exception thrown if trash command cannot be identified.
+class X::ImageArchive::TrashPathNotFound is Exception {
+    method message {
+        "Cannot locate Trash folder.";
     }
 }
 
@@ -135,6 +148,10 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False) 
     setOperatingMode($dryrun);
 
     given $command {
+        when deport {
+            deportFile($file.IO, $*CWD.IO);
+        }
+
         when import {
             my $tagValue = readTag($file.IO, 'datecreated');
             if (!$tagValue) {
@@ -146,11 +163,22 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False) 
 
             my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
 
-            moveFile($file.IO, $destinationDir);
+            importFile($file.IO, $destinationDir);
+        }
+
+        when trash {
+            my $trashFolder = findTrashFolder();
+            deportFile($file.IO, $trashFolder);
         }
 
         CATCH {
-            when X::ImageArchive::FileExists {
+            my @usualSuspects = (
+                X::ImageArchive::FileExists,
+                X::ImageArchive::FileNotFoundInArchive,
+                X::ImageArchive::TrashPathNotFound
+            );
+
+            if ($_ ~~ any @usualSuspects) {
                 note colored($_.message, 'red bold');
                 exit 1;
             }
@@ -296,6 +324,64 @@ sub defineDatabaseSchema() {
     $dbh.dispose;
 }
 
+# Remove a file from the archive.
+sub deportFile(IO $file, IO $parent) {
+    testFileExistsInArchive($file);
+
+    my $destination = $parent.add($file.basename);
+
+
+    if ($destination.IO ~~ :f) {
+        my Str $answer = prompt "Overwrite the existing file at {$destination} [y/N]: ";
+        unless ($answer eq "y") {
+            exit;
+        }
+    }
+
+    given $operatingMode {
+        when dryrun {
+            wouldHaveDone("Remove {$file} from the database.");
+            wouldHaveDone("Move {$file} to {$destination}");
+            wouldHaveDone("Chmod {$destination} to read-write");
+        }
+
+        default {
+            deindexFile($file);
+            move($file, $destination);
+            $destination.IO.chmod(0o600);
+        }
+    }
+}
+
+# Remove a file from the database.
+sub deindexFile(IO $file) {
+    my $uuid = readTag($file, 'id');
+    my $rootRelativePath = $file.relative(%config<_><root>);
+
+    my $dbh = openDatabase();
+    my $sth = $dbh.prepare(q:to/STATEMENT/);
+    DELETE FROM metadata WHERE uuid=? OR path=?
+    STATEMENT
+
+    $sth.execute($uuid, $rootRelativePath);
+    $dbh.dispose;
+}
+
+# Figure
+sub findTrashFolder() {
+    my @candidates = [
+        $*HOME.add(".Trash"),
+        $*HOME.add(".local/share/Trash")
+    ];
+
+    for @candidates -> $candidate {
+        next unless $candidate.d;
+        return $candidate;
+    }
+
+    die X::ImageArchive::TrashPathFound.new();
+}
+
 # Create a new UUID using external utilities.
 sub generateUuid() {
     my @generators = </proc/sys/kernel/random/uuid /usr/bin/uuidgen>;
@@ -369,7 +455,7 @@ sub keywordsToTags(@keywords) {
 }
 
 # Move a file to a subfolder under the archive root.
-sub moveFile(IO $file, IO $parent) {
+sub importFile(IO $file, IO $parent) {
     unless ($parent ~~ :d) {
         given $operatingMode {
             when dryrun {
@@ -557,6 +643,13 @@ sub testContexts(@contexts) {
 
     if ($empties) {
         die X::ImageArchive::EmptyContext.new(:offenders($empties.keys));
+    }
+}
+
+# See if a file exists within the archive root.
+sub testFileExistsInArchive(IO $file) {
+    unless ($file.absolute.starts-with(%config<_><root>)) {
+        die X::ImageArchive::FileNotFoundInArchive.new;
     }
 }
 
