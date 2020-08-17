@@ -86,8 +86,8 @@ class X::ImageArchive::MissingContext is Exception {
 
         for %contexts.kv -> $context, $aliases {
             my @keywords = keywordsInContext($context);
-            say colored("{$context} keywords", 'cyan') ~ "\n" ~ @keywords.sort.join(", ") ~ "\n";
-
+            say colored("{$context} keywords", 'cyan') ~ "\n" ~ @keywords.sort.join(", ");
+            say "to disable: " ~ colored("no{$context}", 'yellow') ~ "\n"
         }
     }
 }
@@ -428,15 +428,18 @@ sub indexFile(IO $file) {
     $dbh.dispose;
 }
 
-# Find all known keywords for a given context.
+# Find all keywords referenced by a context.
+#
+# A context can consist of aliases or keywords.
 sub keywordsInContext($context) {
     my @keywords;
 
-    my @aliases = commaSplit(%config<contexts>{$context});
+    my @terms = commaSplit(%config<contexts>{$context});
 
     for %config.kv -> $section, %members {
         next if $section ~~ any <_ aliases prompts contexts>;
-        next unless %members.keys (&) @aliases;
+
+        next unless %members.keys (&) @terms or $section ~~ any @terms;
         @keywords.push($section)
     }
 
@@ -762,15 +765,19 @@ sub writeStarterConfig(IO::Path $root) {
 
     ; Contexts
     ;
-    ; A context is a list of comma-separated tag aliases. They are a way to
-    ; enforce comprehensive tagging by requiring at least one keyword from
-    ; each list to be present.
+    ; A context is a list of comma-separated tag aliases or keywords. They
+    ; are a way of enforcing comprehensive tagging by requiring at least one
+    ; item from each list to be present.
+
     [contexts]
+    author = author
+    count = single, two, group
     location = location
     object = object
     people = person
-    relationship = subjectcode
+    relationship = family, marriage, parentchild
     scene = scene
+    setting = interiorview, exteriorview
     source = model, sourcetype, colormode
 
     ; Keywords
