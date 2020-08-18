@@ -163,6 +163,8 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False) 
                 unless ($answer eq "y") {
                     exit;
                 }
+
+                $tagValue = "undated";
             }
 
             my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
