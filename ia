@@ -751,7 +751,7 @@ sub writeStarterConfig(IO::Path $root) {
     ; Use this to gather tag information that varies from file to file.
     ; Keys are aliases and values are the question text.
     [prompts]
-    datecreated = Date the picture was taked (YYYY-MM-DD or partial)
+    datecreated = Date the picture was taken (YYYY-MM-DD or partial)
     caption     = Caption
     keyword     = Additional keywords
     series      = Series or batch
