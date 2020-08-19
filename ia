@@ -200,14 +200,13 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False, 
         when tag {
             testKeywords(@keywords);
 
-            my %tags = keywordsToTags(@keywords);
-
             my @contexts = activeContexts(@keywords);
 
             testContexts(@contexts);
 
-            testContextCoverage(@contexts, %tags);
+            testContextCoverage(@contexts, @keywords);
 
+            my %tags = keywordsToTags(@keywords);
             %tags.append(askQuestions());
 
             tagFile($file.IO, %tags, @keywords);
@@ -629,8 +628,8 @@ sub tagsToExifTool(%tags) {
     return @commands;
 }
 
-# See if there are any contexts with no tags.
-sub testContextCoverage(@contexts, %tags) {
+# See if there are any contexts with no keywords.
+sub testContextCoverage(@contexts, @keywords) {
 
     # zipwith meta operator
     # See https://rosettacode.org/wiki/Hash_from_two_arrays#Raku
@@ -639,8 +638,9 @@ sub testContextCoverage(@contexts, %tags) {
     my $bag = BagHash.new;
 
     for %contexts.kv -> $key, $values {
-        my @tags = commaSplit($values);
-        ($bag{$key}++ if @tags (&) %tags.keys);
+        my @terms = commaSplit($values);
+
+        ($bag{$key}++ if @terms (&) @keywords or @keywords (&) keywordsInContext($key));
     }
 
     my Set $empties = @contexts (-) $bag.keys;
