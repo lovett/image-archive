@@ -519,6 +519,21 @@ sub openDatabase() {
 # Load the application configuration file.
 sub readConfig() {
     %config = Config::INI::parse(slurp CONFIG_FILE);
+
+    for %config.keys -> $section {
+        next if $section ~~ any <_ aliases prompts contexts>;
+
+        for %config{$section}.kv -> $key, $value {
+
+            # Unescape backslash followed by punctuation (\', \", etc).
+            %config{$section}{$key} ~~ s:g/ \\ (<punct>) /$0/;
+
+            # Serialize structs
+            if ($value.contains('{')) {
+                %config{$section}{$key} ~~ s:g/ (<-[ , | \s ]>)\s+ /$0\| /;
+            }
+        }
+    }
 }
 
 # Extract a tag specified from a file.
