@@ -148,7 +148,7 @@ multi sub MAIN(Command $command, Str $directory where *.IO.d) {
 }
 
 # Entry point for commands dealing with files.
-multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False) {
+multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False, Bool :$with-certainty = False) {
     setOperatingMode($dryrun);
 
     given $command {
@@ -159,12 +159,15 @@ multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False) 
         when import {
             my $tagValue = readTag($file.IO, 'datecreated');
             if (!$tagValue) {
-                my Str $answer = prompt "No date tag found. Still continue? [y/N]: ";
-                unless ($answer eq "y") {
-                    exit;
+                $tagValue = "undated";
+
+                unless ($with-certainty) {
+                    my Str $answer = prompt "No date tag found. Still continue? [y/N]: ";
+                    unless ($answer eq "y") {
+                        exit;
+                    }
                 }
 
-                $tagValue = "undated";
             }
 
             my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
