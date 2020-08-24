@@ -4,7 +4,6 @@ use Config::INI;
 use DBIish;
 use Terminal::ANSIColor;
 
-our enum Command <completion dbshell deport import setup tag trash>;
 our enum Mode <normal dryrun>;
 
 our Str constant SCRIPT_VERSION = "2020.08";
@@ -21,13 +20,6 @@ if CONFIG_FILE.e {
 
 # Exceptions
 # ------------------------------------------------------------------------
-
-# Custom exception thrown when an unknown command is used.
-class X::ImageArchive::BadCommand is Exception {
-    method message() {
-        "Unexpected command. Cannot proceed.";
-    }
-}
 
 # Custom exception thrown when an unknown keyword is used.
 class X::ImageArchive::BadKeyword is Exception {
@@ -108,138 +100,82 @@ class X::ImageArchive::UUID is Exception {
 
 # Entry points
 # ------------------------------------------------------------------------
+proto MAIN(|) {
+    # Suppress backtrace. Taken from zef's CLI.pm6.
+    CATCH {
+        default {
+            try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red bold'); &*EXIT(1)
+        }
+    }
+    {*}
+}
 
-# Entry point for --version flag.
 multi sub MAIN(Bool :$version) {
     say SCRIPT_VERSION if $version;
 }
 
-# Entry point for commands that take no arguments.
-multi sub MAIN(Command $command) {
-    given $command {
-        when completion {
-            writeShellCompletion();
-        }
-
-        when dbshell {
-            invokeSqlite();
-        }
-
-        default {
-            die X::ImageArchive::BadCommand.new;
-        }
-    }
+multi sub MAIN('completion') {
+    writeShellCompletion();
 }
 
-# Entry point for commands dealing with directories.
-multi sub MAIN(Command $command, Str $directory where *.IO.d) {
-    given $command {
-        when setup {
-            writeStarterConfig($directory.IO);
-            readConfig();
-            defineDatabaseSchema();
-            writeShellCompletion();
-        }
-
-        default {
-            die X::ImageArchive::BadCommand.new;
-        }
-    }
+multi sub MAIN('dbshell') {
+    invokeSqlite();
 }
 
-# Entry point for commands dealing with files.
-multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False, Bool :$with-certainty = False) {
+multi sub MAIN('setup', Str $directory where *.IO.d) {
+    writeStarterConfig($directory.IO);
+    readConfig();
+    defineDatabaseSchema();
+    writeShellCompletion();
+}
+
+multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
+    setOperatingMode($dryrun);
+    deportFile($file.IO, $*CWD.IO);
+}
+
+multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun, Bool :$with-certainty) {
     setOperatingMode($dryrun);
 
-    given $command {
-        when deport {
-            deportFile($file.IO, $*CWD.IO);
-        }
+    my $tagValue = readTag($file.IO, 'datecreated') || 'undated';
 
-        when import {
-            my $tagValue = readTag($file.IO, 'datecreated');
-            if (!$tagValue) {
-                $tagValue = "undated";
-
-                unless ($with-certainty) {
-                    my Str $answer = prompt "No date tag found. Still continue? [y/N]: ";
-                    unless ($answer eq "y") {
-                        exit;
-                    }
-                }
-
-            }
-
-            my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
-
-            importFile($file.IO, $destinationDir);
-        }
-
-        when trash {
-            my $trashFolder = findTrashFolder();
-            deportFile($file.IO, $trashFolder);
-        }
-
-        CATCH {
-            my @usualSuspects = (
-                X::ImageArchive::FileExists,
-                X::ImageArchive::FileNotFoundInArchive,
-                X::ImageArchive::TrashPathNotFound
-            );
-
-            if ($_ ~~ any @usualSuspects) {
-                note colored($_.message, 'red bold');
-                exit 1;
-            }
-        }
+    if ($tagValue eq 'undated' && !$with-certainty) {
+        my Str $answer = prompt "No date tag found. Still continue? [y/N]: ";
+        exit unless $answer eq "y";
     }
+
+    my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
+
+    importFile($file.IO, $destinationDir);
 }
 
-# Entry point for commands dealing with files and keywords.
-multi sub MAIN(Command $command, Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
+multi sub MAIN('trash', Str $file where *.IO.f, Bool :$dryrun = False) {
     setOperatingMode($dryrun);
 
-    given $command {
-        when tag {
-            testKeywords(@keywords);
+    my $trashFolder = findTrashFolder();
+    deportFile($file.IO, $trashFolder);
+}
 
-            my @contexts = activeContexts(@keywords);
+multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
+    setOperatingMode($dryrun);
 
-            testContexts(@contexts);
+    testKeywords(@keywords);
 
-            testContextCoverage(@contexts, @keywords);
+    my @contexts = activeContexts(@keywords);
 
-            my %tags = keywordsToTags(@keywords);
-            %tags.append(askQuestions());
+    testContexts(@contexts);
 
-            tagFile($file.IO, %tags, @keywords);
-        }
+    testContextCoverage(@contexts, @keywords);
 
-        default {
-            die X::ImageArchive::BadCommand.new;
-        }
-    }
+    my %tags = keywordsToTags(@keywords);
+    %tags.append(askQuestions());
+
+    tagFile($file.IO, %tags, @keywords);
 
     CATCH {
-        my @usualSuspects = (
-            X::ImageArchive::BadCommand,
-            X::ImageArchive::EmptyContext,
-            X::ImageArchive::BadKeyword,
-        );
-
-        if ($_ ~~ any @usualSuspects) {
-            note colored($_.message, 'red bold');
-            exit 1;
-        }
-
         when X::ImageArchive::MissingContext {
             note colored($_.message, 'red bold');
             $_.suggest();
-            exit 1;
-        }
-
-        when X::ImageArchive::ExifToolIsDispleased {
-            note colored($_.message, 'red bold');
             exit 1;
         }
     }
@@ -338,12 +274,9 @@ sub deportFile(IO $file, IO $parent) {
 
     my $destination = $parent.add($file.basename);
 
-
     if ($destination.IO ~~ :f) {
-        my Str $answer = prompt "Overwrite the existing file at {$destination} [y/N]: ";
-        unless ($answer eq "y") {
-            exit;
-        }
+        my Str $answer = prompt "Overwrite {$file.basename} in {$parent}? [y/N]: ";
+        exit unless $answer eq "y";
     }
 
     given $operatingMode {
