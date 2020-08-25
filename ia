@@ -140,8 +140,7 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun, Bool :$with-cert
     my $tagValue = readTag($file.IO, 'datecreated') || 'undated';
 
     if ($tagValue eq 'undated' && !$with-certainty) {
-        my Str $answer = prompt "No date tag found. Still continue? [y/N]: ";
-        exit unless $answer eq "y";
+        confirm('No date tag found. Still continue?');
     }
 
     my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
@@ -210,6 +209,11 @@ sub commaSplit(Str $value) {
     $value.split(/ \s* \, \s* /);
 }
 
+# Ask a yes-or-no question and exit if the answer isn't yes.
+sub confirm(Str $question) {
+    exit unless (prompt "{$question} [y/N]: ") eq 'y';
+}
+
 # Determine the set of negation keywords for all known contexts.
 # A negation keyword is the name of a context prefixed with "no".
 sub contextNegationKeywords() {
@@ -275,8 +279,7 @@ sub deportFile(IO $file, IO $parent) {
     my $destination = $parent.add($file.basename);
 
     if ($destination.IO ~~ :f) {
-        my Str $answer = prompt "Overwrite {$file.basename} in {$parent}? [y/N]: ";
-        exit unless $answer eq "y";
+        confirm("Overwrite {$file.basename} in {$parent}?");
     }
 
     given $operatingMode {
