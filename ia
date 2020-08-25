@@ -637,7 +637,7 @@ sub testKeywords(@keywords) {
 }
 
 sub writeShellCompletion() {
-    my $keywords = ($_ unless $_ ~~ any <_ aliases prompts contexts> for %config.keys).join(' ');
+    my $keywords = ($_ unless $_ ~~ any <_ aliases prompts contexts> for %config.keys) (|) ('no' ~ $_ for %config<contexts>.keys);
 
     given %*ENV<SHELL>.IO.basename {
 
@@ -672,7 +672,7 @@ sub writeShellCompletion() {
             {$prefix} --condition="__fish_seen_subcommand_from setup" --arguments="(__fish_complete_subcommand)"
 
             {$prefix} --arguments=tag
-            {$prefix} --condition="__fish_seen_subcommand_from tag" --arguments="(__fish_complete_path) {$keywords}"
+            {$prefix} --condition="__fish_seen_subcommand_from tag" --arguments="(__fish_complete_path) {$keywords.keys.sort.join(' ')}"
 
             {$prefix} --arguments=trash
             {$prefix} --condition="__fish_seen_subcommand_from trash" --arguments="(__fish_complete_subcommand)"
