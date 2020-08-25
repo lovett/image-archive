@@ -1,5 +1,7 @@
 *.bak
-*.jpe?g
+*.jpeg
+*.jpg
 *.png
 *.tiff
+*_original
 testroot
