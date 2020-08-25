@@ -536,11 +536,11 @@ sub tagFile(IO $file, %tags, @keywords) {
 
     given $operatingMode {
         when dryrun {
-            wouldHaveDone("exiftool {@commands} {$file}");
+            wouldHaveDone("exiftool -ignoreMinorErrors {@commands} {$file}");
         }
 
         default {
-            my $proc = run 'exiftool', @commands, $file.Str, :out, :err;
+            my $proc = run <exiftool -ignoreMinorErrors>, @commands, $file.Str, :out, :err;
 
             my $err = $proc.err.slurp(:close);
             my $out = $proc.out.slurp(:close);
