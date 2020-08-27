@@ -333,11 +333,16 @@ sub generateUuid() {
     for @generators -> $generator {
         next unless ($generator.IO.f);
 
-        my $proc = run $generator, :out, :err;
-        my $id = $proc.out.slurp(:close);
-
-        if ($proc.exitcode == 0) {
+        if ($generator.starts-with('/proc/')) {
+            my $id = $generator.IO.slurp();
             return chomp($id);
+        } else {
+            my $proc = run $generator, :out, :err;
+            my $id = $proc.out.slurp(:close);
+
+            if ($proc.exitcode == 0) {
+                return chomp($id);
+            }
         }
     }
 
