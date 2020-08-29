@@ -134,6 +134,14 @@ multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
     deportFile($file.IO, $*CWD.IO);
 }
 
+multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
+    setOperatingMode($dryrun);
+
+    my %tags = askQuestions();
+
+    tagFile($file.IO, %tags);
+}
+
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun, Bool :$with-certainty) {
     setOperatingMode($dryrun);
 
@@ -178,6 +186,38 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
             exit 1;
         }
     }
+}
+
+multi sub MAIN(
+    'untag',
+    Str $file where *.IO.f,
+    Str $alias where { %config<aliases>{$alias}:exists },
+    Str $value='',
+    Bool :$dryrun = False
+) {
+    setOperatingMode($dryrun);
+
+    untagFile($file.IO, %($alias, $value));
+
+    unless ($operatingMode eq dryrun) {
+        my $value = readTag($file.IO, $alias);
+        say $value if $value;
+    }
+}
+
+multi sub MAIN(
+    'untag',
+    Str $file where *.IO.f,
+    Bool :$dryrun = False,
+    *@keywords
+) {
+    setOperatingMode($dryrun);
+
+    testKeywords(@keywords);
+
+    my %tags = keywordsToTags(@keywords);
+
+    untagFile($file.IO, %tags, @keywords);
 }
 
 # Internal functions
@@ -523,22 +563,28 @@ sub setOperatingMode($dryRun) {
 }
 
 # Apply one or more tags specified as keywords to a file.
-sub tagFile(IO $file, %tags, @keywords) {
+sub tagFile(IO $file, %tags, @keywords?) {
     my $uuid = readTag($file.IO, 'id');
-
-    # Storing the aliases makes it possible to locate images based on
-    # how they were tagged (as opposed to what they were tagged with).
-    %tags<alias> = @keywords.sort;
 
     unless ($uuid) {
         %tags<id> = generateUuid();
     }
 
-    %tags<datetagged> = DateTime.now();
+    # Storing the aliases makes it possible to locate images based on
+    # how they were tagged (as opposed to what they were tagged with).
+    if (@keywords) {
+        %tags<alias> = @keywords.sort;
+    }
 
+    %tags<datetagged> = DateTime.now();
 
     my @commands = tagsToExifTool(%tags);
 
+    commitTags($file, @commands);
+}
+
+# Write one or more tags to a file via exiftool.
+sub commitTags(IO $file, @commands) {
     given $operatingMode {
         when dryrun {
             wouldHaveDone("exiftool -ignoreMinorErrors {@commands} {$file}");
@@ -565,23 +611,25 @@ sub tagFile(IO $file, %tags, @keywords) {
     }
 }
 
-# Convert a set of tag keywords to a list of arguments suitable exiftool.
+# Convert a set of tag keywords to a list of arguments suitable for exiftool.
 sub tagsToExifTool(%tags) {
     my @commands;
 
     for %tags.keys -> $tag {
         my $formalTag = %config<aliases>{$tag};
 
-        my $operator = "=";
-        if (%tags{$tag} ~~ List) {
-            for %tags{$tag}.list -> $value {
-                $operator = ($value ~~ %tags{$tag}.first) ?? "=" !! "+=";
-                @commands.push("-{$formalTag}{$operator}{$value}");
-            }
-        } else {
-            @commands.push("-{$formalTag}{$operator}{%tags{$tag}}");
-        }
+        my $value = %tags{$tag};
 
+        if ($value ~~ List) {
+            for $value.list -> $item {
+                my $operator = ($item ~~ $value.first) ?? "=" !! "+=";
+                @commands.push("-{$formalTag}{$operator}{$item}");
+            }
+        } elsif ($value ~~ Str && $value.starts-with('-')) {
+            @commands.push("-{$formalTag}-={$value.substr(1)}");
+        } else {
+            @commands.push("-{$formalTag}={$value}");
+        }
     }
 
     return @commands;
@@ -641,6 +689,41 @@ sub testKeywords(@keywords) {
     }
 }
 
+# Remove tag values from a file.
+sub untagFile(IO $file, %tags, @keywords?) {
+    if (@keywords) {
+        %tags<alias> = @keywords.sort;
+    }
+
+    for %tags.kv -> $tag, $value {
+        if ($value eq '') {
+            next;
+        }
+
+        my $currentValue = readTag($file.IO, $tag);
+
+        if ($currentValue eq '') {
+            next;
+        }
+
+        if ($currentValue.contains('{')) {
+            %tags{$tag} = '';
+            next;
+        }
+
+        if ($currentValue.contains(',')) {
+            %tags{$tag} = commaSplit($currentValue) (-) $value;
+            next;
+        }
+
+        %tags{$tag} = $currentValue.subst($value, '').subst(/ \s+ /, ' ', :g).trim();
+    }
+
+    my @commands = tagsToExifTool(%tags);
+
+    commitTags($file, @commands);
+}
+
 sub writeShellCompletion() {
     my $keywords = ($_ unless $_ ~~ any <_ aliases prompts contexts> for %config.keys) (|) ('no' ~ $_ for %config<contexts>.keys);
 
@@ -673,6 +756,9 @@ sub writeShellCompletion() {
             {$prefix} --arguments=import
             {$prefix} --condition="__fish_seen_subcommand_from import" --arguments="(__fish_complete_subcommand)"
 
+            {$prefix} --arguments=reprompt
+            {$prefix} --condition="__fish_seen_subcommand_from reprompt" --arguments="(__fish_complete_subcommand)"
+
             {$prefix} --arguments=setup
             {$prefix} --condition="__fish_seen_subcommand_from setup" --arguments="(__fish_complete_subcommand)"
 
@@ -681,6 +767,10 @@ sub writeShellCompletion() {
 
             {$prefix} --arguments=trash
             {$prefix} --condition="__fish_seen_subcommand_from trash" --arguments="(__fish_complete_subcommand)"
+
+            {$prefix} --arguments=untag
+            {$prefix} --condition="__fish_seen_subcommand_from untag" --arguments="(__fish_complete_path) {%config<aliases>.keys.sort.join(' ')} {$keywords.keys.sort.join(' ')}"
+
             END
 
             say "Wrote $completionFile"
