@@ -26,7 +26,7 @@ class X::ImageArchive::BadKeyword is Exception {
     has Set $.offenders;
     method message {
         my $label = ($!offenders.elems == 1) ?? "keyword" !! "keywords";
-        "Invalid {$label}: {$!offenders.keys.join(', ')}";
+        "Unknown {$label}: {$!offenders.keys.join(', ')}";
     }
 }
 
