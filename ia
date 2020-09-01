@@ -156,6 +156,35 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun, Bool :$with-cert
     importFile($file.IO, $destinationDir);
 }
 
+multi sub MAIN('stats') {
+    my %counts = countFilesByYear();
+    my $fileCount = %counts.values.reduce: &infix:<+>;
+    my $fileLabel = ($fileCount == 1) ?? 'file' !! 'files';
+
+    given $fileCount {
+        when 0 {
+            say "The archive is empty.";
+        }
+
+        default {
+            say "The archive contains $fileCount $fileLabel:";
+
+            for %counts.keys.sort -> $key {
+                my $total = %counts{$key};
+                say "  {$key.IO.basename}: $total";
+            }
+        }
+    }
+
+    my $recordCount = countRecords();
+    my $recordLabel = ($recordCount == 1) ?? 'record' !! 'records';
+
+    if ($recordCount !== $fileCount) {
+        say "";
+        note colored("The database contains $recordCount $recordLabel.", 'red');
+    }
+}
+
 multi sub MAIN('trash', Str $file where *.IO.f, Bool :$dryrun = False) {
     setOperatingMode($dryrun);
 
@@ -259,6 +288,35 @@ sub confirm(Str $question) {
 sub contextNegationKeywords() {
     %config<contexts>.keys.map({ "no" ~ $_ });
 }
+
+# Walk the filesystem to determine the number of files in the archive.
+sub countFilesByYear() {
+    my $root = %config<_><root>;
+    my %counts;
+
+    my @stack = dir($root, test => { "$root/$_".IO ~~ :d and not $_.ends-with('.')});
+
+    while (@stack)  {
+        my $dir = @stack.pop;
+
+        %counts{$dir} = dir($dir, test => { "$dir/$_".IO ~~ :f }).elems;
+    }
+
+    return %counts;
+}
+
+sub countRecords() {
+    my $dbh = openDatabase();
+
+    my $sth = $dbh.execute(q:to/STATEMENT/);
+    SELECT count(*) FROM metadata
+    STATEMENT
+
+    my $row = $sth.row;
+    $dbh.dispose;
+    return $row[0];
+}
+
 
 # Define the SQLite database used for full-text search.
 sub defineDatabaseSchema() {
@@ -761,6 +819,8 @@ sub writeShellCompletion() {
 
             {$prefix} --arguments=setup
             {$prefix} --condition="__fish_seen_subcommand_from setup" --arguments="(__fish_complete_subcommand)"
+
+            {$prefix} --arguments=stats
 
             {$prefix} --arguments=tag
             {$prefix} --condition="__fish_seen_subcommand_from tag" --arguments="(__fish_complete_path) {$keywords.keys.sort.join(' ')}"
