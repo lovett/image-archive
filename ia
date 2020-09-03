@@ -56,10 +56,10 @@ class X::ImageArchive::FileExists is Exception {
     }
 }
 
-# Custom exception thrown during deport when a target file is not found.
-class X::ImageArchive::FileNotFoundInArchive is Exception {
+# Custom exception thrown during deport when a target path is not found.
+class X::ImageArchive::PathNotFoundInArchive is Exception {
     method message {
-        "No such file found under {%config<_><root>}";
+        "No such path under {%config<_><root>}";
     }
 }
 
@@ -156,22 +156,23 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun, Bool :$with-cert
     importFile($file.IO, $destinationDir);
 }
 
-multi sub MAIN('stats') {
-    my %counts = countFilesByYear();
+multi sub MAIN('stats', Str $directory = '') {
+    my %counts = countFiles($directory);
+
     my $fileCount = %counts.values.reduce: &infix:<+>;
     my $fileLabel = ($fileCount == 1) ?? 'file' !! 'files';
 
     given $fileCount {
         when 0 {
-            say "The archive is empty.";
+            say "Found no files.";
         }
 
         default {
-            say "The archive contains $fileCount $fileLabel:";
+            say "Found $fileCount $fileLabel:";
 
             for %counts.keys.sort -> $key {
                 my $total = %counts{$key};
-                say "  {$key.IO.basename}: $total";
+                say "  {$key}: $total";
             }
         }
     }
@@ -290,16 +291,39 @@ sub contextNegationKeywords() {
 }
 
 # Walk the filesystem to determine the number of files in the archive.
-sub countFilesByYear() {
-    my $root = %config<_><root>;
+sub countFiles(Str $startingPath) {
     my %counts;
 
-    my @stack = dir($root, test => { "$root/$_".IO ~~ :d and not $_.ends-with('.')});
+    my $root = %config<_><root>.IO;
+    if ($startingPath) {
+        $root = $root.add($startingPath);
+    }
+
+    unless ($root.d) {
+        die X::ImageArchive::PathNotFoundInArchive.new;
+    }
+
+    my @stack = $root;
 
     while (@stack)  {
-        my $dir = @stack.pop;
+        for @stack.pop.dir -> $path {
+            if ($path ~~ :d) {
+                @stack.push($path) if $path ~~ :d;
+                next;
+            }
 
-        %counts{$dir} = dir($dir, test => { "$dir/$_".IO ~~ :f }).elems;
+            next if $path.ends-with('.db');
+
+            my @parts = $path.relative($root).split('/');
+
+            if (@parts.elems == 1) {
+                %counts{$root.basename}++;
+                next;
+            }
+
+            my $subpath = $root.basename.IO.add(@parts[0]);
+            %counts{$subpath}++;
+        }
     }
 
     return %counts;
@@ -734,7 +758,7 @@ sub testContexts(@contexts) {
 # See if a file exists within the archive root.
 sub testFileExistsInArchive(IO $file) {
     unless ($file.absolute.starts-with(%config<_><root>)) {
-        die X::ImageArchive::FileNotFoundInArchive.new;
+        die X::ImageArchive::PathNotFoundInArchive.new;
     }
 }
 
