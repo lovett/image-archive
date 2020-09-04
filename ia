@@ -250,6 +250,18 @@ multi sub MAIN(
     untagFile($file.IO, %tags, @keywords);
 }
 
+multi sub MAIN('view', Str $file where *.IO.f, *@aliases) {
+    unless @aliases.elems > 0 {
+        @aliases = ['alias'].append: %config<prompts>.keys;
+    }
+
+    my %tags = readTags($file.IO, @aliases);
+
+    for %tags.kv -> $alias, $value {
+        say "{$alias}: {$value}";
+    }
+}
+
 # Internal functions
 # ------------------------------------------------------------------------
 
@@ -617,6 +629,34 @@ sub readTag(IO $file, $tag) {
     return chomp($out);
 }
 
+# Extract multiple tags from a file.
+sub readTags(IO $file, @tags) {
+    my @formalTags;
+    for @tags -> $tag {
+        @formalTags.push('-' ~ (%config<aliases>{$tag} || $tag));
+    }
+
+    my $proc = run <exiftool -args -f>, @formalTags, $file.Str, :out, :err;
+    my $err = $proc.err.slurp(:close);
+    my $out = $proc.out.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die X::ImageArchive::ExifToolIsDispleased.new(:err($err));
+    }
+
+    my %tags;
+    for $out.lines -> $line {
+        my @pairs = $line.split('=');
+
+        my $alias = tagToAlias(@pairs.first.substr(1));
+
+        %tags{$alias} = @pairs[1];
+    }
+
+    return %tags;
+}
+
+
 # Discard the backup copy of a file Exiftool has modified.
 #
 # Equivalent to exiftool -delete_original! but handled directly.
@@ -691,6 +731,16 @@ sub commitTags(IO $file, @commands) {
             removeOriginal($file);
         }
     }
+}
+
+# Map a formal tag back to its corresponding alias.
+sub tagToAlias(Str $tag) {
+    for %config<aliases>.kv -> $alias, $formalTag {
+        return $alias if $tag eq $formalTag;
+        return $alias if $formalTag.ends-with($tag);
+    }
+
+    return $tag;
 }
 
 # Convert a set of tag keywords to a list of arguments suitable for exiftool.
@@ -855,6 +905,8 @@ sub writeShellCompletion() {
             {$prefix} --arguments=untag
             {$prefix} --condition="__fish_seen_subcommand_from untag" --arguments="(__fish_complete_path) {%config<aliases>.keys.sort.join(' ')} {$keywords.keys.sort.join(' ')}"
 
+            {$prefix} --arguments=view
+            {$prefix} --condition="__fish_seen_subcommand_from view" --arguments="(__fish_complete_path) {%config<aliases>.keys.sort.join(' ')}"
             END
 
             say "Wrote $completionFile"
