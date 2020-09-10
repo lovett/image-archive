@@ -6,7 +6,7 @@ use Terminal::ANSIColor;
 
 our enum Mode <normal dryrun>;
 
-our Str constant SCRIPT_VERSION = "2020.08";
+our Str constant SCRIPT_VERSION = "2020.09.10";
 
 our IO::Path constant CONFIG_FILE = $*HOME.add(".config/ia.conf");
 
@@ -198,14 +198,21 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
 
     testKeywords(@keywords);
 
-    my @contexts = activeContexts(@keywords);
-
-    testContexts(@contexts);
-
-    testContextCoverage(@contexts, @keywords);
+    # If the file has id and alias tags, consider it previously tagged
+    # and append @keywords to what already exists.
+    my $previouslyTagged = readTags($file.IO, ['id', 'alias']).elems == 2;
 
     my %tags = keywordsToTags(@keywords);
-    %tags.append(askQuestions());
+
+    unless ($previouslyTagged) {
+        my @contexts = activeContexts(@keywords);
+
+        testContexts(@contexts);
+
+        testContextCoverage(@contexts, @keywords);
+
+        %tags.append(askQuestions());
+    }
 
     tagFile($file.IO, %tags, @keywords);
 
@@ -255,7 +262,7 @@ multi sub MAIN('view', Str $file where *.IO.f, *@aliases) {
         @aliases = ['alias'].append: %config<prompts>.keys;
     }
 
-    my %tags = readTags($file.IO, @aliases);
+    my %tags = readTags($file.IO, @aliases, '-f');
 
     for %tags.kv -> $alias, $value {
         say "{$alias}: {$value}";
@@ -630,13 +637,13 @@ sub readTag(IO $file, $tag) {
 }
 
 # Extract multiple tags from a file.
-sub readTags(IO $file, @tags) {
+sub readTags(IO $file, @tags, Str $flags = '') {
     my @formalTags;
     for @tags -> $tag {
         @formalTags.push('-' ~ (%config<aliases>{$tag} || $tag));
     }
 
-    my $proc = run <exiftool -args -f>, @formalTags, $file.Str, :out, :err;
+    my $proc = run qqw{exiftool -args $flags}, @formalTags, $file.Str, :out, :err;
     my $err = $proc.err.slurp(:close);
     my $out = $proc.out.slurp(:close);
 
@@ -695,7 +702,7 @@ sub tagFile(IO $file, %tags, @keywords?) {
     # Storing the aliases makes it possible to locate images based on
     # how they were tagged (as opposed to what they were tagged with).
     if (@keywords) {
-        %tags<alias> = @keywords.sort;
+        %tags<alias> = set(readTag($file.IO, 'alias').Array.append(@keywords.sort));
     }
 
     %tags<datetagged> = DateTime.now();
