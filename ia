@@ -6,7 +6,7 @@ use Terminal::ANSIColor;
 
 our enum Mode <normal dryrun>;
 
-our Str constant SCRIPT_VERSION = "2020.09.10";
+our Str constant SCRIPT_VERSION = "2020.09.14";
 
 our IO::Path constant CONFIG_FILE = $*HOME.add(".config/ia.conf");
 
@@ -142,14 +142,10 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     tagFile($file.IO, %tags);
 }
 
-multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun, Bool :$with-certainty) {
+multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     setOperatingMode($dryrun);
 
     my $tagValue = readTag($file.IO, 'datecreated') || 'undated';
-
-    if ($tagValue eq 'undated' && !$with-certainty) {
-        confirm('No date tag found. Still continue?');
-    }
 
     my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
 
@@ -883,7 +879,6 @@ sub writeShellCompletion() {
             {$prefix} --no-files --long-option=dryrun
             {$prefix} --no-files --long-option=help
             {$prefix} --no-files --long-option=version
-            {$prefix} --no-files --long-option=with-certainty
 
             {$prefix} --arguments=completion
 
