@@ -2,11 +2,12 @@
 
 use Config::INI;
 use DBIish;
+#use Grammar::Tracer;
 use Terminal::ANSIColor;
 
 our enum Mode <normal dryrun>;
 
-our Str constant SCRIPT_VERSION = "2020.09.14";
+our Str constant SCRIPT_VERSION = "2020.09.23";
 
 our IO::Path constant CONFIG_FILE = $*HOME.add(".config/ia.conf");
 
@@ -98,6 +99,56 @@ class X::ImageArchive::UUID is Exception {
     }
 }
 
+# Grammars
+# ------------------------------------------------------------------------
+grammar Search {
+    rule TOP {
+        [ <tag> | <term> ]*
+    }
+
+    rule tag {
+        $<name> = [ \w+ ] ':'
+    }
+
+    token term {
+        <[ \w \' \" ]>+
+    }
+}
+
+class SearchActions {
+    has $!tag = 'any';
+    has %!terms;
+
+    method tag ($/) {
+        $!tag = $/<name>;
+    }
+
+    method term ($/) {
+        %!terms{$!tag}.append($/.subst(/\W/, '', :g));
+    }
+
+    method TOP ($/) {
+        my @clauses;
+        my $distance = 10;
+
+        my @fragments;
+        for %!terms.kv -> $key, @values {
+            my $phrase = @values.join(' ');
+            given $key {
+                when 'any' {
+                    @fragments.append: $phrase;
+                }
+
+                default {
+                    @fragments.append: "NEAR($key $phrase)";
+                }
+            }
+        }
+
+        $/.make: "SELECT rowid FROM fts WHERE fts MATCH '" ~ @fragments.join(' ') ~ "'";
+    }
+}
+
 # Entry points
 # ------------------------------------------------------------------------
 proto MAIN(|) {
@@ -133,12 +184,13 @@ multi sub MAIN('dbshell') {
     invokeSqlite();
 }
 
-multi sub MAIN('search', *@query) {
+multi sub MAIN('search', *@terms) {
 
+    my $terms = @terms.join(' ');
 
-    my $query = @query.join(' ');
+    my $sql =  Search.parse($terms, actions => SearchActions.new);
 
-    for searchMetadata($query) -> $result {
+    for searchMetadata($sql.made) -> $result {
         say $result;
     }
 }
@@ -717,16 +769,13 @@ sub restoreOriginal(IO $file) {
 }
 
 # Locate paths within the archive by their metadata.
-sub searchMetadata(Str $query) {
+sub searchMetadata(Str $match-query) {
 
     my $dbh = openDatabase();
 
     my $sth = $dbh.execute("SELECT path FROM metadata
-        WHERE id IN (
-            SELECT rowid FROM fts WHERE fts MATCH ?
-        )
-        ORDER BY path
-    ", $query);
+        WHERE id IN ($match-query)
+        ORDER BY path");
 
     return gather {
         for $sth.allrows() -> $row {
