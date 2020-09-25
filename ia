@@ -31,6 +31,22 @@ class X::ImageArchive::BadKeyword is Exception {
     }
 }
 
+# Custom exception thrown when an unknown filter is used in a search.
+class X::ImageArchive::BadFilter is Exception {
+    method message {
+        "Unknown search filter."
+    }
+
+    method suggest {
+        my @filters = %config<filters>.keys.sort;
+
+        say "";
+
+        say colored("Search Filters", 'cyan') ~ "\n" ~ @filters.sort.join(", ");
+
+    }
+}
+
 # Custom exception thrown when a context exists but no keywords reference it.
 class X::ImageArchive::EmptyContext is Exception {
     has Seq $.offenders;
@@ -111,7 +127,7 @@ grammar Search {
     }
 
     token term {
-        <[ \w \' \" ]>+
+        <[ \w \' \" - ]>+
     }
 }
 
@@ -120,7 +136,12 @@ class SearchActions {
     has %!terms;
 
     method tag ($/) {
-        $!tag = $/<name>;
+        my $formalTag = %config<filters>{$/<name>};
+        unless ($formalTag) {
+            die X::ImageArchive::BadFilter.new;
+        }
+
+        $!tag = $formalTag;
     }
 
     method term ($/) {
@@ -140,7 +161,7 @@ class SearchActions {
                 }
 
                 default {
-                    @fragments.append: "NEAR($key $phrase)";
+                    @fragments.append: "NEAR($key $phrase, $distance)";
                 }
             }
         }
@@ -193,6 +214,15 @@ multi sub MAIN('search', *@terms) {
     for searchMetadata($sql.made) -> $result {
         say $result;
     }
+
+    CATCH {
+        when X::ImageArchive::BadFilter {
+            note colored($_.message, 'red bold');
+            $_.suggest();
+            exit 1;
+        }
+    }
+
 }
 
 multi sub MAIN('setup', Str $directory where *.IO.d) {
@@ -1086,6 +1116,31 @@ sub writeStarterConfig(IO::Path $root) {
     seriesid    = XMP-iptcExt:SeriesIdentifier
     sourcetype  = XMP-iptcExt:DigitalSourceType
     subjectcode = XMP-iptcCore:SubjectCode
+
+    ; Filters
+    ;
+    ; Similar to aliases, this section maps tag names to more friendly
+    ; equivalents for narrowing the scope of a search. Keys are the
+    ; informal name and values are the formal counterpart without any tag
+    ; family prefix.
+
+    [filters]
+    alias = SupplementalCategories
+    author = Author
+    caption = Description
+    city = City
+    country = CountryName
+    created = CreateDate
+    event = Event
+    keyword = Subject
+    location = LocationName
+    object = AOContentDescription
+    person = PersonInImage
+    series = SeriesName
+    seriesid = SeriesIdentifier
+    source = DigitalSourceType
+    state = ProvinceState
+    tagged = MetadataDate
 
     ; Contexts
     ;
