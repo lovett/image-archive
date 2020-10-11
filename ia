@@ -7,7 +7,7 @@ use Terminal::ANSIColor;
 
 our enum Mode <normal dryrun>;
 
-our Str constant SCRIPT_VERSION = "2020.09.24";
+our Str constant SCRIPT_VERSION = "2020.10.11";
 
 our IO::Path constant CONFIG_FILE = $*HOME.add(".config/ia.conf");
 
@@ -31,8 +31,15 @@ class X::ImageArchive::BadKeyword is Exception {
     }
 }
 
+# Custom exception thrown for bad search queries.
+class X::ImageArchive::Search::NoQuery is Exception {
+    method message {
+        "No search critera provided."
+    }
+}
+
 # Custom exception thrown when an unknown filter is used in a search.
-class X::ImageArchive::BadFilter is Exception {
+class X::ImageArchive::Search::BadFilter is Exception {
     method message {
         "Unknown search filter."
     }
@@ -142,7 +149,7 @@ class SearchActions {
     method tag ($/) {
         my $formalTag = %config<filters>{$/<name>};
         unless ($formalTag) {
-            die X::ImageArchive::BadFilter.new;
+            die X::ImageArchive::Search::BadFilter.new;
         }
 
         $!tag = $formalTag;
@@ -215,22 +222,23 @@ multi sub MAIN('dbshell') {
 
 multi sub MAIN('search', *@terms) {
 
-    my $terms = @terms.join(' ');
+    my $query = @terms.join(' ');
 
-    my $sql =  Search.parse($terms, actions => SearchActions.new);
+    unless ($query) {
+        die X::ImageArchive::Search::NoQuery.new;
+    }
 
-    for searchMetadata($sql.made) -> $result {
+    for searchMetadata($query) -> $result {
         say $result;
     }
 
     CATCH {
-        when X::ImageArchive::BadFilter {
+        when X::ImageArchive::Search::BadFilter {
             note colored($_.message, 'red bold');
             $_.suggest();
             exit 1;
         }
     }
-
 }
 
 multi sub MAIN('setup', Str $directory where *.IO.d) {
@@ -807,13 +815,14 @@ sub restoreOriginal(IO $file) {
 }
 
 # Locate paths within the archive by their metadata.
-sub searchMetadata(Str $match-query) {
-
+sub searchMetadata(Str $query) {
     my $dbh = openDatabase();
 
+    my $sql = Search.parse($query, actions => SearchActions.new);
+
     my $sth = $dbh.execute("SELECT path FROM metadata
-        WHERE id IN ($match-query)
-        ORDER BY path");
+       WHERE id IN ({$sql.made})
+       ORDER BY path");
 
     return gather {
         for $sth.allrows() -> $row {
