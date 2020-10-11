@@ -22,24 +22,8 @@ if CONFIG_FILE.e {
 # Exceptions
 # ------------------------------------------------------------------------
 
-# Custom exception thrown when an unknown keyword is used.
-class X::ImageArchive::BadKeyword is Exception {
-    has Set $.offenders;
-    method message {
-        my $label = ($!offenders.elems == 1) ?? "keyword" !! "keywords";
-        "Unknown {$label}: {$!offenders.keys.join(', ')}";
-    }
-}
-
-# Custom exception thrown for bad search queries.
-class X::ImageArchive::Search::NoQuery is Exception {
-    method message {
-        "No search critera provided."
-    }
-}
-
-# Custom exception thrown when an unknown filter is used in a search.
-class X::ImageArchive::Search::BadFilter is Exception {
+# A search with an invalid filter.
+class X::ImageArchive::BadFilter is Exception {
     method message {
         "Unknown search filter."
     }
@@ -54,7 +38,16 @@ class X::ImageArchive::Search::BadFilter is Exception {
     }
 }
 
-# Custom exception thrown when a context exists but no keywords reference it.
+# An unknown keyword is used during tagging.
+class X::ImageArchive::BadKeyword is Exception {
+    has Set $.offenders;
+    method message {
+        my $label = ($!offenders.elems == 1) ?? "keyword" !! "keywords";
+        "Unknown {$label}: {$!offenders.keys.join(', ')}";
+    }
+}
+
+# A tagging context without keywords.
 class X::ImageArchive::EmptyContext is Exception {
     has Seq $.offenders;
     method message {
@@ -63,7 +56,7 @@ class X::ImageArchive::EmptyContext is Exception {
     }
 }
 
-# Custom exception thrown when an exiftool call exits nonzero or writes to stderr.
+# A call to exiftool does not exit cleanly.
 class X::ImageArchive::ExifToolIsDispleased is Exception {
     has Str $.err;
 
@@ -72,7 +65,7 @@ class X::ImageArchive::ExifToolIsDispleased is Exception {
     }
 }
 
-# Custom exception thrown when a destination path already exists.
+# A file slated for import clashes with an existing file.
 class X::ImageArchive::FileExists is Exception {
     has IO $.path;
     method message {
@@ -80,14 +73,7 @@ class X::ImageArchive::FileExists is Exception {
     }
 }
 
-# Custom exception thrown during deport when a target path is not found.
-class X::ImageArchive::PathNotFoundInArchive is Exception {
-    method message {
-        "No such path under {%config<_><root>}";
-    }
-}
-
-# Custom exception thrown when no keywords are provided for a context.
+# A tagging context is not accounted for.
 class X::ImageArchive::MissingContext is Exception {
     has Seq $.offenders;
     method message {
@@ -108,14 +94,21 @@ class X::ImageArchive::MissingContext is Exception {
     }
 }
 
-# Custom exception thrown if trash command cannot be identified.
-class X::ImageArchive::TrashPathNotFound is Exception {
+# The search command is invoked without search terms.
+class X::ImageArchive::NoSearchQuery is Exception {
     method message {
-        "Cannot locate Trash folder.";
+        "No search terms provided."
     }
 }
 
-# Custom exception thrown when a UUID cannot be created.
+# A file thought to be in the archive does not exist.
+class X::ImageArchive::PathNotFoundInArchive is Exception {
+    method message {
+        "No such path under {%config<_><root>}";
+    }
+}
+
+# A UUID cannot be generated using OS-provided mechanisms.
 class X::ImageArchive::UUID is Exception {
     method message {
         "Unable to generate a unique id.";
@@ -149,7 +142,7 @@ class SearchActions {
     method tag ($/) {
         my $formalTag = %config<filters>{$/<name>};
         unless ($formalTag) {
-            die X::ImageArchive::Search::BadFilter.new;
+            die X::ImageArchive::BadFilter.new;
         }
 
         $!tag = $formalTag;
@@ -225,7 +218,7 @@ multi sub MAIN('search', *@terms) {
     my $query = @terms.join(' ');
 
     unless ($query) {
-        die X::ImageArchive::Search::NoQuery.new;
+        die X::ImageArchive::NoSearchQuery.new;
     }
 
     for searchMetadata($query) -> $result {
@@ -233,7 +226,7 @@ multi sub MAIN('search', *@terms) {
     }
 
     CATCH {
-        when X::ImageArchive::Search::BadFilter {
+        when X::ImageArchive::BadFilter {
             note colored($_.message, 'red bold');
             $_.suggest();
             exit 1;
