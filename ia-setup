@@ -166,11 +166,17 @@ sub writeStarterConfig(IO::Path $root) {
     ; It uses the INI file format.
     ;
     ; After making changes to this file, regenerate the shell completion
-    ; file by running: ia completion
+    ; file by running: ia-setup completion
 
-    [_]
     ; Where the images are stored.
     root = {$root.absolute}
+
+    ; The size presets for alternate image generation, specified as
+    ; a space-separated list of GraphicsMagic geometry values.
+    alt_sizes = 1000x 500x
+
+    ; The file format for alternate image generation.
+    alt_format = jpg
 
     ; Questions that should be asked during tagging. They are the opposite
     ; of keywords.
