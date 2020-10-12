@@ -1,6 +1,6 @@
 # Install the application.
 install:
-	cp ia ~/.local/bin/
+	cp ia ia-setup ~/.local/bin/
 
 # Push the repository to GitHub.
 mirror:
@@ -9,3 +9,7 @@ mirror:
 # Install third-party libraries.
 setup:
 	zef install Config::INI DBIish Terminal::ANSIColor
+
+# Reverse the installation target.
+uninstall:
+	rm -f ~/.local/bin/ia ~/.local/bin/ia-setup
