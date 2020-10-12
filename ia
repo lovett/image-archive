@@ -726,18 +726,16 @@ sub openDatabase() {
 sub readConfig() {
     %config = Config::INI::parse(slurp CONFIG_FILE);
 
-    for %config.keys -> $section {
-        next if $section ~~ any <_ aliases prompts contexts>;
+    my @skippableSections := <_ aliases prompts contexts>;
 
-        for %config{$section}.kv -> $key, $value {
+    my regex unescape { \\ (<punct>) };
 
-            # Unescape backslash followed by punctuation (\', \", etc).
-            %config{$section}{$key} ~~ s:g/ \\ (<punct>) /$0/;
+    for %config.kv -> $section, %members {
+        next if $section ∈ @skippableSections;
 
-            # Serialize structs
-            if ($value.contains('{')) {
-                %config{$section}{$key} ~~ s:g/ (<-[ , | \s ]>)\s+ /$0\| /;
-            }
+        for %members.kv -> $key, $value {
+            # Remove backslash when followed by punctuation.
+            %config{$section}{$key} = $value.subst(&unescape, { "$0" }, :g);
         }
     }
 }
