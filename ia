@@ -196,17 +196,6 @@ multi sub MAIN(Bool :$version) {
     say SCRIPT_VERSION if $version;
 }
 
-multi sub MAIN('count', *@query) {
-
-    my $query = @query.join(' ');
-
-    my $count = countMetadata($query);
-
-    my $label = ($count == 1) ?? 'file' !! 'files';
-
-    say "Found {$count} {$label}";
-}
-
 multi sub MAIN('dbshell') {
     invokeSqlite();
 }
@@ -219,8 +208,14 @@ multi sub MAIN('search', *@terms) {
         die X::ImageArchive::NoSearchQuery.new;
     }
 
+    my $counter = 0;
     for searchMetadata($query) -> $result {
-        say $result;
+        my $index = colored(sprintf("%3d", ++$counter), 'cyan');
+        say " $index $result";
+    }
+
+    unless ($counter) {
+        note 'No matches.';
     }
 
     CATCH {
