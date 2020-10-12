@@ -15,6 +15,8 @@ our %config;
 
 our $operatingMode = normal;
 
+our constant UNDATED = 'undated';
+
 if CONFIG_FILE.e {
     readConfig();
 }
@@ -257,15 +259,26 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     setOperatingMode($dryrun);
 
-    my $tagValue = readTag($file.IO, 'datecreated') || 'undated';
+    my $tagValue = readTag($file.IO, 'datecreated') || UNDATED;
 
     my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
 
     importFile($file.IO, $destinationDir);
 }
 
-multi sub MAIN('stats', Str $directory = '') {
-    my %counts = countFiles($directory);
+multi sub MAIN('stats') {
+
+    my %counts;
+
+    my $callback = sub ($path) {
+        my @parts = $path.split('/');
+        next if @parts.elems == 1;
+        next if $path.IO.basename.starts-with('.');
+
+        %counts{@parts.first}++;
+    }
+
+    walkArchive($callback);
 
     my $fileCount = %counts.values.reduce: &infix:<+>;
     my $fileLabel = ($fileCount == 1) ?? 'file' !! 'files';
@@ -276,12 +289,15 @@ multi sub MAIN('stats', Str $directory = '') {
         }
 
         default {
-            say "Found $fileCount $fileLabel:";
+            my $pad = UNDATED.chars + 1;
+            my $format = "%{$pad}s: %{$fileCount.Str.chars}d";
 
             for %counts.keys.sort -> $key {
                 my $total = %counts{$key};
-                say "  {$key}: $total";
+                sprintf($format, $key, $total).say;
             }
+
+            sprintf($format, 'TOTAL', $fileCount).say;
         }
     }
 
@@ -331,6 +347,10 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
             exit 1;
         }
     }
+}
+
+multi sub MAIN('thumbnail') {
+    say  'hi';
 }
 
 multi sub MAIN(
@@ -415,45 +435,6 @@ sub confirm(Str $question) {
 # A negation keyword is the name of a context prefixed with "no".
 sub contextNegationKeywords() {
     %config<contexts>.keys.map({ "no" ~ $_ });
-}
-
-# Walk the filesystem to determine the number of files in the archive.
-sub countFiles(Str $startingPath) {
-    my %counts;
-
-    my $root = %config<_><root>.IO;
-    if ($startingPath) {
-        $root = $root.add($startingPath);
-    }
-
-    unless ($root.d) {
-        die X::ImageArchive::PathNotFoundInArchive.new;
-    }
-
-    my @stack = $root;
-
-    while (@stack)  {
-        for @stack.pop.dir -> $path {
-            if ($path ~~ :d) {
-                @stack.push($path) if $path ~~ :d;
-                next;
-            }
-
-            next if $path.ends-with('.db');
-
-            my @parts = $path.relative($root).split('/');
-
-            if (@parts.elems == 1) {
-                %counts{$root.basename}++;
-                next;
-            }
-
-            my $subpath = $root.basename.IO.add(@parts[0]);
-            %counts{$subpath}++;
-        }
-    }
-
-    return %counts;
 }
 
 # Count paths within the archive by their metadata.
@@ -1000,6 +981,25 @@ sub untagFile(IO $file, %tags, @keywords?) {
 
     commitTags($file, @commands);
 }
+
+# Perform an action on each file in the archive.
+sub walkArchive(Callable $callback) {
+    my $root = %config<_><root>.IO;
+
+    my @stack = $root;
+
+    while (@stack)  {
+        for @stack.pop.dir -> $path {
+            if ($path ~~ :d) {
+                @stack.push($path) if $path ~~ :d;
+                next;
+            }
+
+            $callback($path.relative($root));
+        }
+    }
+}
+
 
 sub writeShellCompletion() {
     my $keywords = ($_ unless $_ ~~ any <_ aliases prompts contexts> for %config.keys) (|) ('no' ~ $_ for %config<contexts>.keys);
