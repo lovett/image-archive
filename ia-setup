@@ -171,6 +171,9 @@ sub writeStarterConfig(IO::Path $root) {
     ; Where the images are stored.
     root = {$root.absolute}
 
+    ; The command to invoke when viewing files.
+    view_command = open -a Preview.app
+
     ; The size presets for alternate image generation, specified as
     ; a space-separated list of GraphicsMagic geometry values.
     alt_sizes = 1000x 500x

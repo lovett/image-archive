@@ -367,7 +367,23 @@ multi sub MAIN(
     untagFile($file.IO, %tags, @keywords);
 }
 
-multi sub MAIN('view', Str $file where *.IO.f, *@aliases) {
+multi sub MAIN('view', Str $path) {
+    my IO::Path $target = $path.IO;
+
+    unless ($target.absolute.starts-with(%config<_><root>)) {
+        $target = %config<_><root>.IO.add($path);
+    }
+
+    my $command = %config<_><view_command>;
+    my $proc = run qqw{$command $target}, :err;
+    my $err = $proc.err.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die X::ImageArchive::BadExit.new(:err($err));
+    }
+}
+
+multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
     unless @aliases.elems > 0 {
         @aliases = ['alias'].append: %config<prompts>.keys;
     }
@@ -447,7 +463,7 @@ sub countRecords() {
 
 # Remove a file from the archive.
 sub deportFile(IO $file, IO $parent) {
-    testFileExistsInArchive($file);
+    testPathExistsInArchive($file);
 
     my $destination = $parent.add($file.basename);
 
@@ -527,7 +543,7 @@ sub generateAlts(IO::Path $file?) {
         }
 
         if ($file) {
-            testFileExistsInArchive($file);
+            testPathExistsInArchive($file);
 
             for %rosters.kv -> $size, $handle {
                 $handle.say($file.relative(%config<_><root>));
@@ -945,10 +961,9 @@ sub testContexts(@contexts) {
 }
 
 # See if a file exists within the archive root.
-sub testFileExistsInArchive(IO $file) {
-    unless ($file.absolute.starts-with(%config<_><root>)) {
-        die X::ImageArchive::PathNotFoundInArchive.new;
-    }
+sub testPathExistsInArchive(IO $file) {
+    return if $file.absolute.starts-with(%config<_><root>) && ($file ~~ :e);
+    die X::ImageArchive::PathNotFoundInArchive.new;
 }
 
 # Determine if the provided keywords are valid.
