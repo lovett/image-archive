@@ -42,6 +42,8 @@ multi sub MAIN(Bool :$version) {
 sub defineDatabaseSchema($dbPath) {
     my $dbh = DBIish.connect("SQLite", database => $dbPath);
 
+    # Tables
+    # --------------------------------------------------------------------
     $dbh.execute(q:to/STATEMENT/);
     CREATE TABLE IF NOT EXISTS metadata (
         id INTEGER PRIMARY KEY,
@@ -52,16 +54,29 @@ sub defineDatabaseSchema($dbPath) {
     STATEMENT
 
     $dbh.execute(q:to/STATEMENT/);
+    DROP TABLE IF EXISTS fts
+    STATEMENT
+
+    $dbh.execute(q:to/STATEMENT/);
+    CREATE VIRTUAL TABLE fts USING fts5(
+        tags, content=metadata, content_rowid=id,
+        tokenize='porter unicode61'
+    )
+    STATEMENT
+
+    $dbh.execute(q:to/STATEMENT/);
+    INSERT INTO fts(rowid, tags) SELECT id, tags from metadata
+    STATEMENT
+
+    # Indexes
+    # --------------------------------------------------------------------
+    $dbh.execute(q:to/STATEMENT/);
     CREATE UNIQUE INDEX IF NOT EXISTS metadata_uuid
     ON metadata(uuid)
     STATEMENT
 
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(
-        tags, content=metadata, content_rowid=id
-    )
-    STATEMENT
-
+    # Triggers
+    # --------------------------------------------------------------------
     $dbh.execute(q:to/STATEMENT/);
     CREATE TRIGGER IF NOT EXISTS metadata_after_insert
     AFTER INSERT ON metadata
