@@ -5,7 +5,7 @@ use DBIish;
 use Terminal::ANSIColor;
 
 our IO::Path constant CONFIG_FILE = $*HOME.add(".config/ia.conf");
-our Str constant SCRIPT_VERSION = "2020.10.14";
+our Str constant SCRIPT_VERSION = "2020.10.15";
 
 #| Establish the application config and database.
 multi sub MAIN(Str $directory where *.IO.d) {
@@ -45,6 +45,14 @@ sub defineDatabaseSchema($dbPath) {
     # Tables
     # --------------------------------------------------------------------
     $dbh.execute(q:to/STATEMENT/);
+    CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY,
+        key TEXT,
+        value TEXT
+    )
+    STATEMENT
+
+    $dbh.execute(q:to/STATEMENT/);
     CREATE TABLE IF NOT EXISTS metadata (
         id INTEGER PRIMARY KEY,
         uuid TEXT,
@@ -70,6 +78,11 @@ sub defineDatabaseSchema($dbPath) {
 
     # Indexes
     # --------------------------------------------------------------------
+    $dbh.execute(q:to/STATEMENT/);
+    CREATE INDEX IF NOT EXISTS history_key
+    ON history(key)
+    STATEMENT
+
     $dbh.execute(q:to/STATEMENT/);
     CREATE UNIQUE INDEX IF NOT EXISTS metadata_uuid
     ON metadata(uuid)

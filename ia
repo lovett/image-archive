@@ -185,7 +185,7 @@ class SearchActions {
             }
         }
 
-        $/.make: "SELECT rowid FROM fts WHERE fts MATCH '" ~ @fragments.join(' ') ~ "'";
+        $/.make: "fts MATCH '" ~ @fragments.join(' ') ~ "'";
     }
 }
 
@@ -376,17 +376,69 @@ multi sub MAIN(
     untagFile($file.IO, %tags, @keywords);
 }
 
-multi sub MAIN('view', Str $path) {
+multi sub MAIN('view', *@terms) {
+    my Str $terms = @terms.join(' ');
+    my Str $target;
+
     my $command = %config<_><view_command>;
 
     unless ($command) {
         die X::ImageArchive::MissingConfig.new(:key('view_command'));
     }
 
-    my IO::Path $target = $path.IO;
+    given $terms {
+        when / <[\d,- ]> / {
 
-    unless ($target.absolute.starts-with(%config<_><root>)) {
-        $target = %config<_><root>.IO.add($path);
+            my @indices;
+            my @ranges;
+
+            $terms ~~ s:global/ (\d) \- (\d) //;
+            @ranges = ( "(rownum BETWEEN {.list[0]} AND {.list[1]})" for @$/ );
+
+            m:global/ (\d+) / with $terms;
+            @indices = @$/;
+
+            my $rangeSql = @ranges.join(' OR ');
+
+            if ($rangeSql && @indices) {
+                $rangeSql ~= " OR ";
+            }
+
+            if (@indices) {
+                $rangeSql ~= "rownum IN (" ~ @indices.join(',') ~ ")";
+            }
+
+            my $dbh = openDatabase();
+
+            my $sth = $dbh.execute("SELECT * FROM (
+            SELECT path, row_number() OVER (ORDER BY h.id) as rownum
+            FROM metadata m, history h
+            WHERE m.id=h.value
+            AND h.key='searchresults')
+            WHERE $rangeSql");
+
+            for $sth.allrows() -> $row {
+                $target ~= $row[0] ~ ' '
+            }
+
+            $dbh.dispose;
+        }
+
+        default {
+            my $path = $terms.IO;
+
+            unless ($path.absolute.starts-with(%config<_><root>)) {
+                $path = %config<_><root>.IO.add($terms);
+            }
+
+            if ($target ~~ :f) {
+                $target = $path.Str;
+            }
+        }
+    }
+
+    unless ($target) {
+        exit;
     }
 
     my $proc = run qqw{$command $target}, :err;
@@ -831,13 +883,22 @@ sub restoreOriginal(IO $file) {
 
 # Locate paths within the archive by their metadata.
 sub searchMetadata(Str $query) {
+    my $parsedQuery = Search.parse($query, actions => SearchActions.new);
+
     my $dbh = openDatabase();
 
-    my $sql = Search.parse($query, actions => SearchActions.new);
+    $dbh.execute("DELETE FROM history
+    WHERE key='searchresults'");
 
-    my $sth = $dbh.execute("SELECT path FROM metadata
-       WHERE id IN ({$sql.made})
-       ORDER BY path");
+    $dbh.execute("INSERT INTO history (key, value)
+    SELECT 'searchresults', rowid
+    FROM fts
+    WHERE {$parsedQuery.made}");
+
+    my $sth = $dbh.execute("SELECT path
+    FROM metadata m, history h
+    WHERE m.id=h.value AND h.key='searchresults'
+    ORDER BY h.id");
 
     return gather {
         for $sth.allrows() -> $row {
