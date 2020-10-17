@@ -701,7 +701,18 @@ sub getDatabasePath() {
 # Store a file's tags in a database.
 sub indexFile(IO $file) {
     my $uuid = readTag($file, 'id');
-    my $proc = run <exiftool -x File:Directory -x File:FilePermissions -j -g -struct>, $file.Str, :out, :err;
+    my $proc = run <
+    exiftool
+    -x Composite:all
+    -x EXIF:StripByteCounts
+    -x EXIF:StripOffsets
+    -x Exif:ThumbnailImage
+    -x ExifTool:all
+    -x File:Directory
+    -x File:FilePermissions
+    -x MPF:all
+    -j -g -struct>, $file.Str, :out, :err;
+
     my Str $json = chomp($proc.out.slurp(:close));
     my $err  = $proc.err.slurp(:close);
 
