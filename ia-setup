@@ -222,7 +222,7 @@ sub writeStarterConfig(IO::Path $root) {
 
     ; Aliases for tag names.
     ;
-    ; Since tag names are verbose and akward to type, map them to more friendly
+    ; Since tag names are verbose and awkward to type, map them to more friendly
     ; equivalents. Keys are the informal name and values are the formal counterpart.
     [aliases]
     alias       = XMP-photoshop:SupplementalCategories
