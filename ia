@@ -185,7 +185,7 @@ class SearchActions {
             }
         }
 
-        $/.make: "fts MATCH '" ~ @fragments.join(' ') ~ "'";
+        $/.make: "archive_fts MATCH '" ~ @fragments.join(' ') ~ "'";
     }
 }
 
@@ -247,6 +247,16 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     my %tags = askQuestions();
 
     tagFile($file.IO, %tags);
+}
+
+multi sub MAIN('reimport') {
+    my $callback = sub ($path) {
+        indexFile(%config<_><root>.IO.add($path));
+        say "Reindexed {$path}";
+    }
+
+    walkArchive($callback);
+
 }
 
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
@@ -411,9 +421,10 @@ multi sub MAIN('view', *@terms) {
             my $dbh = openDatabase();
 
             my $sth = $dbh.execute("SELECT * FROM (
-            SELECT path, row_number() OVER (ORDER BY h.id) as rownum
-            FROM metadata m, history h
-            WHERE m.id=h.value
+            SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
+            OVER (ORDER BY h.id) as rownum
+            FROM archive a, history h
+            WHERE a.id=h.value
             AND h.key='searchresults')
             WHERE $rangeSql");
 
@@ -506,8 +517,8 @@ sub countMetadata(Str $query) {
 
     my $dbh = openDatabase();
 
-    my $sth = $dbh.execute("SELECT count(*) FROM fts
-    WHERE fts MATCH ?", $query);
+    my $sth = $dbh.execute("SELECT count(*) FROM archive_fts
+    WHERE archive_fts MATCH ?", $query);
 
     my $row = $sth.row;
     $dbh.dispose;
@@ -519,7 +530,7 @@ sub countRecords() {
     my $dbh = openDatabase();
 
     my $sth = $dbh.execute(q:to/STATEMENT/);
-    SELECT count(*) FROM metadata
+    SELECT count(*) FROM archive
     STATEMENT
 
     my $row = $sth.row;
@@ -556,14 +567,12 @@ sub deportFile(IO $file, IO $parent) {
 # Remove a file from the database.
 sub deindexFile(IO $file) {
     my $uuid = readTag($file, 'id');
-    my $rootRelativePath = $file.relative(%config<_><root>);
-
     my $dbh = openDatabase();
     my $sth = $dbh.prepare(q:to/STATEMENT/);
-    DELETE FROM metadata WHERE uuid=? OR path=?
+    DELETE FROM archive WHERE uuid=?
     STATEMENT
 
-    $sth.execute($uuid, $rootRelativePath);
+    $sth.execute($uuid);
     $dbh.dispose;
 }
 
@@ -692,7 +701,6 @@ sub getDatabasePath() {
 # Store a file's tags in a database.
 sub indexFile(IO $file) {
     my $uuid = readTag($file, 'id');
-    my $rootRelativePath = $file.relative(%config<_><root>);
     my $proc = run <exiftool -x File:Directory -x File:FilePermissions -j -g -struct>, $file.Str, :out, :err;
     my Str $json = chomp($proc.out.slurp(:close));
     my $err  = $proc.err.slurp(:close);
@@ -705,15 +713,19 @@ sub indexFile(IO $file) {
     # Mangle it to just the element.
     $json ~~ s:g/ ^\[ | \]$ //;
 
+    # Exiftool populates the SourceFile with an absolute path.
+    # Make it root-relative.
+    $json ~~ s:g/ "{%config<_><root>}" //;
+
     my $dbh = openDatabase();
     my $sth = $dbh.prepare(q:to/STATEMENT/);
-    INSERT INTO metadata (uuid, path, tags)
-    VALUES (?, ?, ?)
+    INSERT INTO archive (uuid, tags)
+    VALUES (?, ?)
     ON CONFLICT (uuid) DO UPDATE
-    SET path=excluded.path, tags=excluded.tags
+    SET tags=excluded.tags
     STATEMENT
 
-    $sth.execute($uuid, $rootRelativePath, $json);
+    $sth.execute($uuid, $json);
     $dbh.dispose;
 }
 
@@ -802,6 +814,10 @@ sub openDatabase() {
 sub readConfig() {
     %config = Config::INI::parse(slurp CONFIG_FILE);
 
+    unless (%config<_><root>.ends-with('/')) {
+        %config<_><root> ~= '/';
+    }
+
     my @skippableSections := <_ aliases prompts contexts>;
 
     my regex unescape { \\ (<punct>) };
@@ -881,6 +897,15 @@ sub restoreOriginal(IO $file) {
     }
 }
 
+sub relativePath(Str $file) {
+    if $file.IO.absolute.starts-with(%config<_><root>) {
+        return $file.IO.relative(%config<_><root>);
+    }
+
+    return $file;
+}
+
+
 # Locate paths within the archive by their metadata.
 sub searchMetadata(Str $query) {
     my $parsedQuery = Search.parse($query, actions => SearchActions.new);
@@ -892,17 +917,17 @@ sub searchMetadata(Str $query) {
 
     $dbh.execute("INSERT INTO history (key, value)
     SELECT 'searchresults', rowid
-    FROM fts
+    FROM archive_fts
     WHERE {$parsedQuery.made}");
 
-    my $sth = $dbh.execute("SELECT path
-    FROM metadata m, history h
-    WHERE m.id=h.value AND h.key='searchresults'
+    my $sth = $dbh.execute("SELECT json_extract(a.tags, '\$.SourceFile') as path
+    FROM archive a, history h
+    WHERE a.id=h.value AND h.key='searchresults'
     ORDER BY h.id");
 
     return gather {
         for $sth.allrows() -> $row {
-            take $row[0];
+            take relativePath($row[0]);
         }
 
         $dbh.dispose;
