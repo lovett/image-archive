@@ -4,6 +4,7 @@ use DBIish;
 
 use ImageArchive::Config;
 use ImageArchive::Tagging;
+use ImageArchive::Exception;
 
 grammar Search {
     rule TOP {
@@ -171,81 +172,18 @@ sub searchMetadata(%config, Str $query) is export {
     }
 }
 
-# Define the SQLite database used for full-text search.
-sub defineDatabaseSchema(IO::Path $dbPath) is export {
-    my $dbh = DBIish.connect("SQLite", database => $dbPath);
+# Establish (or update) the SQLite database.
+sub applyDatabaseSchema(IO::Path $dbPath) is export {
+    my $schemaPath = %?RESOURCES<schema-sqlite.sql>.absolute;
 
-    # Tables
-    # --------------------------------------------------------------------
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE TABLE IF NOT EXISTS history (
-        id INTEGER PRIMARY KEY,
-        key TEXT,
-        value TEXT
-    )
-    STATEMENT
+    my $proc = run 'sqlite3', $dbPath, :in;
+    $proc.in.say(".read {$schemaPath}");
+    $proc.in.close;
 
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE TABLE IF NOT EXISTS archive (
-        id INTEGER PRIMARY KEY,
-        uuid TEXT,
-        tags TEXT
-    )
-    STATEMENT
-
-    $dbh.execute(q:to/STATEMENT/);
-    DROP TABLE IF EXISTS archive_fts
-    STATEMENT
-
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE VIRTUAL TABLE archive_fts USING fts5(
-        tags, content=archive, content_rowid=id,
-        tokenize='porter unicode61'
-    )
-    STATEMENT
-
-    $dbh.execute(q:to/STATEMENT/);
-    INSERT INTO archive_fts(rowid, tags) SELECT id, tags from archive
-    STATEMENT
-
-    # Indexes
-    # --------------------------------------------------------------------
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE INDEX IF NOT EXISTS history_key
-    ON history(key)
-    STATEMENT
-
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE UNIQUE INDEX IF NOT EXISTS archive_uuid
-    ON archive(uuid)
-    STATEMENT
-
-    # Triggers
-    # --------------------------------------------------------------------
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE TRIGGER IF NOT EXISTS archive_after_insert
-    AFTER INSERT ON archive
-    BEGIN
-    INSERT INTO archive_fts(rowid, tags) VALUES (new.id, new.tags);
-    END
-    STATEMENT
-
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE TRIGGER IF NOT EXISTS archive_after_delete
-    AFTER DELETE ON archive
-    BEGIN
-    INSERT INTO archive_fts(archive_fts, rowid, tags) VALUES('delete', old.id, old.tags);
-    END
-    STATEMENT
-
-    $dbh.execute(q:to/STATEMENT/);
-    CREATE TRIGGER IF NOT EXISTS archive_after_update
-    AFTER UPDATE ON archive
-    BEGIN
-    INSERT INTO archive_fts(archive_fts, rowid, tags) VALUES('delete', old.id, old.tags);
-    INSERT INTO archive_fts(rowid, tags) VALUES (new.id, new.tags);
-    END
-    STATEMENT
-
-    $dbh.dispose;
+    CATCH {
+        when X::Proc::Unsuccessful {
+            my $err = "Failed to apply database schema.";
+            ImageArchive::Exception::BadExit.new(:err($err)).throw;
+        }
+    }
 }

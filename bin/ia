@@ -302,7 +302,8 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
     writeStarterConfig($directory.IO);
 
     my $dbPath = getDatabasePath(%config);
-    defineDatabaseSchema($dbPath);
+    applyDatabaseSchema($dbPath);
+
     writeShellCompletion(%config, SCRIPT_VERSION);
 }
 

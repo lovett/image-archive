@@ -1,4 +1,4 @@
- {
+{
   "perl" : "6.d",
   "name" : "ImageArchive",
   "version" : "2020.10.18",
@@ -12,12 +12,14 @@
     "ImageArchive::Tagging": "lib/ImageArchive/Tagging.rakumod",
     "ImageArchive::Util": "lib/ImageArchive/Util.rakumod"
   },
+  "resources": [
+    "schema-sqlite.sql"
+  ],
   "depends" : [
     "Config::INI",
     "DBIish",
     "Terminal::ANSIColor"
   ],
   "test-depends" : [],
-  "resources" : [],
   "tags": []
 }
