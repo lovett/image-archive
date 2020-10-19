@@ -8,6 +8,7 @@ use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
+use ImageArchive::Shell;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
@@ -290,6 +291,21 @@ multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
         say "{$alias}: {$value}";
     }
 }
+
+#| Update the shell completion file.
+multi sub MAIN('completion') {
+    writeShellCompletion(%config, SCRIPT_VERSION);
+}
+
+#| Establish the application config and database.
+multi sub MAIN('setup', Str $directory where *.IO.d) {
+    writeStarterConfig($directory.IO);
+
+    my $dbPath = getDatabasePath(%config);
+    defineDatabaseSchema($dbPath);
+    writeShellCompletion(%config, SCRIPT_VERSION);
+}
+
 
 #| Display version information.
 multi sub MAIN('--version') {
