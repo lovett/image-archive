@@ -1,0 +1,284 @@
+#!/usr/bin/env rakudo
+
+use DBIish;
+#use Grammar::Tracer;
+use Terminal::ANSIColor;
+
+use ImageArchive::Archive;
+use ImageArchive::Config;
+use ImageArchive::Database;
+use ImageArchive::Exception;
+use ImageArchive::Tagging;
+use ImageArchive::Util;
+
+our Str constant SCRIPT_VERSION = "2020.10.16";
+
+our %config = readConfig();
+
+# Entry points
+# ------------------------------------------------------------------------
+proto MAIN(|) {
+    # Suppress backtrace. Taken from zef's CLI.pm6.
+    CATCH {
+        default {
+            try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red bold'); &*EXIT(1)
+        }
+    }
+    {*}
+}
+
+multi sub MAIN(Bool :$version) {
+    say SCRIPT_VERSION if $version;
+}
+
+#| Start a database CLI session.
+multi sub MAIN('dbshell') {
+    my $dbPath = getDatabasePath(%config);
+    run 'sqlite3', $dbPath;
+}
+
+multi sub MAIN('search') {
+    die ImageArchive::Exception::NoSearchQuery.new;
+}
+
+multi sub MAIN('search', *@terms) {
+    my $query = @terms.join(' ');
+
+    my $counter = 0;
+    for searchMetadata(%config, $query) -> $result {
+        my $index = colored(sprintf("%3d", ++$counter), 'cyan');
+        say " $index $result";
+    }
+
+    unless ($counter) {
+        note 'No matches.';
+    }
+
+    CATCH {
+        when ImageArchive::Exception::BadFilter {
+            note colored($_.message, 'red bold');
+            $_.suggest();
+            exit 1;
+        }
+    }
+}
+
+multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
+    deportFile(%config, $file.IO, $*CWD.IO, $dryrun);
+}
+
+multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
+    my %tags = askQuestions(%config);
+
+    tagFile(%config, $file.IO, %tags, $dryrun);
+}
+
+multi sub MAIN('reimport') {
+    my $callback = sub ($path) {
+        indexFile(%config<_><root>.IO.add($path));
+        say "Reindexed {$path}";
+    }
+
+    walkArchive(%config, $callback);
+}
+
+multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
+    my $tagValue = readTag(%config, $file.IO, 'datecreated') || 'undated';
+
+    my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
+
+    importFile(%config, $file.IO, $destinationDir);
+}
+
+multi sub MAIN('stats') {
+    my %counts;
+
+    my $callback = sub ($path) {
+        my $topDir =  $path.split('/', 2).first;
+        %counts{$topDir}++;
+    }
+
+    walkArchive(%config, $callback);
+
+    my $fileCount = %counts.values.reduce: &infix:<+>;
+    my $fileLabel = ($fileCount == 1) ?? 'file' !! 'files';
+
+    given $fileCount {
+        when 0 {
+            say "Found no files.";
+        }
+
+        default {
+            my $format = "%10s: %{$fileCount.Str.chars}d";
+
+            for %counts.keys.sort -> $key {
+                my $total = %counts{$key};
+                sprintf($format, $key, $total).say;
+            }
+
+            sprintf($format, 'TOTAL', $fileCount).say;
+        }
+    }
+
+    my $recordCount = countRecords(%config);
+    my $recordLabel = ($recordCount == 1) ?? 'record' !! 'records';
+
+    if ($recordCount !== $fileCount) {
+        say "";
+        note colored("The database contains $recordCount $recordLabel.", 'red');
+    }
+}
+
+multi sub MAIN('trash', Str $file where *.IO.f, Bool :$dryrun = False) {
+    my $trashFolder = findTrashFolder();
+    deportFile(%config, $file.IO, $trashFolder, $dryrun);
+}
+
+multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
+    testKeywords(%config, @keywords);
+
+    # If the file has id and alias tags, consider it previously tagged
+    # and append @keywords to what already exists.
+    my $previouslyTagged = readTags(%config, $file.IO, ['id', 'alias']).elems == 2;
+
+    my %tags = keywordsToTags(%config, @keywords);
+
+    unless ($previouslyTagged) {
+        my @contexts = activeContexts(%config, @keywords);
+
+        testContexts(%config, @contexts);
+
+        testContextCoverage(%config, @contexts, @keywords);
+
+        %tags.append(askQuestions(%config));
+    }
+
+    tagFile(%config, $file.IO, %tags, @keywords);
+
+    CATCH {
+        when ImageArchive::Exception::MissingContext {
+            note colored($_.message, 'red bold');
+            $_.suggest();
+            exit 1;
+        }
+    }
+}
+
+#| Generate alternate image sizes.
+multi sub MAIN('alts') {
+    generateAlts(%config);
+}
+
+multi sub MAIN(
+    'untag',
+    Str $file where *.IO.f,
+    Str $alias where { %config<aliases>{$alias}:exists },
+    Str $value='',
+    Bool :$dryrun = False
+) {
+    untagFile(%config, $file.IO, %($alias, $value), (), $dryrun);
+
+    unless ($dryrun) {
+        my $value = readTag(%config, $file.IO, $alias);
+        say $value if $value;
+    }
+}
+
+multi sub MAIN(
+    'untag',
+    Str $file where *.IO.f,
+    Bool :$dryrun = False,
+    *@keywords
+) {
+    testKeywords(%config, @keywords);
+
+    my %tags = keywordsToTags(%config, @keywords);
+
+    untagFile(%config, $file.IO, %tags, @keywords, $dryrun);
+}
+
+multi sub MAIN('view', *@terms) {
+    my Str $terms = @terms.join(' ');
+    my Str $target;
+
+    my $command = %config<_><view_command>;
+
+    unless ($command) {
+        die ImageArchive::Exception::MissingConfig.new(:key('view_command'));
+    }
+
+    given $terms {
+        when / <[\d,- ]> / {
+
+            my @indices;
+            my @ranges;
+
+            $terms ~~ s:global/ (\d) \- (\d) //;
+            @ranges = ( "(rownum BETWEEN {.list[0]} AND {.list[1]})" for @$/ );
+
+            m:global/ (\d+) / with $terms;
+            @indices = @$/;
+
+            my $rangeSql = @ranges.join(' OR ');
+
+            if ($rangeSql && @indices) {
+                $rangeSql ~= " OR ";
+            }
+
+            if (@indices) {
+                $rangeSql ~= "rownum IN (" ~ @indices.join(',') ~ ")";
+            }
+
+            my $dbh = openDatabase(%config);
+
+            my $sth = $dbh.execute("SELECT * FROM (
+            SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
+            OVER (ORDER BY h.id) as rownum
+            FROM archive a, history h
+            WHERE a.id=h.value
+            AND h.key='searchresults')
+            WHERE $rangeSql");
+
+            for $sth.allrows() -> $row {
+                $target ~= $row[0] ~ ' '
+            }
+
+            $dbh.dispose;
+        }
+
+        default {
+            my $path = $terms.IO;
+
+            unless ($path.absolute.starts-with(%config<_><root>)) {
+                $path = %config<_><root>.IO.add($terms);
+            }
+
+            if ($target ~~ :f) {
+                $target = $path.Str;
+            }
+        }
+    }
+
+    unless ($target) {
+        exit;
+    }
+
+    my $proc = run qqw{$command $target}, :err;
+    my $err = $proc.err.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+}
+
+multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
+    unless @aliases.elems > 0 {
+        @aliases = ['alias'].append: %config<prompts>.keys;
+    }
+
+    my %tags = readTags(%config, $file.IO, @aliases, '-f');
+
+    for %tags.kv -> $alias, $value {
+        say "{$alias}: {$value}";
+    }
+}

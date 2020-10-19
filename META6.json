@@ -1,0 +1,22 @@
+{
+  "perl" : "6.d",
+  "name" : "ImageArchive",
+  "version" : "2020.10.18",
+  "description" : "Automation for image metatdata tagging.",
+  "provides" : {
+    "ImageArchive::Archive": "lib/ImageArchive/Archive.rakumod",
+    "ImageArchive::Config": "lib/ImageArchive/Config.rakumod",
+    "ImageArchive::Database": "lib/ImageArchive/Database.rakumod",
+    "ImageArchive::Exception": "lib/ImageArchive/Exception.rakumod",
+    "ImageArchive::Tagging": "lib/ImageArchive/Tagging.rakumod",
+    "ImageArchive::Util": "lib/ImageArchive/Util.rakumod"
+  },
+  "depends" : [
+    "Config::INI",
+    "DBIish",
+    "Terminal::ANSIColor"
+  ],
+  "test-depends" : [],
+  "resources" : [],
+  "tags": []
+}
