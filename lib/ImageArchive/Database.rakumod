@@ -67,19 +67,6 @@ class SearchActions {
     }
 }
 
-# Count paths within the archive by their metadata.
-sub countMetadata(%config, Str $query) is export {
-
-    my $dbh = openDatabase(%config);
-
-    my $sth = $dbh.execute("SELECT count(*) FROM archive_fts
-    WHERE archive_fts MATCH ?", $query);
-
-    my $row = $sth.row;
-    $dbh.dispose;
-    return $row[0];
-}
-
 # Count metadata rows in the database.
 sub countRecords(%config) is export {
     my $dbh = openDatabase(%config);
