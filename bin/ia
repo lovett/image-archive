@@ -27,20 +27,17 @@ proto MAIN(|) {
     {*}
 }
 
-multi sub MAIN(Bool :$version) {
-    say SCRIPT_VERSION if $version;
-}
-
 #| Start a database CLI session.
 multi sub MAIN('dbshell') {
     my $dbPath = getDatabasePath(%config);
     run 'sqlite3', $dbPath;
 }
 
-multi sub MAIN('search') {
+multi sub MAIN('search') is hidden-from-USAGE {
     die ImageArchive::Exception::NoSearchQuery.new;
 }
 
+#| Find images in the archive by their tags.
 multi sub MAIN('search', *@terms) {
     my $query = @terms.join(' ');
 
@@ -63,16 +60,19 @@ multi sub MAIN('search', *@terms) {
     }
 }
 
+#| Move a file out of the archive.
 multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
     deportFile(%config, $file.IO, $*CWD.IO, $dryrun);
 }
 
+#| Do-over for question-and-answer tagging.
 multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     my %tags = askQuestions(%config);
 
     tagFile(%config, $file.IO, %tags, $dryrun);
 }
 
+#| Re-index files already in the archive.
 multi sub MAIN('reimport') {
     my $callback = sub ($path) {
         indexFile(%config<_><root>.IO.add($path));
@@ -82,6 +82,7 @@ multi sub MAIN('reimport') {
     walkArchive(%config, $callback);
 }
 
+#| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     my $tagValue = readTag(%config, $file.IO, 'datecreated') || 'undated';
 
@@ -90,6 +91,7 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     importFile(%config, $file.IO, $destinationDir);
 }
 
+#| Summarize the contents of the archive.
 multi sub MAIN('stats') {
     my %counts;
 
@@ -129,11 +131,13 @@ multi sub MAIN('stats') {
     }
 }
 
+#| Move a file out of the archive and into the trash.
 multi sub MAIN('trash', Str $file where *.IO.f, Bool :$dryrun = False) {
     my $trashFolder = findTrashFolder();
     deportFile(%config, $file.IO, $trashFolder, $dryrun);
 }
 
+#| Annotate a file with metadata.
 multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
     testKeywords(%config, @keywords);
 
@@ -169,6 +173,7 @@ multi sub MAIN('alts') {
     generateAlts(%config);
 }
 
+#| Remove a value from a tag.
 multi sub MAIN(
     'untag',
     Str $file where *.IO.f,
@@ -184,6 +189,7 @@ multi sub MAIN(
     }
 }
 
+#| Remove a tag in its entirety.
 multi sub MAIN(
     'untag',
     Str $file where *.IO.f,
@@ -197,6 +203,7 @@ multi sub MAIN(
     untagFile(%config, $file.IO, %tags, @keywords, $dryrun);
 }
 
+#| Display one or more files from the previous search.
 multi sub MAIN('view', *@terms) {
     my Str $terms = @terms.join(' ');
     my Str $target;
@@ -271,6 +278,7 @@ multi sub MAIN('view', *@terms) {
     }
 }
 
+#| Display a file's tags.
 multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
     unless @aliases.elems > 0 {
         @aliases = ['alias'].append: %config<prompts>.keys;
@@ -281,4 +289,9 @@ multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
     for %tags.kv -> $alias, $value {
         say "{$alias}: {$value}";
     }
+}
+
+#| Display version information.
+multi sub MAIN('--version') {
+    say SCRIPT_VERSION;
 }
