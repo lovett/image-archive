@@ -61,10 +61,10 @@ sub getPath(Str $keyword) is export is cached {
 #
 # A context can consist of aliases or keywords.
 sub keywordsInContext($context) is export {
-    my %config = readConfig();
+    my %contexts = readConfig('contexts');
     my @keywords;
 
-    my @terms = commaSplit(%config<contexts>{$context});
+    my @terms = commaSplit(%config{$context});
 
     for %config.kv -> $section, %members {
         next if $section ~~ any <_ aliases prompts contexts>;
@@ -89,7 +89,7 @@ sub keywordsToTags(@keywords) is export {
 }
 
 # Load the application configuration file.
-sub readConfig(Str $section?) is export {
+sub readConfig(Str $lookup?) is export {
 
     unless (%config) {
         my $target = getPath('config');
@@ -108,11 +108,16 @@ sub readConfig(Str $section?) is export {
         }
     }
 
-    if ($section) {
-        return %config{$section};
+    if ($lookup) {
+        return %config<_>{$lookup} || %config{$lookup};
     }
 
     return %config;
+}
+
+# List the sections of the config.
+sub configSections() is export {
+    return readConfig().keys;
 }
 
 # Convert an absolute path to a root-relative path.

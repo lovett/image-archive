@@ -7,11 +7,11 @@ use ImageArchive::Config;
 sub writeShellCompletion(Str $scriptVersion) is export {
     my $root = getPath('root');
 
-    my %config = readConfig();
+    my @sections = configSections();
     my %contexts = readConfig('contexts');
     my %aliases = readConfig('aliases');
 
-    my $keywords = ($_ unless $_ ~~ any <_ aliases prompts contexts> for %config.keys) (|) ('no' ~ $_ for %contexts.keys);
+    my $keywords = ($_ unless $_ ~~ any <_ aliases prompts contexts> for @sections) (|) ('no' ~ $_ for @sections);
 
     given %*ENV<SHELL>.IO.basename {
 

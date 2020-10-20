@@ -203,9 +203,9 @@ sub testContextCoverage(@contexts, @keywords) is export {
 
 # Determine if the provided keywords are valid.
 sub testKeywords(@keywords) is export {
-    my %config = readConfig();
+    my @sections = configSections();
     my %contexts = readConfig('contexts');
-    my $duds = @keywords (-) %config.keys (-) contextNegationKeywords(%contexts);
+    my $duds = @keywords (-) @sections (-) contextNegationKeywords(%contexts);
 
     if ($duds) {
         die ImageArchive::Exception::BadKeyword.new(:offenders($duds));

@@ -8,13 +8,12 @@ use ImageArchive::Util;
 
 sub deleteAlts(IO::Path $file) {
     my $cacheRoot = getPath('cache');
-    my %config = readConfig();
 
     my $relativePath = relativePath($file.Str);
 
-    my $thumbnailExtension = %config<_><alt_format>;
+    my $thumbnailExtension = readConfig('alt_format');
 
-    for %config<_><alt_sizes>.split(' ') -> $size {
+    for readConfig('alt_sizes').split(' ') -> $size {
         my $target = $cacheRoot.add("$size/$relativePath").extension($thumbnailExtension);
         $target.IO.unlink;
         deleteEmptyFolders($target.parent);
@@ -65,13 +64,12 @@ sub deportFile(IO::Path $file, IO $destinationDir, Bool $dryRun? = False) is exp
 sub generateAlts(IO::Path $file?) is export {
     my $root = getPath('root');
     my $cacheRoot = getPath('cache');
-    my %config = readConfig();
     my %rosters;
     my %counters;
-    my $thumbnailExtension = %config<_><alt_format>;
+    my $thumbnailExtension = readConfig('alt_format');
 
     indir $root, {
-        for %config<_><alt_sizes>.split(' ') -> $size {
+        for readConfig('alt_sizes').split(' ') -> $size {
             %rosters{$size} = "roster-{$size}.txt".IO.open(:w);
         }
 
