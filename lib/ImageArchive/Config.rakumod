@@ -130,18 +130,6 @@ sub relativePath(Str $file) is export {
     return $file;
 }
 
-
-# Map a formal tag back to its corresponding alias.
-sub tagToAlias(Str $tag) is export {
-    my %aliases = readConfig('aliases');
-    for %aliases.kv -> $alias, $formalTag {
-        return $alias if $tag eq $formalTag;
-        return $alias if $formalTag.ends-with($tag);
-    }
-
-    return $tag;
-}
-
 # Create the file that defines application-wide settings.
 sub writeApplicationConfig(IO::Path $root) is export {
     my $target = getPath('appconfig');

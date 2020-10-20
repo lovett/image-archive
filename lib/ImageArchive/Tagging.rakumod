@@ -70,7 +70,7 @@ sub readTags(IO $file, @tags, Str $flags = '') is export {
         @formalTags.push('-' ~ (%aliases{$tag} || $tag));
     }
 
-    my $proc = run qqw{exiftool -args $flags}, @formalTags, $file.Str, :out, :err;
+    my $proc = run qqw{exiftool -s3 -n -struct -f $flags}, @formalTags, $file.Str, :out, :err;
     my $err = $proc.err.slurp(:close);
     my $out = $proc.out.slurp(:close);
 
@@ -78,16 +78,8 @@ sub readTags(IO $file, @tags, Str $flags = '') is export {
         die ImageArchive::Exception::BadExit.new(:err($err));
     }
 
-    my %tags;
-    for $out.lines -> $line {
-        my @pairs = $line.split('=');
-
-        my $alias = tagToAlias(@pairs.first.substr(1));
-
-        %tags{$alias} = @pairs[1];
-    }
-
-    return %tags;
+    my %tags = @tags Z=> $out.lines;
+    return %tags.grep({ .value ne '-' });
 }
 
 # Discard the backup copy of a file Exiftool has modified.
