@@ -27,12 +27,12 @@ grammar Search {
 class SearchActions {
     has $!tag = 'any';
     has %!terms;
-    has %!config;
+    has %!filters;
 
     method tag ($/) {
-        my $formalTag = %!config<filters>{$/<name>};
+        my $formalTag = %!filters>{$/<name>};
         unless ($formalTag) {
-            die ImageArchive::Exception::BadFilter.new;
+            die ImageArchive::Exception::BadFilter.new(:filters(%!filters));
         }
 
         $!tag = $formalTag;
@@ -69,8 +69,8 @@ class SearchActions {
 }
 
 # Count metadata rows in the database.
-sub countRecords(%config) is export {
-    my $dbh = openDatabase(%config);
+sub countRecords() is export {
+    my $dbh = openDatabase();
 
     my $sth = $dbh.execute(q:to/STATEMENT/);
     SELECT count(*) FROM archive
@@ -83,9 +83,9 @@ sub countRecords(%config) is export {
 
 
 # Remove a file from the database.
-sub deindexFile(%config, IO $file) is export {
-    my $uuid = readTag(%config, $file, 'id');
-    my $dbh = openDatabase(%config);
+sub deindexFile(IO::Path $file) is export {
+    my $uuid = readTag($file, 'id');
+    my $dbh = openDatabase();
     my $sth = $dbh.prepare(q:to/STATEMENT/);
     DELETE FROM archive WHERE uuid=?
     STATEMENT
@@ -95,8 +95,8 @@ sub deindexFile(%config, IO $file) is export {
 }
 
 # Store a file's tags in a database.
-sub indexFile(%config, IO $file) is export {
-    my $uuid = readTag(%config, $file, 'id');
+sub indexFile(IO $file) is export {
+    my $uuid = readTag($file, 'id');
     my $proc = run <
     exiftool
     -x Composite:all
@@ -122,9 +122,10 @@ sub indexFile(%config, IO $file) is export {
 
     # Exiftool populates the SourceFile with an absolute path.
     # Make it root-relative.
-    $json ~~ s:g/ "{%config<_><root>}" //;
+    my $root = getPath('root');
+    $json ~~ s:g/ "{$root}" //;
 
-    my $dbh = openDatabase(%config);
+    my $dbh = openDatabase();
     my $sth = $dbh.prepare(q:to/STATEMENT/);
     INSERT INTO archive (uuid, tags)
     VALUES (?, ?)
@@ -139,16 +140,23 @@ sub indexFile(%config, IO $file) is export {
 # Open a connection to the SQLite database.
 #
 # Caller is responsible for disposing of the returned handle.
-sub openDatabase(%config) is export {
-    my $dbPath = getDatabasePath(%config);
-    return DBIish.connect("SQLite", database => $dbPath);
+sub openDatabase() is export {
+    return DBIish.connect(
+        'SQLite',
+        database => getPath('database')
+    );
 }
 
 # Locate paths within the archive by their metadata.
-sub searchMetadata(%config, Str $query) is export {
-    my $parsedQuery = Search.parse($query, actions => SearchActions.new(:config => %config));
+sub searchMetadata(Str $query) is export {
+    my %filters = readConfig('filters');
 
-    my $dbh = openDatabase(%config);
+    my $parsedQuery = Search.parse(
+        $query,
+        actions => SearchActions.new(:filters(%filters))
+    );
+
+    my $dbh = openDatabase();
 
     $dbh.execute("DELETE FROM history
     WHERE key='searchresults'");
@@ -163,9 +171,10 @@ sub searchMetadata(%config, Str $query) is export {
     WHERE a.id=h.value AND h.key='searchresults'
     ORDER BY h.id");
 
+    my $root = getPath('root');
     return gather {
         for $sth.allrows() -> $row {
-            take relativePath(%config, $row[0]);
+            take relativePath($row[0]);
         }
 
         $dbh.dispose;
@@ -173,7 +182,9 @@ sub searchMetadata(%config, Str $query) is export {
 }
 
 # Establish (or update) the SQLite database.
-sub applyDatabaseSchema(IO::Path $dbPath) is export {
+sub applyDatabaseSchema() is export {
+    my $dbPath = getPath('database');
+
     my $schemaPath = %?RESOURCES<schema-sqlite.sql>.absolute;
 
     my $proc = run 'sqlite3', $dbPath, :in;

@@ -13,6 +13,7 @@
     "ImageArchive::Util": "lib/ImageArchive/Util.rakumod"
   },
   "resources": [
+    "config.ini",
     "schema-sqlite.sql"
   ],
   "depends" : [

@@ -2,30 +2,47 @@ unit module ImageArchive::Archive;
 
 use Terminal::ANSIColor;
 
+use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-sub deleteAlts(%config, IO::Path $file) {
-    my $root = %config<_><root>;
+sub deleteAlts(IO::Path $file) {
+    my $root = getPath('root');
+    my %config = readConfig();
+
     my $relativePath = $file.relative($root).IO;
 
     my $thumbnailExtension = %config<_><alt_format>;
 
     for %config<_><alt_sizes>.split(' ') -> $size {
-        my $target = %config<_><root>.IO.add("_cache/$size/$relativePath").extension($thumbnailExtension);
-        say $target;
+        my $target = $root.add("_cache/$size/$relativePath").extension($thumbnailExtension);
         $target.IO.unlink;
+        deleteEmptyFolders($target.parent);
+    }
+}
+
+sub deleteEmptyFolders(IO::Path $leaf) {
+    my $root = getPath('root');
+
+    my $dir = $leaf;
+    while ($dir.starts-with($root)) {
+        if (dir $dir) {
+            return;
+        }
+
+        rmdir($dir);
+        $dir = $dir.parent;
     }
 }
 
 # Remove a file from the archive.
-sub deportFile(%config, IO $file, IO $parent, Bool $dryRun? = False) is export {
-    testPathExistsInArchive(%config, $file);
+sub deportFile(IO::Path $file, IO $destinationDir, Bool $dryRun? = False) is export {
+    testPathExistsInArchive($file);
 
-    my $destination = $parent.add($file.basename);
+    my $destination = $destinationDir.add($file.basename);
 
     if ($destination.IO ~~ :f) {
-        confirm("Overwrite {$file.basename} in {$parent}?");
+        confirm("Overwrite {$file.basename} in {$destinationDir}?");
     }
 
     if ($dryRun) {
@@ -35,43 +52,46 @@ sub deportFile(%config, IO $file, IO $parent, Bool $dryRun? = False) is export {
         return;
     }
 
-    deindexFile(%config, $file);
+    deindexFile($file);
     move($file, $destination);
     $destination.IO.chmod(0o600);
-    deleteAlts(%config, $file);
+    deleteEmptyFolders($file.parent);
+    deleteAlts($file);
 }
 
 # Resize and thumbnail via GraphicsMagick.
 #
 # If a path is not given, the archive is walked.
-sub generateAlts(%config, IO::Path $file?) is export {
+sub generateAlts(IO::Path $file?) is export {
+    my $root = getPath('root');
+    my %config = readConfig();
     my %rosters;
     my %counters;
     my $thumbnailExtension = %config<_><alt_format>;
 
-    indir %config<_><root>, {
+    indir $root, {
         for %config<_><alt_sizes>.split(' ') -> $size {
             %rosters{$size} = "roster-{$size}.txt".IO.open(:w);
         }
 
         if ($file) {
-            testPathExistsInArchive(%config, $file);
+            testPathExistsInArchive($file);
 
             for %rosters.kv -> $size, $handle {
-                $handle.say($file.relative(%config<_><root>));
+                $handle.say($file.relative($root));
                 %counters{$size}++;
             }
         } else {
             my $callback = sub ($path) {
                 for %rosters.kv -> $size, $handle {
-                    my $target = %config<_><root>.IO.add("_cache/$size/$path").extension($thumbnailExtension);
+                    my $target = $root.add("_cache/$size/$path").extension($thumbnailExtension);
                     next if $target ~~ :f;
                     $handle.say($path);
                     %counters{$size}++;
                 }
             }
 
-            walkArchive(%config, $callback);
+            walkArchive($callback);
         }
 
         for %rosters.kv -> $size, $handle {
@@ -107,7 +127,8 @@ sub generateAlts(%config, IO::Path $file?) is export {
     }
 }
 # Move a file to a subfolder under the archive root.
-sub importFile(%config, IO $file, IO $parent, Bool $dryRun? = False) is export {
+sub importFile(IO $file, IO $parent, Bool $dryRun? = False) is export {
+    my $root = getPath('root');
     unless ($parent ~~ :d) {
         if ($dryRun) {
             wouldHaveDone("mkdir {$parent}");
@@ -130,26 +151,25 @@ sub importFile(%config, IO $file, IO $parent, Bool $dryRun? = False) is export {
         return;
     }
 
-    my $root = %config<_><root>;
     move($file, $destination);
     $destination.IO.chmod(0o400);
-    indexFile(%config, $destination);
-    generateAlts(%config, $destination);
-    say "Imported {$file.basename} to {$destination}";
+    indexFile($destination);
+    generateAlts($destination);
+    say "Imported as {$destination}";
 }
 
 # See if a file exists within the archive root.
-sub testPathExistsInArchive(%config, IO $file) is export {
-    return if $file.absolute.starts-with(%config<_><root>) && ($file ~~ :e);
+sub testPathExistsInArchive(IO $file) is export {
+    my $root = getPath('root');
+    return if $file.absolute.starts-with($root) && ($file ~~ :e);
     die ImageArchive::Exception::PathNotFoundInArchive.new;
 }
 
 # Perform an action on each file in the archive.
-sub walkArchive(%config, Callable $callback) is export {
-    my $root = %config<_><root>.IO;
-
+sub walkArchive(Callable $callback) is export {
+    my $root = getPath('root');
     my @stack = $root;
-    my @skipExtensions := <db bak txt>;
+    my @skipExtensions := <bak db ini txt>;
 
     while (@stack)  {
         for @stack.pop.dir -> $path {

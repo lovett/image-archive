@@ -5,10 +5,12 @@ use ImageArchive::Exception;
 use ImageArchive::Util;
 
 # Prompt for tag values that are unique to the image.
-sub askQuestions(%config) is export {
+sub askQuestions() is export {
+    my %prompts = readConfig('prompts');
+
     my %answers;
 
-    for %config<prompts>.sort(*.key) {
+    for %prompts.sort(*.key) {
         my $answer = prompt "{$_.value}: ";
         $answer .= trim;
         next unless $answer;
@@ -44,8 +46,10 @@ sub commitTags(IO $file, @commands, Bool $dryRun? = False) is export {
 }
 
 # Extract a tag specified from a file.
-sub readTag(%config, IO $file, $tag) is export {
-    my $formalTag = %config<aliases>{$tag} || $tag;
+sub readTag(IO $file, $tag) is export {
+    my %aliases = readConfig('aliases');
+
+    my $formalTag = %aliases{$tag} || $tag;
 
     my $proc = run <exiftool -s3 -n>, "-{$formalTag}", $file.Str, :out, :err;
     my $err = $proc.err.slurp(:close);
@@ -59,10 +63,11 @@ sub readTag(%config, IO $file, $tag) is export {
 }
 
 # Extract multiple tags from a file.
-sub readTags(%config, IO $file, @tags, Str $flags = '') is export {
+sub readTags(IO $file, @tags, Str $flags = '') is export {
+    my %aliases = readConfig('aliases');
     my @formalTags;
     for @tags -> $tag {
-        @formalTags.push('-' ~ (%config<aliases>{$tag} || $tag));
+        @formalTags.push('-' ~ (%aliases{$tag} || $tag));
     }
 
     my $proc = run qqw{exiftool -args $flags}, @formalTags, $file.Str, :out, :err;
@@ -77,7 +82,7 @@ sub readTags(%config, IO $file, @tags, Str $flags = '') is export {
     for $out.lines -> $line {
         my @pairs = $line.split('=');
 
-        my $alias = tagToAlias(%config, @pairs.first.substr(1));
+        my $alias = tagToAlias(@pairs.first.substr(1));
 
         %tags{$alias} = @pairs[1];
     }
@@ -108,8 +113,9 @@ sub restoreOriginal(IO $file) is export {
 }
 
 # Apply one or more tags specified as keywords to a file.
-sub tagFile(%config, IO $file, %tags, @keywords?, Bool $dryRun? = False) is export {
-    my $uuid = readTag(%config, $file.IO, 'id');
+sub tagFile($file, %tags, @keywords?, Bool $dryRun? = False) is export {
+
+    my $uuid = readTag($file, 'id');
 
     unless ($uuid) {
         %tags<id> = generateUuid();
@@ -118,22 +124,24 @@ sub tagFile(%config, IO $file, %tags, @keywords?, Bool $dryRun? = False) is expo
     # Storing the aliases makes it possible to locate images based on
     # how they were tagged (as opposed to what they were tagged with).
     if (@keywords) {
-        %tags<alias> = set(readTag(%config, $file.IO, 'alias').Array.append(@keywords.sort));
+        %tags<alias> = set(readTag($file.IO, 'alias').Array.append(@keywords.sort));
     }
 
     %tags<datetagged> = DateTime.now();
 
-    my @commands = tagsToExifTool(%config, %tags);
+    my @commands = tagsToExifTool(%tags);
 
     commitTags($file, @commands, $dryRun);
 }
 
 # Convert a set of tag keywords to a list of arguments suitable for exiftool.
-sub tagsToExifTool(%config, %tags) is export {
+sub tagsToExifTool(%tags) is export {
+    my %aliases = readConfig('aliases');
+
     my @commands;
 
     for %tags.keys -> $tag {
-        my $formalTag = %config<aliases>{$tag};
+        my $formalTag = %aliases{$tag};
 
         my $value = %tags{$tag};
 
@@ -153,11 +161,11 @@ sub tagsToExifTool(%config, %tags) is export {
 }
 
 # See if there are contexts with no keywords.
-sub testContexts(%config, @contexts) is export {
+sub testContexts(@contexts) is export {
     my $bag = BagHash.new;
 
     for @contexts -> $context {
-        ($bag{$context}++ if keywordsInContext(%config, $context));
+        ($bag{$context}++ if keywordsInContext($context));
     }
 
     my Set $empties = @contexts (-) $bag.keys;
@@ -168,31 +176,36 @@ sub testContexts(%config, @contexts) is export {
 }
 
 # See if there are any contexts with no keywords.
-sub testContextCoverage(%config, @contexts, @keywords) is export {
+sub testContextCoverage(@contexts, @keywords) is export {
 
     # zipwith meta operator
     # See https://rosettacode.org/wiki/Hash_from_two_arrays#Raku
-    my %contexts = @contexts Z=> %config<contexts>{@contexts};
+    my %contexts = @contexts Z=> readConfig('contexts'){@contexts};
 
     my $bag = BagHash.new;
 
     for %contexts.kv -> $key, $values {
         my @terms = commaSplit($values);
 
-        ($bag{$key}++ if @terms (&) @keywords or @keywords (&) keywordsInContext(%config, $key));
+        ($bag{$key}++ if @terms (&) @keywords or @keywords (&) keywordsInContext($key));
     }
 
     my Set $empties = @contexts (-) $bag.keys;
 
     if ($empties.elems > 0) {
-        die ImageArchive::Exception::MissingContext.new(:offenders($empties.keys));
+        die ImageArchive::Exception::MissingContext.new(
+            :allcontexts(readConfig('contexts')),
+            :offenders($empties.keys)
+        );
     }
 
 }
 
 # Determine if the provided keywords are valid.
-sub testKeywords(%config, @keywords) is export {
-    my $duds = @keywords (-) %config.keys (-) contextNegationKeywords(%config);
+sub testKeywords(@keywords) is export {
+    my %config = readConfig();
+    my %contexts = readConfig('contexts');
+    my $duds = @keywords (-) %config.keys (-) contextNegationKeywords(%contexts);
 
     if ($duds) {
         die ImageArchive::Exception::BadKeyword.new(:offenders($duds));
@@ -200,7 +213,7 @@ sub testKeywords(%config, @keywords) is export {
 }
 
 # Remove tag values from a file.
-sub untagFile(%config, IO $file, %tags, @keywords, Bool $dryRun? = False) is export {
+sub untagFile(IO $file, %tags, @keywords, Bool $dryRun? = False) is export {
     if (@keywords) {
         %tags<alias> = @keywords.sort;
     }
@@ -210,7 +223,7 @@ sub untagFile(%config, IO $file, %tags, @keywords, Bool $dryRun? = False) is exp
             next;
         }
 
-        my $currentValue = readTag(%config, $file.IO, $tag);
+        my $currentValue = readTag($file.IO, $tag);
 
         if ($currentValue eq '') {
             next;
@@ -229,7 +242,8 @@ sub untagFile(%config, IO $file, %tags, @keywords, Bool $dryRun? = False) is exp
         %tags{$tag} = $currentValue.subst($value, '').subst(/ \s+ /, ' ', :g).trim();
     }
 
-    my @commands = tagsToExifTool(%config, %tags);
+    my @commands = tagsToExifTool(%tags);
 
-    commitTags($file, @commands, $dryRun);
+    say @commands;
+#    commitTags($file, @commands, $dryRun);
 }

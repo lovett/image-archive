@@ -12,9 +12,7 @@ use ImageArchive::Shell;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
-our Str constant SCRIPT_VERSION = "2020.10.16";
-
-our %config = readConfig();
+our Str constant SCRIPT_VERSION = "2020.10.19";
 
 # Entry points
 # ------------------------------------------------------------------------
@@ -30,12 +28,8 @@ proto MAIN(|) {
 
 #| Start a database CLI session.
 multi sub MAIN('dbshell') {
-    my $dbPath = getDatabasePath(%config);
+    my $dbPath = getPath('database');
     run 'sqlite3', $dbPath;
-}
-
-multi sub MAIN('search') is hidden-from-USAGE {
-    die ImageArchive::Exception::NoSearchQuery.new;
 }
 
 #| Find images in the archive by their tags.
@@ -43,7 +37,7 @@ multi sub MAIN('search', *@terms) {
     my $query = @terms.join(' ');
 
     my $counter = 0;
-    for searchMetadata(%config, $query) -> $result {
+    for searchMetadata($query) -> $result {
         my $index = colored(sprintf("%3d", ++$counter), 'cyan');
         say " $index $result";
     }
@@ -61,35 +55,50 @@ multi sub MAIN('search', *@terms) {
     }
 }
 
+multi sub MAIN('search') is hidden-from-USAGE {
+    die ImageArchive::Exception::NoSearchQuery.new;
+}
+
 #| Move a file out of the archive.
-multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
-    deportFile(%config, $file.IO, $*CWD.IO, $dryrun);
+multi sub MAIN('deport', Str $file, Bool :$dryrun) {
+    my $target;
+
+    if ($file.IO ~~ :f) {
+        $target = $file.IO;
+    } else {
+        my $root = getPath('root');
+        $target = $root.add($file);
+    }
+
+    deportFile($target, $*CWD.IO, $dryrun);
 }
 
 #| Do-over for question-and-answer tagging.
 multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
-    my %tags = askQuestions(%config);
-
-    tagFile(%config, $file.IO, %tags, $dryrun);
+    my %tags = askQuestions();
+    tagFile($file.IO, %tags, (), $dryrun);
 }
 
 #| Re-index files already in the archive.
 multi sub MAIN('reimport') {
+    my $root = getPath('root');
     my $callback = sub ($path) {
-        indexFile(%config<_><root>.IO.add($path));
+        indexFile($root.add($path));
         say "Reindexed {$path}";
     }
 
-    walkArchive(%config, $callback);
+    walkArchive($callback);
 }
 
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
-    my $tagValue = readTag(%config, $file.IO, 'datecreated') || 'undated';
+    my $root = getPath('root');
 
-    my $destinationDir = %config<_><root>.IO.add($tagValue.subst(":", "/", :g));
+    my $tagValue = readTag($file.IO, 'datecreated') || 'undated';
 
-    importFile(%config, $file.IO, $destinationDir);
+    my $destinationDir = $root.add($tagValue.subst(":", "/", :g));
+
+    importFile($file.IO, $destinationDir);
 }
 
 #| Summarize the contents of the archive.
@@ -101,7 +110,7 @@ multi sub MAIN('stats') {
         %counts{$topDir}++;
     }
 
-    walkArchive(%config, $callback);
+    walkArchive($callback);
 
     my $fileCount = %counts.values.reduce: &infix:<+>;
     my $fileLabel = ($fileCount == 1) ?? 'file' !! 'files';
@@ -123,7 +132,7 @@ multi sub MAIN('stats') {
         }
     }
 
-    my $recordCount = countRecords(%config);
+    my $recordCount = countRecords();
     my $recordLabel = ($recordCount == 1) ?? 'record' !! 'records';
 
     if ($recordCount !== $fileCount) {
@@ -135,30 +144,31 @@ multi sub MAIN('stats') {
 #| Move a file out of the archive and into the trash.
 multi sub MAIN('trash', Str $file where *.IO.f, Bool :$dryrun = False) {
     my $trashFolder = findTrashFolder();
-    deportFile(%config, $file.IO, $trashFolder, $dryrun);
+    deportFile($file.IO, $trashFolder, $dryrun);
 }
 
 #| Annotate a file with metadata.
 multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
-    testKeywords(%config, @keywords);
+
+    testKeywords(@keywords);
 
     # If the file has id and alias tags, consider it previously tagged
     # and append @keywords to what already exists.
-    my $previouslyTagged = readTags(%config, $file.IO, ['id', 'alias']).elems == 2;
+    my $previouslyTagged = readTags($file.IO, ['id', 'alias']).elems == 2;
 
-    my %tags = keywordsToTags(%config, @keywords);
+    my %tags = keywordsToTags(@keywords);
 
     unless ($previouslyTagged) {
-        my @contexts = activeContexts(%config, @keywords);
+        my @contexts = activeContexts(@keywords);
 
-        testContexts(%config, @contexts);
+        testContexts(@contexts);
 
-        testContextCoverage(%config, @contexts, @keywords);
+        testContextCoverage(@contexts, @keywords);
 
-        %tags.append(askQuestions(%config));
+        %tags.append(askQuestions());
     }
 
-    tagFile(%config, $file.IO, %tags, @keywords);
+    tagFile($file.IO, %tags, @keywords);
 
     CATCH {
         when ImageArchive::Exception::MissingContext {
@@ -171,21 +181,25 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
 
 #| Generate alternate image sizes.
 multi sub MAIN('alts') {
-    generateAlts(%config);
+    generateAlts();
 }
 
 #| Remove a value from a tag.
 multi sub MAIN(
     'untag',
     Str $file where *.IO.f,
-    Str $alias where { %config<aliases>{$alias}:exists },
+    Str $alias,
     Str $value='',
     Bool :$dryrun = False
 ) {
-    untagFile(%config, $file.IO, %($alias, $value), (), $dryrun);
+    my %aliases = readConfig('aliases');
+    say %aliases{$alias};
+    exit;
+
+    untagFile($file.IO, %($alias, $value), (), $dryrun);
 
     unless ($dryrun) {
-        my $value = readTag(%config, $file.IO, $alias);
+        my $value = readTag($file.IO, $alias);
         say $value if $value;
     }
 }
@@ -197,11 +211,11 @@ multi sub MAIN(
     Bool :$dryrun = False,
     *@keywords
 ) {
-    testKeywords(%config, @keywords);
+    testKeywords(@keywords);
 
-    my %tags = keywordsToTags(%config, @keywords);
+    my %tags = keywordsToTags(@keywords);
 
-    untagFile(%config, $file.IO, %tags, @keywords, $dryrun);
+    untagFile($file.IO, %tags, @keywords, $dryrun);
 }
 
 #| Display one or more files from the previous search.
@@ -209,7 +223,8 @@ multi sub MAIN('view', *@terms) {
     my Str $terms = @terms.join(' ');
     my Str $target;
 
-    my $command = %config<_><view_command>;
+    my %rootConfig = readConfig('_');
+    my $command = %rootConfig<view_command>;
 
     unless ($command) {
         die ImageArchive::Exception::MissingConfig.new(:key('view_command'));
@@ -237,7 +252,7 @@ multi sub MAIN('view', *@terms) {
                 $rangeSql ~= "rownum IN (" ~ @indices.join(',') ~ ")";
             }
 
-            my $dbh = openDatabase(%config);
+            my $dbh = openDatabase();
 
             my $sth = $dbh.execute("SELECT * FROM (
             SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
@@ -257,8 +272,9 @@ multi sub MAIN('view', *@terms) {
         default {
             my $path = $terms.IO;
 
-            unless ($path.absolute.starts-with(%config<_><root>)) {
-                $path = %config<_><root>.IO.add($terms);
+            my $root = getPath('root');
+            unless ($path.absolute.starts-with($root)) {
+                $path = $root.add($terms);
             }
 
             if ($target ~~ :f) {
@@ -281,11 +297,12 @@ multi sub MAIN('view', *@terms) {
 
 #| Display a file's tags.
 multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
+    my %prompts = readConfig('prompts');
     unless @aliases.elems > 0 {
-        @aliases = ['alias'].append: %config<prompts>.keys;
+        @aliases = ['alias'].append: %prompts.keys;
     }
 
-    my %tags = readTags(%config, $file.IO, @aliases, '-f');
+    my %tags = readTags($file.IO, @aliases, '-f');
 
     for %tags.kv -> $alias, $value {
         say "{$alias}: {$value}";
@@ -294,21 +311,21 @@ multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
 
 #| Update the shell completion file.
 multi sub MAIN('completion') {
-    writeShellCompletion(%config, SCRIPT_VERSION);
+    writeShellCompletion(SCRIPT_VERSION);
 }
 
-#| Establish the application config and database.
+#| Establish the application's configuration and database.
 multi sub MAIN('setup', Str $directory where *.IO.d) {
-    writeStarterConfig($directory.IO);
+    writeApplicationConfig($directory.IO);
 
-    my $dbPath = getDatabasePath(%config);
-    applyDatabaseSchema($dbPath);
+    writeArchiveConfig();
 
-    writeShellCompletion(%config, SCRIPT_VERSION);
+    applyDatabaseSchema();
+
+    writeShellCompletion(SCRIPT_VERSION);
 }
-
 
 #| Display version information.
-multi sub MAIN('--version') {
-    say SCRIPT_VERSION;
+multi sub MAIN(Bool :$version) {
+    say SCRIPT_VERSION if $version;
 }

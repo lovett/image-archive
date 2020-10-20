@@ -2,13 +2,21 @@ unit module ImageArchive::Shell;
 
 use Terminal::ANSIColor;
 
-sub writeShellCompletion(%config, $scriptVersion) is export {
-    my $keywords = ($_ unless $_ ~~ any <_ aliases prompts contexts> for %config.keys) (|) ('no' ~ $_ for %config<contexts>.keys);
+use ImageArchive::Config;
+
+sub writeShellCompletion(Str $scriptVersion) is export {
+    my $root = getPath('root');
+
+    my %config = readConfig();
+    my %contexts = readConfig('contexts');
+    my %aliases = readConfig('aliases');
+
+    my $keywords = ($_ unless $_ ~~ any <_ aliases prompts contexts> for %config.keys) (|) ('no' ~ $_ for %contexts.keys);
 
     given %*ENV<SHELL>.IO.basename {
 
         when "fish" {
-            my $completionFile = $*HOME.add(".config/fish/completions/ia.fish");
+            my $completionFile = getPath('completion-fish');
 
             my $prefix = "complete -c {$*PROGRAM-NAME.IO.basename}";
 
@@ -51,10 +59,10 @@ sub writeShellCompletion(%config, $scriptVersion) is export {
             {$prefix} --condition="__fish_seen_subcommand_from trash" --arguments="(__fish_complete_subcommand)"
 
             {$prefix} --arguments=untag
-            {$prefix} --condition="__fish_seen_subcommand_from untag" --arguments="(__fish_complete_path) {%config<aliases>.keys.sort.join(' ')} {$keywords.keys.sort.join(' ')}"
+            {$prefix} --condition="__fish_seen_subcommand_from untag" --arguments="(__fish_complete_path) {%aliases.keys.sort.join(' ')} {$keywords.keys.sort.join(' ')}"
 
             {$prefix} --arguments=view
-            {$prefix} --condition="__fish_seen_subcommand_from view" --arguments="(__fish_complete_path) {%config<aliases>.keys.sort.join(' ')}"
+            {$prefix} --condition="__fish_seen_subcommand_from view" --arguments="(__fish_complete_path) {%aliases.keys.sort.join(' ')}"
             END
 
             say "Wrote $completionFile"
