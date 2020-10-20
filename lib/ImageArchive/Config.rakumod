@@ -1,5 +1,7 @@
 unit module ImageArchive::Config;
 
+use experimental :cached;
+
 use Config::INI;
 
 use ImageArchive::Util;
@@ -19,24 +21,22 @@ sub contextNegationKeywords(%contexts) is export {
 }
 
 # Lookup an application file path by keyword.
-sub getPath(Str $keyword) is export {
+sub getPath(Str $keyword) is export is cached {
     given $keyword {
         when 'appconfig' {
             return $*HOME.add('.config/ia.conf');
         }
 
         when 'config' {
-            my $root = getPath('root');
-            return $root.add('config.ini');
+            return getPath('root').add('config.ini');
         }
 
         when 'completion-fish' {
-            return $*HOME.add(".config/fish/completions/ia.fish").IO;
+            return $*HOME.add(".config/fish/completions/ia.fish");
         }
 
         when 'database' {
-            my $root = getPath('root');
-            return $root.add('ia.db').IO;
+            return getPath('root').add('ia.db');
         }
 
         when 'root' {
@@ -44,10 +44,9 @@ sub getPath(Str $keyword) is export {
 
             my %ini = Config::INI::parse_file($appConfig.Str);
 
-            my $path = %ini<_><root>;
-
-            $path ~= '/' unless $path.ends-with('/');
-            return $path.IO;
+            my $root = %ini<_><root>;
+            $root ~= '/' unless $root.ends-with('/');
+            return $root.IO;
         }
     }
 }
@@ -84,7 +83,7 @@ sub keywordsToTags(@keywords) is export {
 }
 
 # Load the application configuration file.
-sub readConfig(Str $section?) is export {
+sub readConfig(Str $section?) is export is cached {
     my IO::Path $target = getPath('config');
 
     my %config;
