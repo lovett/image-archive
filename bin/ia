@@ -76,7 +76,7 @@ multi sub MAIN('deport', Str $file, Bool :$dryrun) {
 #| Do-over for question-and-answer tagging.
 multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     my %tags = askQuestions();
-    tagFile($file.IO, %tags, (), $dryrun);
+    tagFile($file.IO, %tags, $dryrun);
 }
 
 #| Re-index files already in the archive.
@@ -168,7 +168,9 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
         %tags.append(askQuestions());
     }
 
-    tagFile($file.IO, %tags, @keywords);
+    %tags<alias> = @keywords;
+
+    tagFile($file.IO, %tags, $dryrun);
 
     CATCH {
         when ImageArchive::Exception::MissingContext {

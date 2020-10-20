@@ -104,52 +104,25 @@ sub restoreOriginal(IO $file) is export {
     }
 }
 
-# Apply one or more tags specified as keywords to a file.
-sub tagFile($file, %tags, @keywords?, Bool $dryRun? = False) is export {
+# Add tags to a file.
+sub tagFile($file, %tags, Bool $dryRun? = False) is export {
+    my %aliases = readConfig('aliases');
 
-    my $uuid = readTag($file, 'id');
-
-    unless ($uuid) {
+    unless (readTag($file, 'id')) {
         %tags<id> = generateUuid();
     }
 
-    # Storing the aliases makes it possible to locate images based on
-    # how they were tagged (as opposed to what they were tagged with).
-    if (@keywords) {
-        %tags<alias> = set(readTag($file.IO, 'alias').Array.append(@keywords.sort));
-    }
-
-    %tags<datetagged> = DateTime.now();
-
-    my @commands = tagsToExifTool(%tags);
-
-    commitTags($file, @commands, $dryRun);
-}
-
-# Convert a set of tag keywords to a list of arguments suitable for exiftool.
-sub tagsToExifTool(%tags) is export {
-    my %aliases = readConfig('aliases');
-
     my @commands;
 
-    for %tags.keys -> $tag {
+    for %tags.kv -> $tag, $value {
         my $formalTag = %aliases{$tag};
-
-        my $value = %tags{$tag};
-
-        if ($value ~~ List) {
-            for $value.list -> $item {
-                my $operator = ($item ~~ $value.first) ?? "=" !! "+=";
-                @commands.push("-{$formalTag}{$operator}{$item}");
-            }
-        } elsif ($value ~~ Str && $value.starts-with('-')) {
-            @commands.push("-{$formalTag}-={$value.substr(1)}");
-        } else {
-            @commands.push("-{$formalTag}={$value}");
+        for $value.list -> $item {
+            @commands.push("-{$formalTag}+={$item}");
         }
     }
 
-    return @commands;
+    @commands.push(sprintf("-%s=%s", %aliases<datetagged>, DateTime.now()));
+    commitTags($file, @commands, $dryRun);
 }
 
 # See if there are contexts with no keywords.
