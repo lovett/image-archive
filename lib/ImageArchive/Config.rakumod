@@ -142,15 +142,19 @@ sub tagToAlias(Str $tag) is export {
     return $tag;
 }
 
-# Create the file that defines the location of the archive.
+# Create the file that defines application-wide settings.
 sub writeApplicationConfig(IO::Path $root) is export {
     my $target = getPath('appconfig');
 
     return if $target ~~ :f;
 
     spurt $target, qq:to/END/;
-    ; This is the application configuration for image-archive (ia).
+    ; This is the application configuration for Image Archive (ia),
+    ; defining global settings.
     ;
+    ; For archive-specific settings, see the file conf.ini in the archive
+    ; root.
+
     ; The location of the archive as an absolute path.
     root = {$root.absolute}
 
@@ -159,7 +163,7 @@ sub writeApplicationConfig(IO::Path $root) is export {
     say "Wrote {$target}";
 }
 
-# Create the file that defines tag terms and archive-specific settings.
+# Create the file that defines archive-specific settings.
 sub writeArchiveConfig() is export {
     my $target = getPath('config');
 
