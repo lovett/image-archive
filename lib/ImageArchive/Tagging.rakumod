@@ -212,38 +212,20 @@ sub testKeywords(@keywords) is export {
     }
 }
 
-# Remove tag values from a file.
-sub untagFile(IO $file, %tags, @keywords, Bool $dryRun? = False) is export {
-    if (@keywords) {
-        %tags<alias> = @keywords.sort;
-    }
+# Remove the tags of one or more keywords from a file.
+sub untagKeywords(IO $file, @keywords, Bool $dryRun? = False) is export {
+    testKeywords(@keywords);
+
+    my %tags = keywordsToTags(@keywords);
 
     for %tags.kv -> $tag, $value {
-        if ($value eq '') {
-            next;
-        }
-
-        my $currentValue = readTag($file.IO, $tag);
-
-        if ($currentValue eq '') {
-            next;
-        }
-
-        if ($currentValue.contains('{')) {
-            %tags{$tag} = '';
-            next;
-        }
-
-        if ($currentValue.contains(',')) {
-            %tags{$tag} = commaSplit($currentValue) (-) $value;
-            next;
-        }
-
-        %tags{$tag} = $currentValue.subst($value, '').subst(/ \s+ /, ' ', :g).trim();
+        %tags{$tag} = "-" ~ $value;
     }
+
+    my $aliases = readTag($file.IO, 'alias');
+    %tags<alias> = commaSplit($aliases) (-) @keywords;
 
     my @commands = tagsToExifTool(%tags);
 
-    say @commands;
-#    commitTags($file, @commands, $dryRun);
+    commitTags($file, @commands, $dryRun);
 }

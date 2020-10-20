@@ -184,38 +184,9 @@ multi sub MAIN('alts') {
     generateAlts();
 }
 
-#| Remove a value from a tag.
-multi sub MAIN(
-    'untag',
-    Str $file where *.IO.f,
-    Str $alias,
-    Str $value='',
-    Bool :$dryrun = False
-) {
-    my %aliases = readConfig('aliases');
-    say %aliases{$alias};
-    exit;
-
-    untagFile($file.IO, %($alias, $value), (), $dryrun);
-
-    unless ($dryrun) {
-        my $value = readTag($file.IO, $alias);
-        say $value if $value;
-    }
-}
-
-#| Remove a tag in its entirety.
-multi sub MAIN(
-    'untag',
-    Str $file where *.IO.f,
-    Bool :$dryrun = False,
-    *@keywords
-) {
-    testKeywords(@keywords);
-
-    my %tags = keywordsToTags(@keywords);
-
-    untagFile($file.IO, %tags, @keywords, $dryrun);
+#| Remove tags via keyword.
+multi sub MAIN('untag', 'keyword', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
+    untagKeywords($file.IO, @keywords, $dryrun);
 }
 
 #| Display one or more files from the previous search.
