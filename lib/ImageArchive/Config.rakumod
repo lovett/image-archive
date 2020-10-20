@@ -29,6 +29,10 @@ sub getPath(Str $keyword) is export is cached {
             return $*HOME.add('.config/ia.conf');
         }
 
+        when 'cache' {
+            return getPath('root').add('_cache');
+        }
+
         when 'config' {
             return getPath('root').add('config.ini');
         }

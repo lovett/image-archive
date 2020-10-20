@@ -7,15 +7,15 @@ use ImageArchive::Database;
 use ImageArchive::Util;
 
 sub deleteAlts(IO::Path $file) {
-    my $root = getPath('root');
+    my $cacheRoot = getPath('cache');
     my %config = readConfig();
 
-    my $relativePath = $file.relative($root).IO;
+    my $relativePath = relativePath($file.Str);
 
     my $thumbnailExtension = %config<_><alt_format>;
 
     for %config<_><alt_sizes>.split(' ') -> $size {
-        my $target = $root.add("_cache/$size/$relativePath").extension($thumbnailExtension);
+        my $target = $cacheRoot.add("$size/$relativePath").extension($thumbnailExtension);
         $target.IO.unlink;
         deleteEmptyFolders($target.parent);
     }
@@ -64,6 +64,7 @@ sub deportFile(IO::Path $file, IO $destinationDir, Bool $dryRun? = False) is exp
 # If a path is not given, the archive is walked.
 sub generateAlts(IO::Path $file?) is export {
     my $root = getPath('root');
+    my $cacheRoot = getPath('cache');
     my %config = readConfig();
     my %rosters;
     my %counters;
@@ -84,7 +85,7 @@ sub generateAlts(IO::Path $file?) is export {
         } else {
             my $callback = sub ($path) {
                 for %rosters.kv -> $size, $handle {
-                    my $target = $root.add("_cache/$size/$path").extension($thumbnailExtension);
+                    my $target = $cacheRoot.add("$size/$path").extension($thumbnailExtension);
                     next if $target ~~ :f;
                     $handle.say($path);
                     %counters{$size}++;
