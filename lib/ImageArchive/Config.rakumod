@@ -6,6 +6,8 @@ use Config::INI;
 
 use ImageArchive::Util;
 
+our %config;
+
 # List the contexts that have not been explicity disabled by a
 # negation keyword.
 sub activeContexts(@keywords) is export {
@@ -83,25 +85,22 @@ sub keywordsToTags(@keywords) is export {
 }
 
 # Load the application configuration file.
-sub readConfig(Str $section?) is export is cached {
-    my IO::Path $target = getPath('config');
+sub readConfig(Str $section?) is export {
 
-    my %config;
+    unless (%config) {
+        my $target = getPath('config');
+        %config = Config::INI::parse_file($target.Str);
 
-    return %config unless $target ~~ :f;
+        # Remove backslash when followed by punctuation.
+        #
+        # This is just an editing convenience. The backslashes prevent
+        # INI syntax highlighting from getting thrown off.
+        my regex unescape { \\ (<punct>) };
 
-    %config = Config::INI::parse(slurp $target);
-
-    my @skippableSections := <_ aliases prompts contexts>;
-
-    my regex unescape { \\ (<punct>) };
-
-    for %config.kv -> $section, %members {
-        next if $section ∈ @skippableSections;
-
-        for %members.kv -> $key, $value {
-            # Remove backslash when followed by punctuation.
-            %config{$section}{$key} = $value.subst(&unescape, { "$0" }, :g);
+        for %config.kv -> $section, %members {
+            for %members.kv -> $key, $value {
+                %config{$section}{$key} = $value.subst(&unescape, { "$0" }, :g);
+            }
         }
     }
 
