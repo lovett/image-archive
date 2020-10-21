@@ -125,6 +125,16 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
     commitTags($file, @commands, $dryRun);
 }
 
+# Determine if the provided aliases are valid.
+sub testAliases(@aliases) is export {
+    my %aliases = readConfig('aliases');
+    my $duds = @aliases (-) %aliases.keys;
+
+    if ($duds) {
+        die ImageArchive::Exception::BadAlias.new(:offenders($duds));
+    }
+}
+
 # See if there are contexts with no keywords.
 sub testContexts(@contexts) is export {
     my $bag = BagHash.new;
@@ -177,20 +187,48 @@ sub testKeywords(@keywords) is export {
     }
 }
 
-# Remove the tags of one or more keywords from a file.
-sub untagKeywords(IO $file, @keywords, Bool $dryRun? = False) is export {
-    testKeywords(@keywords);
+# Remove the tags associated with a keyword.
+sub untagKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
+    testKeywords($keyword.list);
 
-    my %tags = keywordsToTags(@keywords);
+    my %aliases = readConfig('aliases');
 
-    for %tags.kv -> $tag, $value {
-        %tags{$tag} = "-" ~ $value;
+    my %tags = keywordsToTags($keyword);
+
+    my @commands;
+
+    for %tags.kv -> $tag, $values {
+        my $formalTag = %aliases{$tag};
+
+        for $values.list -> $item {
+            @commands.push("-{$formalTag}-={$item}");
+        }
     }
 
-    my $aliases = readTag($file.IO, 'alias');
-    %tags<alias> = commaSplit($aliases) (-) @keywords;
-
-    my @commands = tagsToExifTool(%tags);
+    my $formalTag = %aliases<alias>;
+    @commands.push("-{$formalTag}-={$keyword}");
 
     commitTags($file, @commands, $dryRun);
+}
+
+# Remove a tag completely regargless of its value.
+multi sub untagAlias(IO $file, Str $alias, Bool $dryRun = False) is export {
+    testAliases($alias.list);
+
+    my %aliases = readConfig('aliases');
+    my $formalTag = %aliases{$alias};
+
+    commitTags($file, "-{$formalTag}=".list, $dryRun);
+
+}
+
+# Remove a value from a tag.
+multi sub untagAlias(IO $file, Str $alias, Str $value, Bool $dryRun = False) is export {
+    testAliases($alias.list);
+
+    my %aliases = readConfig('aliases');
+
+    my $formalTag = %aliases{$alias};
+
+    commitTags($file, "-{$formalTag}-={$value}".list, $dryRun);
 }

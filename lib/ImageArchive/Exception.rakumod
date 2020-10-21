@@ -20,6 +20,15 @@ class ImageArchive::Exception::BadFilter is Exception is export {
     }
 }
 
+# An unknown alias is used.
+class ImageArchive::Exception::BadAlias is Exception is export {
+    has Set $.offenders;
+    method message {
+        my $label = ($!offenders.elems == 1) ?? "alias" !! "aliases";
+        "Unknown {$label}: {$!offenders.keys.join(', ')}";
+    }
+}
+
 # An unknown keyword is used during tagging.
 class ImageArchive::Exception::BadKeyword is Exception is export {
     has Set $.offenders;
