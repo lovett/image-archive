@@ -115,7 +115,7 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
         @commands.push(sprintf("-%s=%s", %aliases<datetagged>, DateTime.now()));
     }
 
-    @commmands.pubh(sprintf("-%s=%s", %aliases<modified>, DateTime.now()));
+    @commands.push(sprintf("-%s=%s", %aliases<modified>, DateTime.now()));
 
     for %tags.kv -> $tag, $value {
         my $formalTag = %aliases{$tag};
