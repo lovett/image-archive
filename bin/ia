@@ -153,7 +153,7 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
     testKeywords(@keywords);
 
     # If the file has id and alias tags, consider it previously tagged
-    # and append @keywords to what already exists.
+    # and skip context validation.
     my $previouslyTagged = readTags($file.IO, ['id', 'alias']).elems == 2;
 
     my %tags = keywordsToTags(@keywords);
