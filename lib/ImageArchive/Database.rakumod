@@ -106,6 +106,7 @@ sub indexFile(IO $file) is export {
     -x ExifTool:all
     -x File:Directory
     -x File:FilePermissions
+    -x ICC_Profile:all
     -x MPF:all
     -j -g -struct>, $file.Str, :out, :err;
 
