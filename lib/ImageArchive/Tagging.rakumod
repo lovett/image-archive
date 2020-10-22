@@ -108,11 +108,14 @@ sub restoreOriginal(IO $file) is export {
 sub tagFile($file, %tags, Bool $dryRun? = False) is export {
     my %aliases = readConfig('aliases');
 
+    my @commands;
+
     unless (readTag($file, 'id')) {
         %tags<id> = generateUuid();
+        @commands.push(sprintf("-%s=%s", %aliases<datetagged>, DateTime.now()));
     }
 
-    my @commands;
+    @commmands.pubh(sprintf("-%s=%s", %aliases<modified>, DateTime.now()));
 
     for %tags.kv -> $tag, $value {
         my $formalTag = %aliases{$tag};
@@ -121,7 +124,6 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
         }
     }
 
-    @commands.push(sprintf("-%s=%s", %aliases<datetagged>, DateTime.now()));
     commitTags($file, @commands, $dryRun);
 }
 
