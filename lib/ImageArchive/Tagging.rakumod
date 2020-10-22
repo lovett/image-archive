@@ -193,7 +193,7 @@ sub untagKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
 
     my %aliases = readConfig('aliases');
 
-    my %tags = keywordsToTags($keyword);
+    my %tags = keywordsToTags($keyword.list);
 
     my @commands;
 
