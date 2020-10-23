@@ -27,19 +27,20 @@ grammar Search {
 class SearchActions {
     has $!tag = 'any';
     has %!terms;
-    has %!filters;
+    has %.filters;
 
     method tag ($/) {
-        my $formalTag = %!filters>{$/<name>};
+        my $formalTag = %.filters{$/<name>};
+
         unless ($formalTag) {
-            die ImageArchive::Exception::BadFilter.new(:filters(%!filters));
+            die ImageArchive::Exception::BadFilter.new(:filters(%.filters));
         }
 
         $!tag = $formalTag;
     }
 
     method term ($/) {
-        %!terms{$!tag}.append($/.subst(/\W/, '', :g));
+        %!terms{$!tag}.append($/.subst(/\W/, '+', :g));
     }
 
     method date ($/) {
@@ -150,11 +151,13 @@ sub openDatabase() is export {
 
 # Locate paths within the archive by their metadata.
 sub searchMetadata(Str $query) is export {
-    my %filters = readConfig('filters');
+    my $parserActions = SearchActions.new(
+        filters => readConfig('filters')
+    );
 
     my $parsedQuery = Search.parse(
         $query,
-        actions => SearchActions.new(:filters(%filters))
+        actions => $parserActions
     );
 
     my $dbh = openDatabase();
