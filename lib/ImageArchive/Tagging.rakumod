@@ -108,21 +108,36 @@ sub restoreOriginal(IO $file) is export {
 sub tagFile($file, %tags, Bool $dryRun? = False) is export {
     my %aliases = readConfig('aliases');
 
+    my %existingTags = readTags($file, %aliases.keys);
+
     my @commands;
 
-    unless (readTag($file, 'id')) {
+    unless (%existingTags<id>) {
         %tags<id> = generateUuid();
-        @commands.push(sprintf("-%s=%s", %aliases<datetagged>, DateTime.now()));
+        %tags<datetagged> = DateTime.now();
     }
 
-    @commands.push(sprintf("-%s=%s", %aliases<modified>, DateTime.now()));
+    %tags<modified> = DateTime.now();
 
     for %tags.kv -> $tag, $value {
         my $formalTag = %aliases{$tag};
-        for $value.list -> $item {
-            @commands.push("-{$formalTag}+={$item}");
+        my $existingValue = %existingTags{$tag};
+
+        # This is a cheap way of distinguishing between list tags and
+        # scalar tags. No deserialization is performed by readTags
+        # since it's usually not necessary. This is the exception.
+        my $existingValueIsList = $existingValue && $existingValue.starts-with: '[';
+
+        for set($value.list).keys -> $item {
+            # If tags were always added in append mode, those that
+            # accept scalars would throw a warning. So only append
+            # when a tag already exists and accepts a list.
+            my $operator = ($existingValueIsList) ?? '+=' !! '=';
+            @commands.push("-{$formalTag}{$operator}{$item}");
         }
     }
+
+    say @commands.join("\n");
 
     commitTags($file, @commands, $dryRun);
 }
