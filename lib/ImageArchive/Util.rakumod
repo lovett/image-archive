@@ -12,21 +12,6 @@ sub confirm(Str $question) is export {
     exit unless (prompt "{$question} [y/N]: ") eq 'y';
 }
 
-# Figure out where to put trashed files.
-sub findTrashFolder() is export {
-    my @candidates = [
-        $*HOME.add(".Trash"),
-        $*HOME.add(".local/share/Trash")
-    ];
-
-    for @candidates -> $candidate {
-        next unless $candidate.d;
-        return $candidate;
-    }
-
-    die ImageArchive::Exception::TrashPathFound.new();
-}
-
 # Create a new UUID using external utilities.
 sub generateUuid() is export {
     my @generators = </proc/sys/kernel/random/uuid /usr/bin/uuidgen>;

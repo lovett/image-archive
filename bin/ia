@@ -141,12 +141,6 @@ multi sub MAIN('stats') {
     }
 }
 
-#| Move a file out of the archive and into the trash.
-multi sub MAIN('trash', Str $file where *.IO.f, Bool :$dryrun = False) {
-    my $trashFolder = findTrashFolder();
-    deportFile($file.IO, $trashFolder, $dryrun);
-}
-
 #| Annotate a file with metadata.
 multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
 
