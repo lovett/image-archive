@@ -84,7 +84,7 @@ sub countRecords() is export {
 
 # Remove a file from the database.
 sub deindexFile(IO::Path $file) is export {
-    my $uuid = readTag($file, 'id');
+    my $uuid = readRawTag($file, 'id');
     my $dbh = openDatabase();
     my $sth = $dbh.prepare(q:to/STATEMENT/);
     DELETE FROM archive WHERE uuid=?
@@ -96,7 +96,7 @@ sub deindexFile(IO::Path $file) is export {
 
 # Store a file's tags in a database.
 sub indexFile(IO $file) is export {
-    my $uuid = readTag($file, 'id');
+    my $uuid = readRawTag($file, 'id');
     my $proc = run <
     exiftool
     -x Composite:all

@@ -46,7 +46,7 @@ sub commitTags(IO $file, @commands, Bool $dryRun? = False) is export {
 }
 
 # Extract a tag specified from a file.
-sub readTag(IO $file, $tag) is export {
+sub readRawTag(IO $file, $tag) is export {
     my %aliases = readConfig('aliases');
 
     my $formalTag = %aliases{$tag} || $tag;
@@ -63,7 +63,7 @@ sub readTag(IO $file, $tag) is export {
 }
 
 # Extract multiple tags from a file.
-sub readTags(IO $file, @tags, Str $flags = '') is export {
+sub readRawTags(IO $file, @tags, Str $flags = '') is export {
     my %aliases = readConfig('aliases');
     my @formalTags;
     for @tags -> $tag {
@@ -108,7 +108,7 @@ sub restoreOriginal(IO $file) is export {
 sub tagFile($file, %tags, Bool $dryRun? = False) is export {
     my %aliases = readConfig('aliases');
 
-    my %existingTags = readTags($file, %aliases.keys);
+    my %existingTags = readRawTags($file, %aliases.keys);
 
     my @commands;
 
@@ -124,7 +124,7 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
         my $existingValue = %existingTags{$tag};
 
         # This is a cheap way of distinguishing between list tags and
-        # scalar tags. No deserialization is performed by readTags
+        # scalar tags. No deserialization is performed by readRawTags
         # since it's usually not necessary. This is the exception.
         my $existingValueIsList = $existingValue && $existingValue.starts-with: '[';
 

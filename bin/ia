@@ -94,7 +94,7 @@ multi sub MAIN('reimport') {
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     my $root = getPath('root');
 
-    my $tagValue = readTag($file.IO, 'datecreated') || 'undated';
+    my $tagValue = readRawTag($file.IO, 'datecreated') || 'undated';
 
     my $destinationDir = $root.add($tagValue.subst(":", "/", :g));
 
@@ -154,7 +154,7 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
 
     # If the file has id and alias tags, consider it previously tagged
     # and skip context validation.
-    my $previouslyTagged = readTags($file.IO, ['id', 'alias']).elems == 2;
+    my $previouslyTagged = readRawTags($file.IO, ['id', 'alias']).elems == 2;
 
     my %tags = keywordsToTags(@keywords);
 
@@ -285,7 +285,7 @@ multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
         @aliases = ['alias'].append: %prompts.keys;
     }
 
-    my %tags = readTags($file.IO, @aliases, '-f');
+    my %tags = readRawTags($file.IO, @aliases, '-f');
 
     for %tags.kv -> $alias, $value {
         say "{$alias}: {$value}";
