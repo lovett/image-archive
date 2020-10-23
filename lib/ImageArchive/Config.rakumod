@@ -64,7 +64,7 @@ sub keywordsInContext($context) is export {
     my %contexts = readConfig('contexts');
     my @keywords;
 
-    my @terms = commaSplit(%config{$context});
+    my @terms = commaSplit(%contexts{$context});
 
     for %config.kv -> $section, %members {
         next if $section ~~ any <_ aliases prompts contexts>;
