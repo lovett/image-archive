@@ -1,7 +1,7 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2020.10.23",
+  "version" : "2020.10.24",
   "description" : "Automation for image metatdata tagging.",
   "provides" : {
     "ImageArchive::Archive": "lib/ImageArchive/Archive.rakumod",
@@ -11,7 +11,8 @@
     "ImageArchive::Shell": "lib/ImageArchive/Shell.rakumod",
     "ImageArchive::Suggestion": "lib/ImageArchive/Suggestion.rakumod",
     "ImageArchive::Tagging": "lib/ImageArchive/Tagging.rakumod",
-    "ImageArchive::Util": "lib/ImageArchive/Util.rakumod"
+    "ImageArchive::Util": "lib/ImageArchive/Util.rakumod",
+    "ImageArchive::Workspace": "lib/ImageArchive/Workspace.rakumod"
   },
   "resources": [
     "config.ini",
