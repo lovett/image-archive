@@ -1,22 +1,11 @@
 unit module ImageArchive::Exception;
 
-use Terminal::ANSIColor;
-
 use ImageArchive::Config;
 
 # A search with an invalid filter.
 class ImageArchive::Exception::BadFilter is Exception is export {
-    has %.filters;
     method message {
         "Unknown search filter."
-    }
-
-    method suggest {
-        my @filters = %!filters.keys.sort;
-
-        say "";
-
-        say colored("Search Filters", 'cyan') ~ "\n" ~ @filters.sort.join(", ");
     }
 }
 
@@ -76,23 +65,11 @@ class ImageArchive::Exception::MissingConfig is Exception is export {
 # A tagging context is not accounted for.
 class ImageArchive::Exception::MissingContext is Exception is export {
     has Seq $.offenders;
-    has %.allcontexts;
     method message {
         my $label = ($!offenders.elems == 1) ?? "context" !! "contexts";
         "Keywords are missing for {$!offenders.elems} {$label}: {$!offenders.join(', ')}";
     }
 
-    method suggest {
-        my %contexts = $!offenders.list Z=> %!allcontexts{$!offenders.list};
-
-        say "";
-
-        for %contexts.kv -> $context, $aliases {
-            my @keywords = keywordsInContext($context);
-            say colored("{$context} keywords", 'cyan') ~ "\n" ~ @keywords.sort.join(", ");
-            say "to disable: " ~ colored("no{$context}", 'yellow') ~ "\n"
-        }
-    }
 }
 
 # The search command is invoked without search terms.
