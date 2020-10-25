@@ -6,7 +6,7 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-sub deleteAlts(IO::Path $file) {
+sub deleteAlts(IO::Path $file) is export {
     my $cacheRoot = getPath('cache');
 
     my $relativePath = relativePath($file.Str);
@@ -15,6 +15,7 @@ sub deleteAlts(IO::Path $file) {
 
     for readConfig('alt_sizes').split(' ') -> $size {
         my $target = $cacheRoot.add("$size/$relativePath").extension($thumbnailExtension);
+        next unless $target ~~ :f;
         $target.IO.unlink;
         deleteEmptyFolders($target.parent);
     }

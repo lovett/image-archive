@@ -86,6 +86,13 @@ class ImageArchive::Exception::PathNotFoundInArchive is Exception is export {
     }
 }
 
+# A file is not within a workspace.
+class ImageArchive::Exception::PathNotFoundInWorkspace is Exception is export {
+    method message {
+        "File is not within a workspace.";
+    }
+}
+
 # A UUID cannot be generated using OS-provided mechanisms.
 class ImageArchive::Exception::UUID is Exception is export {
     method message {

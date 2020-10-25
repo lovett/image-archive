@@ -1,5 +1,11 @@
 unit module ImageArchive::Workspace;
 
+use ImageArchive::Archive;
+use ImageArchive::Database;
+use ImageArchive::Exception;
+use ImageArchive::Tagging;
+use ImageArchive::Util;
+
 # Locate the editing workspace for a given file.
 # Create it if doesn't exist.
 sub findWorkspace(IO::Path $file) is export {
@@ -33,8 +39,45 @@ sub workspaceImport(IO::Path $source) is export {
     return $destination;
 }
 
+sub findWorkspaceMaster(IO::Path $workspace) {
+
+    my $workspaceBasename = $workspace.extension('').basename;
+
+    my $test = { $workspace.parent.add($_).f };
+
+    for $workspace.parent.dir(test => $test)  -> $path {
+        next unless $path.basename.starts-with($workspaceBasename);
+        return $path.IO;
+    }
+
+    die ImageArchive::Exception::PathNotFoundInArchive.new;
+}
+
 # Move a file out of the workspace.
-sub workspaceExport(IO::Path $file) is export {
+sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
+    testPathExistsInWorkspace($file.IO);
+
+    my $workspace = $file.parent;
+
+    my $master = findWorkspaceMaster($workspace);
+
+    my $newMaster = $workspace.parent.add($workspace.basename).extension($file.extension);
+
+    if ($dryRun) {
+        wouldHaveDone("{$file} replaces {$master}");
+        return;
+    }
+
+
+    transferTags($master, $file);
+    deleteAlts($master);
+    deindexFile($master);
+
+    $master.unlink;
+    $file.rename($newMaster);
+    $newMaster.IO.chmod(0o400);
+    indexFile($newMaster);
+    generateAlts($newMaster);
 }
 
 # Run a command to display the workspace.
@@ -50,10 +93,8 @@ sub openWorkspace(IO::Path $file, Str $command) is export {
 
 }
 
-# Enumerate the contents of a workspace.
-sub listWorkspace(IO::Path $workspace) is export {
-}
-
-# Tag a workspace file with the tags from the current version.
-sub transferTags(IO::Path $recipient) is export {
+# See if a file exists within a workspace directory.
+sub testPathExistsInWorkspace(IO::Path $file) is export {
+    return if $file.parent.basename.ends-with('versions');
+    die ImageArchive::Exception::PathNotFoundInWorkspace.new();
 }

@@ -49,6 +49,17 @@ multi sub MAIN('version', $file where *.IO.f) {
     }
 }
 
+multi sub MAIN('promote', $file where *.IO.f, Bool :$dryrun) {
+    workspaceExport($file.IO, $dryrun);
+
+    CATCH {
+        when ImageArchive::Exception::PathNotFoundInWorkspace {
+            note colored($_.message, 'red bold');
+            exit 1;
+        }
+    }
+}
+
 #| Find images in the archive by their tags.
 multi sub MAIN('search', *@terms) {
     my $query = @terms.join(' ');

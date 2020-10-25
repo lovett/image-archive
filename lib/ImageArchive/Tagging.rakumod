@@ -204,6 +204,21 @@ sub testKeywords(@keywords) is export {
     }
 }
 
+# Copy tags from one file to another via exiftool.
+sub transferTags(IO $donor, IO $recipient) is export {
+    my $proc = run <exiftool -tagsFromFile>, $donor, $recipient, :out, :err;
+
+    my $err = $proc.err.slurp(:close);
+    my $out = $proc.out.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        restoreOriginal($recipient);
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+
+    removeOriginal($recipient);
+}
+
 # Remove the tags associated with a keyword.
 sub untagKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
     testKeywords($keyword.list);
