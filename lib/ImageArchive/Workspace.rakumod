@@ -29,6 +29,8 @@ sub workspaceImport(IO::Path $source) is export {
     }
 
     $source.copy($destination);
+
+    return $destination;
 }
 
 # Move a file out of the workspace.

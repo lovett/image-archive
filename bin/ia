@@ -39,12 +39,14 @@ multi sub MAIN('version', $file where *.IO.f) {
     my $configKey = 'view_workspace';
     my $viewCommand = readConfig($configKey);
 
-    unless ($viewCommand) {
-        die ImageArchive::Exception::MissingConfig.new(:key($configKey));
-    }
+    my $version = workspaceImport($file.IO);
 
-    workspaceImport($file.IO);
-    openWorkspace($file.IO, $viewCommand);
+    say "The workspace is: " ~ colored($version.parent.Str, 'cyan');
+    say "The version is: " ~ colored($version.Str, 'yellow');
+
+    if ($viewCommand) {
+        openWorkspace($file.IO, $viewCommand);
+    }
 }
 
 #| Find images in the archive by their tags.
