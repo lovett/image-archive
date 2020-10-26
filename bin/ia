@@ -112,12 +112,11 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
 #| Re-index files already in the archive.
 multi sub MAIN('reimport') {
     my $root = getPath('root');
-    my $callback = sub ($path) {
-        indexFile($root.add($path));
+
+    for walkArchive($root) -> $path {
+        indexFile($path);
         say "Reindexed {$path}";
     }
-
-    walkArchive($callback);
 }
 
 #| Bring a file into the archive.
@@ -133,14 +132,13 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
 
 #| Summarize the contents of the archive.
 multi sub MAIN('stats') {
+    my $root = getPath('root');
     my %counts;
 
-    my $callback = sub ($path) {
-        my $topDir =  $path.split('/', 2).first;
+    for walkArchive($root) -> $path {
+        my $topDir = $path.relative($root).split('/', 2).first;
         %counts{$topDir}++;
     }
-
-    walkArchive($callback);
 
     my $fileCount = %counts.values.reduce: &infix:<+>;
     my $fileLabel = ($fileCount == 1) ?? 'file' !! 'files';

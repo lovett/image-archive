@@ -82,16 +82,15 @@ sub generateAlts(IO::Path $file?) is export {
                 %counters{$size}++;
             }
         } else {
-            my $callback = sub ($path) {
+            for walkArchive($root) -> $path {
                 for %rosters.kv -> $size, $handle {
-                    my $target = $cacheRoot.add("$size/$path").extension($thumbnailExtension);
+                    my $relativePath = $path.relative($root);
+                    my $target = $cacheRoot.add("$size/{$relativePath}").extension($thumbnailExtension);
                     next if $target ~~ :f;
-                    $handle.say($path);
+                    $handle.say($relativePath.Str);
                     %counters{$size}++;
                 }
             }
-
-            walkArchive($callback);
         }
 
         for %rosters.kv -> $size, $handle {
@@ -165,24 +164,15 @@ sub testPathExistsInArchive(IO $file) is export {
     die ImageArchive::Exception::PathNotFoundInArchive.new;
 }
 
-# Perform an action on each file in the archive.
-sub walkArchive(Callable $callback) is export {
-    my $root = getPath('root');
-    my @stack = $root;
+# List the files in the archive.
+sub walkArchive(IO::Path $dir) is export {
     my @skipExtensions := <bak db ini txt versions>;
 
-    while (@stack)  {
-        for @stack.pop.dir -> $path {
-            next if $path.basename eq '_cache';
-            next if $path.basename.starts-with('.');
-            next if $path.extension ∈ @skipExtensions;
-
-            if ($path ~~ :d) {
-                @stack.push($path);
-                next;
-            }
-
-            $callback($path.relative($root));
-        }
+    gather for dir $dir -> $path {
+        next if $path.basename eq '_cache';
+        next if $path.basename.starts-with('.');
+        next if $path.extension ∈ @skipExtensions;
+        if $path.d { .take for walkArchive($path) };
+        if $path.f { take $path };
     }
 }
