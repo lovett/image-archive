@@ -36,13 +36,14 @@ multi sub MAIN('dbshell') {
 
 #| Make an editable copy of a file in the archive.
 multi sub MAIN('version', $file where *.IO.f) {
-    my $configKey = 'view_workspace';
-    my $viewCommand = readConfig($configKey);
+    testPathExistsInArchive($file.IO);
 
     my $version = workspaceImport($file.IO);
 
     say "The workspace is: " ~ colored($version.parent.Str, 'cyan');
     say "The version is: " ~ colored($version.Str, 'yellow');
+
+    my $viewCommand = readConfig('view_workspace');
 
     if ($viewCommand) {
         openWorkspace($file.IO, $viewCommand);
