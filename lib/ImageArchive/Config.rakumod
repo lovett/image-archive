@@ -57,6 +57,11 @@ sub getPath(Str $keyword) is export is cached {
     }
 }
 
+sub getKeywords() is export {
+    my @exclusions = <_ aliases contexts filters prompts>;
+    return configSections().grep({ not @exclusions.first($_) });
+}
+
 # Find all keywords referenced by a context.
 #
 # A context can consist of aliases or keywords.
@@ -117,7 +122,7 @@ sub readConfig(Str $lookup?) is export {
 
 # List the sections of the config.
 sub configSections() is export {
-    return readConfig().keys;
+    return readConfig().keys.sort;
 }
 
 # Convert an absolute path to a root-relative path.
