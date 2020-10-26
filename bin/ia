@@ -171,7 +171,6 @@ multi sub MAIN('stats') {
 
 #| Annotate a file with metadata.
 multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
-    testPathExistsInArchive($file.IO);
     testKeywords(@keywords);
 
     # If the file has id and alias tags, consider it previously tagged
