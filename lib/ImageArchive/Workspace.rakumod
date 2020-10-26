@@ -7,17 +7,14 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 
 # Locate the editing workspace for a given file.
-# Create it if doesn't exist.
 sub findWorkspace(IO::Path $file) is export {
     my $workspace = $file.extension('versions');
 
     $workspace.mkdir unless $workspace ~~ :d;
-
     return $workspace;
 }
 
 # Copy an archive file into its corresponding workspace.
-# The source file is unchanged.
 sub workspaceImport(IO::Path $source) is export {
     my $workspace = findWorkspace($source);
     my $destination = $workspace.add($source.basename);
@@ -39,15 +36,13 @@ sub workspaceImport(IO::Path $source) is export {
     return $destination;
 }
 
+# Locate the file associated with the workspace.
 sub findWorkspaceMaster(IO::Path $workspace) {
 
     my $workspaceBasename = $workspace.extension('').basename;
 
-    my $test = { $workspace.parent.add($_).f };
-
-    for $workspace.parent.dir(test => $test)  -> $path {
-        next unless $path.basename.starts-with($workspaceBasename);
-        return $path.IO;
+    for walkArchive($workspace.parent) -> $path {
+        return $path if $path.basename.starts-with($workspaceBasename);
     }
 
     die ImageArchive::Exception::PathNotFoundInArchive.new;
@@ -57,27 +52,23 @@ sub findWorkspaceMaster(IO::Path $workspace) {
 sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
     testPathExistsInWorkspace($file.IO);
 
-    my $workspace = $file.parent;
-
-    my $master = findWorkspaceMaster($workspace);
-
-    my $newMaster = $workspace.parent.add($workspace.basename).extension($file.extension);
+    my $master = findWorkspaceMaster($file.parent);
+    my $newMaster = $master.extension($file.extension);
 
     if ($dryRun) {
-        wouldHaveDone("{$file} replaces {$master}");
+        wouldHaveDone("{$file} becomes {$newMaster}");
         return;
     }
-
 
     transferTags($master, $file);
     deleteAlts($master);
     deindexFile($master);
+    unlink($master);
 
-    $master.unlink;
-    $file.rename($newMaster);
-    $newMaster.IO.chmod(0o400);
+    rename($file, $newMaster);
     indexFile($newMaster);
     generateAlts($newMaster);
+    chmod($newMaster, 0o400);
 }
 
 # Run a command to display the workspace.
@@ -90,11 +81,10 @@ sub openWorkspace(IO::Path $file, Str $command) is export {
     if ($proc.exitcode !== 0) {
         die ImageArchive::Exception::BadExit.new(:err($err));
     }
-
 }
 
 # See if a file exists within a workspace directory.
 sub testPathExistsInWorkspace(IO::Path $file) is export {
     return if $file.parent.basename.ends-with('versions');
-    die ImageArchive::Exception::PathNotFoundInWorkspace.new();
+    die ImageArchive::Exception::PathNotFoundInWorkspace.new;
 }
