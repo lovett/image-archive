@@ -50,6 +50,7 @@ multi sub MAIN('version', $file where *.IO.f) {
     }
 }
 
+#| Replace an archive file with a new version.
 multi sub MAIN('promote', $file where *.IO.f, Bool :$dryrun) {
     workspaceExport($file.IO, $dryrun);
 
