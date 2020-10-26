@@ -169,21 +169,18 @@ sub testPathExistsInArchive(IO $file) is export {
 sub walkArchive(Callable $callback) is export {
     my $root = getPath('root');
     my @stack = $root;
-    my @skipExtensions := <bak db ini txt>;
+    my @skipExtensions := <bak db ini txt versions>;
 
     while (@stack)  {
         for @stack.pop.dir -> $path {
-            next if $path.IO.basename.starts-with('.');
-            next if $path.IO.extension ∈ @skipExtensions;
+            next if $path.basename eq '_cache';
+            next if $path.basename.starts-with('.');
+            next if $path.extension ∈ @skipExtensions;
 
             if ($path ~~ :d) {
-                my $topDir = $path.relative($root).split('/', 2).first;
-                next if $topDir eq '_cache';
-
                 @stack.push($path);
                 next;
             }
-
 
             $callback($path.relative($root));
         }
