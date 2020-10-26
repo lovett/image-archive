@@ -31,16 +31,24 @@ sub writeShellCompletion(Str $scriptVersion) is export {
             {$prefix} --no-files --long-option=help
             {$prefix} --no-files --long-option=version
 
+            {$prefix} --arguments=alts
+
             {$prefix} --arguments=completion
 
-            {$prefix} --arguments=count
             {$prefix} --arguments=dbshell
 
             {$prefix} --arguments=deport
             {$prefix} --condition="__fish_seen_subcommand_from deport" --arguments="(__fish_complete_subcommand)"
 
+            {$prefix} --arguments=dump
+
             {$prefix} --arguments=import
             {$prefix} --condition="__fish_seen_subcommand_from import" --arguments="(__fish_complete_subcommand)"
+
+            {$prefix} --arguments=promote
+            {$prefix} --condition="__fish_seen_subcommand_from promote" --arguments="(__fish_complete_subcommand)"
+
+            {$prefix} --arguments=reimport
 
             {$prefix} --arguments=reprompt
             {$prefix} --condition="__fish_seen_subcommand_from reprompt" --arguments="(__fish_complete_subcommand)"
@@ -55,14 +63,21 @@ sub writeShellCompletion(Str $scriptVersion) is export {
             {$prefix} --arguments=tag
             {$prefix} --condition="__fish_seen_subcommand_from tag" --arguments="(__fish_complete_path) {$keywords.keys.sort.join(' ')}"
 
-            {$prefix} --arguments=trash
-            {$prefix} --condition="__fish_seen_subcommand_from trash" --arguments="(__fish_complete_subcommand)"
+            {$prefix} --arguments=untag:alias
+            {$prefix} --condition="__fish_seen_subcommand_from untag:alias" --arguments="(__fish_complete_path) {%aliases.keys.sort.join(' ')}"
 
-            {$prefix} --arguments=untag
-            {$prefix} --condition="__fish_seen_subcommand_from untag" --arguments="(__fish_complete_path) {%aliases.keys.sort.join(' ')} {$keywords.keys.sort.join(' ')}"
+            {$prefix} --arguments=untag:value
+            {$prefix} --condition="__fish_seen_subcommand_from untag:value" --arguments="(__fish_complete_path) {%aliases.keys.sort.join(' ')}"
+
+            {$prefix} --arguments=untag:keyword
+            {$prefix} --condition="__fish_seen_subcommand_from untag:keyword" --arguments="(__fish_complete_path) {$keywords.keys.sort.join(' ')}"
+
+            {$prefix} --arguments=version
+            {$prefix} --condition="__fish_seen_subcommand_from version" --arguments="(__fish_complete_subcommand)"
 
             {$prefix} --arguments=view
             {$prefix} --condition="__fish_seen_subcommand_from view" --arguments="(__fish_complete_path) {%aliases.keys.sort.join(' ')}"
+
             END
 
             say "Wrote $completionFile"
