@@ -1,7 +1,6 @@
 #!/usr/bin/env rakudo
 
 use DBIish;
-#use Grammar::Tracer;
 use Terminal::ANSIColor;
 
 use ImageArchive::Archive;
@@ -222,81 +221,21 @@ multi sub MAIN('untag:keyword', Str $file where *.IO.f, Str $keyword, Bool :$dry
     untagKeyword($file.IO, $keyword, $dryrun);
 }
 
-#| Display one or more files from the previous search.
-multi sub MAIN('view', *@terms) {
-    my Str $terms = @terms.join(' ');
-    my Str $target;
+#| Display a single file.
+multi sub MAIN('view', Str $file where *.IO.f) {
+    viewFiles($file.list);
+}
 
-    my %rootConfig = readConfig('_');
-    my $command = %rootConfig<view_file>;
+#| Display files from the previous search by number.
+multi sub MAIN('view', *@indexes) {
+    my @archivePaths = findBySearchIndex(@indexes.join(' '));
 
-    unless ($command) {
-        die ImageArchive::Exception::MissingConfig.new(:key('view_file'));
+    unless (@archivePaths) {
+        die 'No files found.';
     }
 
-    given $terms {
-        when / <[\d,- ]> / {
-
-            my @indices;
-            my @ranges;
-
-            $terms ~~ s:global/ (\d) \- (\d) //;
-            @ranges = ( "(rownum BETWEEN {.list[0]} AND {.list[1]})" for @$/ );
-
-            m:global/ (\d+) / with $terms;
-            @indices = @$/;
-
-            my $rangeSql = @ranges.join(' OR ');
-
-            if ($rangeSql && @indices) {
-                $rangeSql ~= " OR ";
-            }
-
-            if (@indices) {
-                $rangeSql ~= "rownum IN (" ~ @indices.join(',') ~ ")";
-            }
-
-            my $dbh = openDatabase();
-
-            my $sth = $dbh.execute("SELECT * FROM (
-            SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
-            OVER (ORDER BY h.id) as rownum
-            FROM archive a, history h
-            WHERE a.id=h.value
-            AND h.key='searchresults')
-            WHERE $rangeSql");
-
-            for $sth.allrows() -> $row {
-                $target ~= $row[0] ~ ' '
-            }
-
-            $dbh.dispose;
-        }
-
-        default {
-            my $path = $terms.IO;
-
-            my $root = getPath('root');
-            unless ($path.absolute.starts-with($root)) {
-                $path = $root.add($terms);
-            }
-
-            if ($target ~~ :f) {
-                $target = $path.Str;
-            }
-        }
-    }
-
-    unless ($target) {
-        exit;
-    }
-
-    my $proc = run qqw{$command $target}, :err;
-    my $err = $proc.err.slurp(:close);
-
-    if ($proc.exitcode !== 0) {
-        die ImageArchive::Exception::BadExit.new(:err($err));
-    }
+    my @absolutePaths = @archivePaths.map({ absolutePath $_ });
+    viewFiles(@absolutePaths);
 }
 
 #| Display a file's tags.

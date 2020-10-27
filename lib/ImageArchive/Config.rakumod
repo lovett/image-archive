@@ -135,6 +135,16 @@ sub relativePath(Str $file) is export {
     return $file;
 }
 
+# Convert a relative path to a root-absolute path.
+sub absolutePath(Str $path) is export {
+    my $root = getPath('root');
+    unless $path.starts-with($root) {
+        return $root.add($path);
+    }
+
+    return $path;
+}
+
 # Create the file that defines application-wide settings.
 sub writeApplicationConfig(IO::Path $root) is export {
     my $target = getPath('appconfig');

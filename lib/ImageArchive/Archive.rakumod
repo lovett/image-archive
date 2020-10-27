@@ -4,6 +4,7 @@ use Terminal::ANSIColor;
 
 use ImageArchive::Config;
 use ImageArchive::Database;
+use ImageArchive::Exception;
 use ImageArchive::Util;
 
 sub deleteAlts(IO::Path $file) is export {
@@ -174,5 +175,21 @@ sub walkArchive(IO::Path $dir) is export {
         next if $path.extension ∈ @skipExtensions;
         if $path.d { .take for walkArchive($path) };
         if $path.f { take $path };
+    }
+}
+
+# Display files in an external application.
+sub viewFiles(@paths) is export {
+    my $command = readConfig('view_file');
+
+    unless ($command) {
+        die ImageArchive::Exception::MissingConfig.new(:key('view_file'));
+    }
+
+    my $proc = run $command, @paths, :err;
+    my $err = $proc.err.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
     }
 }

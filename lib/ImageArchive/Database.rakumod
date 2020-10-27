@@ -1,10 +1,63 @@
 unit module ImageArchive::Database;
 
 use DBIish;
+#use Grammar::Tracer;
 
 use ImageArchive::Config;
 use ImageArchive::Tagging;
 use ImageArchive::Exception;
+
+grammar Range {
+    rule TOP {
+        [ <range> | <barenumber> ]*
+    }
+
+    token separator {
+        <[ \s , ]>
+    }
+
+    rule range {
+        $<start> = \d+ '-' $<end> = \d+
+    }
+
+    rule barenumber {
+        $<value> = \d+ <separator>*
+    }
+}
+
+class RangeActions {
+    has @!indices;
+    has @!ranges;
+
+    method barenumber ($/) {
+        @!indices.push: $/<value>;
+    }
+
+    method range ($/) {
+        @!ranges.push: ($/<start>, $/<end>);
+    }
+
+    method TOP ($/) {
+        my $sql;
+        if (@!indices) {
+            $sql ~= sprintf(
+                "rownum IN (%s)",
+                @!indices.join(',')
+            )
+        }
+
+        if (@!indices && @!ranges) {
+            $sql ~= ' OR ';
+        }
+
+        if (@!ranges) {
+            my @clauses = ( "(rownum BETWEEN {.list[0]} AND {.list[1]})" for @!ranges );
+            $sql ~= @clauses.join(' OR ');
+        }
+
+        $/.make: $sql;
+    }
+}
 
 grammar Search {
     rule TOP {
@@ -149,7 +202,39 @@ sub openDatabase() is export {
     );
 }
 
-# Locate paths within the archive by their metadata.
+# Locate archive paths by index from a previous search.
+sub findBySearchIndex(Str $query) is export {
+    my $parserActions = RangeActions.new;
+
+    my $parsedQuery = Range.parse(
+        $query,
+        actions => $parserActions
+    );
+
+    unless ($parsedQuery) {
+        return;
+    }
+
+    my $dbh = openDatabase();
+
+    my $sth = $dbh.execute("SELECT * FROM (
+    SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
+    OVER (ORDER BY h.id) as rownum
+    FROM archive a, history h
+    WHERE a.id=h.value
+    AND h.key='searchresults')
+    WHERE {$parsedQuery.made}");
+
+    return gather {
+        for $sth.allrows() -> $row {
+            take $row[0];
+        }
+
+        $dbh.dispose;
+    }
+}
+
+# Locate archive paths by fulltext
 sub searchMetadata(Str $query) is export {
     my $parserActions = SearchActions.new(
         filters => readConfig('filters')
