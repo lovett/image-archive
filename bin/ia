@@ -120,13 +120,7 @@ multi sub MAIN('reimport') {
 
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
-    my $root = getPath('root');
-
-    my $tagValue = readRawTag($file.IO, 'datecreated') || 'undated';
-
-    my $destinationDir = $root.add($tagValue.subst(":", "/", :g));
-
-    importFile($file.IO, $destinationDir);
+    importFile($file.IO, $dryrun);
 }
 
 #| Summarize the contents of the archive.

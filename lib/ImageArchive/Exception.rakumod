@@ -49,7 +49,7 @@ class ImageArchive::Exception::BadExit is Exception is export {
 class ImageArchive::Exception::FileExists is Exception is export {
     has IO $.path;
     method message {
-        "The file {$!path} already exists.";
+        "Filename clashes with {$!path}";
     }
 }
 

@@ -5,6 +5,7 @@ use Terminal::ANSIColor;
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
+use ImageArchive::Tagging;
 use ImageArchive::Util;
 
 sub deleteAlts(IO::Path $file) is export {
@@ -127,35 +128,37 @@ sub generateAlts(IO::Path $file?) is export {
     }
 }
 # Move a file to a subfolder under the archive root.
-sub importFile(IO $file, IO $parent, Bool $dryRun? = False) is export {
+sub importFile(IO $file, Bool $dryRun? = False) is export {
     my $root = getPath('root');
-    unless ($parent ~~ :d) {
-        if ($dryRun) {
-            wouldHaveDone("mkdir {$parent}");
-        } else {
-            $parent.mkdir();
+
+    my $tagValue = readRawTag($file.IO, 'datecreated') || 'undated';
+
+    my $destination = $root.add($tagValue.subst(":", "/", :g));
+
+    unless ($destination ~~ :d || $dryRun) {
+        $destination.mkdir();
+    }
+
+    unless ($destination ~~ :d) {
+        for walkArchive($destination) -> $path {
+            if ($path.extension('').basename eq $file.extension('').basename) {
+                die ImageArchive::Exception::FileExists.new(:path($path));
+            }
         }
     }
 
-    my $destination = $parent.add($file.basename);
-
-    if ($destination ~~ :f) {
-        die ImageArchive::Exception::FileExists.new(:path($destination));
-    }
+    my $newPath = $destination.add($file.basename);
 
     if ($dryRun) {
-        wouldHaveDone("Move {$file} to {$destination}");
-        wouldHaveDone("Chmod {$destination} to read-only.");
-        wouldHaveDone("Add {$destination} to the database.");
-        wouldHaveDone("Generate alternate image sizes.");
+        wouldHaveDone("Move {$file} to {$newPath}");
         return;
     }
 
-    move($file, $destination);
-    $destination.IO.chmod(0o400);
-    indexFile($destination);
-    generateAlts($destination);
-    say "Imported as {$destination}";
+    move($file, $newPath);
+    $newPath.IO.chmod(0o400);
+    indexFile($newPath);
+    generateAlts($newPath);
+    say "Imported as {$newPath}";
 }
 
 # See if a file exists within the archive root.
