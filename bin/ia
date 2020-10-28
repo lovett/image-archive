@@ -99,7 +99,13 @@ multi sub MAIN('deport', Str $file, Bool :$dryrun) {
         $target = $root.add($file);
     }
 
+    testPathExistsInArchive($target);
     deportFile($target, $*CWD.IO, $dryrun);
+
+    my $workspace = findWorkspace($target);
+    if ($workspace ~~ :d) {
+        deportWorkspace($workspace, $*CWD.IO, $dryrun);
+    }
 }
 
 #| Do-over for question-and-answer tagging.

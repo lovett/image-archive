@@ -53,6 +53,14 @@ class ImageArchive::Exception::FileExists is Exception is export {
     }
 }
 
+# A path slated for deport clases with an existing path.
+class ImageArchive::Exception::DeportConflict is Exception is export {
+    has IO::Path $.path;
+    method message {
+        "{$!path} already exists";
+    }
+}
+
 # The configuration is missing an expected value.
 class ImageArchive::Exception::MissingConfig is Exception is export {
     has Str $.key;

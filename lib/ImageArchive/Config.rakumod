@@ -126,7 +126,7 @@ sub configSections() is export {
 }
 
 # Convert an absolute path to a root-relative path.
-sub relativePath(Str $file) is export {
+multi sub relativePath(Str $file) is export {
     my $root = getPath('root');
     if $file.IO.absolute.starts-with($root) {
         return $file.IO.relative($root);
@@ -134,6 +134,17 @@ sub relativePath(Str $file) is export {
 
     return $file;
 }
+
+# Convert an absolute path to a root-relative path.
+multi sub relativePath(IO::Path $file) is export {
+    my $root = getPath('root');
+    if $file.absolute.starts-with($root) {
+        return $file.relative($root);
+    }
+
+    return $file;
+}
+
 
 # Convert a relative path to a root-absolute path.
 sub absolutePath(Str $path) is export {

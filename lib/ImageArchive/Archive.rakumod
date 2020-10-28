@@ -39,24 +39,21 @@ sub deleteEmptyFolders(IO::Path $leaf) {
 
 # Remove a file from the archive.
 sub deportFile(IO::Path $file, IO $destinationDir, Bool $dryRun? = False) is export {
-    testPathExistsInArchive($file);
 
-    my $destination = $destinationDir.add($file.basename);
+    my $destinationPath = $destinationDir.add($file.basename);
 
-    if ($destination.IO ~~ :f) {
-        confirm("Overwrite {$file.basename} in {$destinationDir}?");
+    if ($destinationPath ~~ :f) {
+        die ImageArchive::Exception::DeportConflict.new(:path($destinationPath));
     }
 
     if ($dryRun) {
-        wouldHaveDone("Remove {$file} from the database.");
-        wouldHaveDone("Move {$file} to {$destination}");
-        wouldHaveDone("Chmod {$destination} to read-write");
+        wouldHaveDone("Move {relativePath($file)} to {$destinationPath}");
         return;
     }
 
     deindexFile($file);
-    move($file, $destination);
-    $destination.IO.chmod(0o600);
+    move($file, $destinationPath);
+    $destinationPath.IO.chmod(0o600);
     deleteEmptyFolders($file.parent);
     deleteAlts($file);
 }

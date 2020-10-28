@@ -1,6 +1,9 @@
 unit module ImageArchive::Workspace;
 
+use Terminal::ANSIColor;
+
 use ImageArchive::Archive;
+use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
 use ImageArchive::Tagging;
@@ -9,14 +12,37 @@ use ImageArchive::Util;
 # Locate the editing workspace for a given file.
 sub findWorkspace(IO::Path $file) is export {
     my $workspace = $file.extension('versions');
+    return $workspace;
+}
+
+# Create the editing workspace for a given file.
+sub createWorkspace(IO::Path $file) is export {
+    my $workspace = findWorkspace($file);
 
     $workspace.mkdir unless $workspace ~~ :d;
     return $workspace;
 }
 
+# Remove a workspace from the archive.
+sub deportWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is export {
+    my $destinationPath = $destinationDir.add($dir.basename);
+
+    if ($destinationPath.IO ~~ :d) {
+        die ImageArchive::Exception::DeportConflict.new(:path($destinationPath));
+    }
+
+    if ($dryRun) {
+        wouldHaveDone("Move {relativePath($dir)} to {$destinationPath}");
+        return;
+    }
+
+    move($dir, $destinationPath);
+}
+
+
 # Copy an archive file into its corresponding workspace.
 sub workspaceImport(IO::Path $source) is export {
-    my $workspace = findWorkspace($source);
+    my $workspace = createWorkspace($source);
     my $destination = $workspace.add($source.basename);
 
     for lazy 1...99 -> $counter {
@@ -73,7 +99,7 @@ sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
 
 # Run a command to display the workspace.
 sub openWorkspace(IO::Path $file, Str $command) is export {
-    my $workspace = findWorkspace($file);
+    my $workspace = createWorkspace($file);
 
     my $proc = run qqw{$command $workspace}, :err;
     my $err = $proc.err.slurp(:close);
