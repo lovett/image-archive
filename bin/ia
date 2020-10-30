@@ -192,6 +192,11 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
 
     tagFile($file.IO, %tags, $dryrun);
 
+    unless ($dryrun) {
+        confirm('Tags written. Import to archive?');
+        importFile($file.IO, $dryrun);
+    }
+
     CATCH {
         when ImageArchive::Exception::MissingContext {
             note colored($_.message, 'red bold');
