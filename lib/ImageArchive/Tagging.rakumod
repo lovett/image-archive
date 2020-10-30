@@ -137,8 +137,6 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
         }
     }
 
-    say @commands.join("\n");
-
     commitTags($file, @commands, $dryRun);
 }
 
