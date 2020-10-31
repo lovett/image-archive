@@ -136,7 +136,7 @@ sub importFile(IO $file, Bool $dryRun? = False) is export {
         $destination.mkdir();
     }
 
-    unless ($destination ~~ :d) {
+    if ($destination ~~ :d) {
         for walkArchive($destination) -> $path {
             if ($path.extension('').basename eq $file.extension('').basename) {
                 die ImageArchive::Exception::FileExists.new(:path($path));
