@@ -13,7 +13,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2020.10.26";
+our Str constant SCRIPT_VERSION = "2020.11.01";
 
 # Entry points
 # ------------------------------------------------------------------------
@@ -27,26 +27,59 @@ proto MAIN(|) {
     {*}
 }
 
+#| Generate alternate image sizes.
+multi sub MAIN('alts') {
+    generateAlts();
+}
+
+#| Write the shell completion file.
+multi sub MAIN('completion') {
+    writeShellCompletion(SCRIPT_VERSION);
+}
+
 #| Start a database CLI session.
 multi sub MAIN('dbshell') {
     my $dbPath = getPath('database');
     run 'sqlite3', $dbPath;
 }
 
-#| Make an editable copy of a file in the archive.
-multi sub MAIN('version', $file where *.IO.f) {
-    testPathExistsInArchive($file.IO);
+#| Move a file out of the archive.
+multi sub MAIN('deport', Str $file, Bool :$dryrun) {
+    my $target;
 
-    my $version = workspaceImport($file.IO);
-
-    say "The workspace is: " ~ colored($version.parent.Str, 'cyan');
-    say "The version is: " ~ colored($version.Str, 'yellow');
-
-    my $viewCommand = readConfig('view_workspace');
-
-    if ($viewCommand) {
-        openWorkspace($file.IO, $viewCommand);
+    if ($file.IO ~~ :f) {
+        $target = $file.IO;
+    } else {
+        my $root = getPath('root');
+        $target = $root.add($file);
     }
+
+    testPathExistsInArchive($target);
+    deportFile($target, $*CWD.IO, $dryrun);
+
+    my $workspace = findWorkspace($target);
+    if ($workspace ~~ :d) {
+        deportWorkspace($workspace, $*CWD.IO, $dryrun);
+    }
+}
+
+#| Display a file's tags.
+multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
+    my %prompts = readConfig('prompts');
+    unless @aliases.elems > 0 {
+        @aliases = ['alias'].append: %prompts.keys;
+    }
+
+    my %tags = readRawTags($file.IO, @aliases, '-f');
+
+    for %tags.kv -> $alias, $value {
+        say "{$alias}: {$value}";
+    }
+}
+
+#| Bring a file into the archive.
+multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
+    importFile($file.IO, $dryrun);
 }
 
 #| Replace an archive file with a new version.
@@ -59,6 +92,22 @@ multi sub MAIN('promote', $file where *.IO.f, Bool :$dryrun) {
             exit 1;
         }
     }
+}
+
+#| Re-index files already in the archive.
+multi sub MAIN('reimport') {
+    my $root = getPath('root');
+
+    for walkArchive($root) -> $path {
+        indexFile($path);
+        say "Reindexed {$path}";
+    }
+}
+
+#| Do-over for question-and-answer tagging.
+multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
+    my %tags = askQuestions();
+    tagFile($file.IO, %tags, $dryrun);
 }
 
 #| Find images in the archive by their tags.
@@ -88,45 +137,15 @@ multi sub MAIN('search') is hidden-from-USAGE {
     die ImageArchive::Exception::NoSearchQuery.new;
 }
 
-#| Move a file out of the archive.
-multi sub MAIN('deport', Str $file, Bool :$dryrun) {
-    my $target;
+#| Establish the application's configuration and database.
+multi sub MAIN('setup', Str $directory where *.IO.d) {
+    writeApplicationConfig($directory.IO);
 
-    if ($file.IO ~~ :f) {
-        $target = $file.IO;
-    } else {
-        my $root = getPath('root');
-        $target = $root.add($file);
-    }
+    writeArchiveConfig();
 
-    testPathExistsInArchive($target);
-    deportFile($target, $*CWD.IO, $dryrun);
+    applyDatabaseSchema();
 
-    my $workspace = findWorkspace($target);
-    if ($workspace ~~ :d) {
-        deportWorkspace($workspace, $*CWD.IO, $dryrun);
-    }
-}
-
-#| Do-over for question-and-answer tagging.
-multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
-    my %tags = askQuestions();
-    tagFile($file.IO, %tags, $dryrun);
-}
-
-#| Re-index files already in the archive.
-multi sub MAIN('reimport') {
-    my $root = getPath('root');
-
-    for walkArchive($root) -> $path {
-        indexFile($path);
-        say "Reindexed {$path}";
-    }
-}
-
-#| Bring a file into the archive.
-multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
-    importFile($file.IO, $dryrun);
+    writeShellCompletion(SCRIPT_VERSION);
 }
 
 #| Summarize the contents of the archive.
@@ -206,14 +225,14 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
     }
 }
 
-#| Generate alternate image sizes.
-multi sub MAIN('alts') {
-    generateAlts();
-}
-
 #| Remove a tag completely.
 multi sub MAIN('untag:alias', Str $file where *.IO.f, Str $alias, Bool :$dryrun = False, ) {
     untagAlias($file.IO, $alias, $dryrun);
+}
+
+#| Remove tags via keyword.
+multi sub MAIN('untag:keyword', Str $file where *.IO.f, Str $keyword, Bool :$dryrun = False) {
+    untagKeyword($file.IO, $keyword, $dryrun);
 }
 
 #| Remove a value from a tag.
@@ -221,9 +240,20 @@ multi sub MAIN('untag:value', Str $file where *.IO.f, Str $alias, Str $value, Bo
     untagAlias($file.IO, $alias, $value, $dryrun);
 }
 
-#| Remove tags via keyword.
-multi sub MAIN('untag:keyword', Str $file where *.IO.f, Str $keyword, Bool :$dryrun = False) {
-    untagKeyword($file.IO, $keyword, $dryrun);
+#| Make an editable copy of a file in the archive.
+multi sub MAIN('version', $file where *.IO.f) {
+    testPathExistsInArchive($file.IO);
+
+    my $version = workspaceImport($file.IO);
+
+    say "The workspace is: " ~ colored($version.parent.Str, 'cyan');
+    say "The version is: " ~ colored($version.Str, 'yellow');
+
+    my $viewCommand = readConfig('view_workspace');
+
+    if ($viewCommand) {
+        openWorkspace($file.IO, $viewCommand);
+    }
 }
 
 #| Display a single file.
@@ -241,36 +271,6 @@ multi sub MAIN('view', *@indexes) {
 
     my @absolutePaths = @archivePaths.map({ absolutePath $_ });
     viewFiles(@absolutePaths);
-}
-
-#| Display a file's tags.
-multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
-    my %prompts = readConfig('prompts');
-    unless @aliases.elems > 0 {
-        @aliases = ['alias'].append: %prompts.keys;
-    }
-
-    my %tags = readRawTags($file.IO, @aliases, '-f');
-
-    for %tags.kv -> $alias, $value {
-        say "{$alias}: {$value}";
-    }
-}
-
-#| Write the shell completion file.
-multi sub MAIN('completion') {
-    writeShellCompletion(SCRIPT_VERSION);
-}
-
-#| Establish the application's configuration and database.
-multi sub MAIN('setup', Str $directory where *.IO.d) {
-    writeApplicationConfig($directory.IO);
-
-    writeArchiveConfig();
-
-    applyDatabaseSchema();
-
-    writeShellCompletion(SCRIPT_VERSION);
 }
 
 #| Display version information.
