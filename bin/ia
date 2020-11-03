@@ -126,8 +126,8 @@ multi sub MAIN('promote', $file where *.IO.f, Bool :$dryrun) {
     }
 }
 
-#| Re-index files already in the archive.
-multi sub MAIN('reimport') {
+#| Re-add imported files to the database.
+multi sub MAIN('reindex') {
     my $root = getPath('root');
 
     for walkArchive($root) -> $path {
