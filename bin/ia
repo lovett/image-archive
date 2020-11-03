@@ -76,17 +76,9 @@ multi sub MAIN('dbshell') {
 }
 
 #| Move a file out of the archive.
-multi sub MAIN('deport', Str $file, Bool :$dryrun) {
-    my $target;
+multi sub MAIN('deport', Str $path, Bool :$dryrun) {
+    my $target = findFile($path);
 
-    if ($file.IO ~~ :f) {
-        $target = $file.IO;
-    } else {
-        my $root = getPath('root');
-        $target = $root.add($file);
-    }
-
-    testPathExistsInArchive($target);
     deportFile($target, $*CWD.IO, $dryrun);
 
     my $workspace = findWorkspace($target);
@@ -115,8 +107,10 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
 }
 
 #| Replace an archive file with a new version.
-multi sub MAIN('promote', $file where *.IO.f, Bool :$dryrun) {
-    workspaceExport($file.IO, $dryrun);
+multi sub MAIN('promote', Str $path, Bool :$dryrun) {
+    my $target = findFile($path);
+
+    workspaceExport($target, $dryrun);
 
     CATCH {
         when ImageArchive::Exception::PathNotFoundInWorkspace {
@@ -256,10 +250,10 @@ multi sub MAIN('untag:value', Str $file where *.IO.f, Str $alias, Str $value, Bo
 }
 
 #| Make an editable copy of a file in the archive.
-multi sub MAIN('version', $file where *.IO.f) {
-    testPathExistsInArchive($file.IO);
+multi sub MAIN('version', Str $path) {
+    my $target = findFile($path);
 
-    my $version = workspaceImport($file.IO);
+    my $version = workspaceImport($target.IO);
 
     say "The workspace is: " ~ colored($version.parent.Str, 'cyan');
     say "The version is: " ~ colored($version.Str, 'yellow');
@@ -267,25 +261,20 @@ multi sub MAIN('version', $file where *.IO.f) {
     my $viewCommand = readConfig('view_workspace');
 
     if ($viewCommand) {
-        openWorkspace($file.IO, $viewCommand);
+        openWorkspace($target, $viewCommand);
     }
 }
 
-#| Display a single file.
-multi sub MAIN('view', Str $file where *.IO.f) {
-    viewFiles($file.list);
-}
+#| Display files.
+multi sub MAIN('view', *@paths) {
+    my @targets = findBySearchIndex(@paths.join(' '));
 
-#| Display files from the previous search by number.
-multi sub MAIN('view', *@indexes) {
-    my @archivePaths = findBySearchIndex(@indexes.join(' '));
-
-    unless (@archivePaths) {
-        die 'No files found.';
+    unless (@targets.first) {
+        @targets = @paths;
     }
 
-    my @absolutePaths = @archivePaths.map({ absolutePath $_ });
-    viewFiles(@absolutePaths);
+    @paths = @targets.map({ findFile $_ });
+    viewFiles(@paths);
 }
 
 #| Display version information.

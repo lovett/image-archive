@@ -58,6 +58,19 @@ sub deportFile(IO::Path $file, IO $destinationDir, Bool $dryRun? = False) is exp
     deleteAlts($file);
 }
 
+# Resolve a path to an archive file.
+sub findFile(Str $path) is export {
+    my $target = $path.IO;
+
+    unless ($target ~~ :f) {
+        $target = getPath('root').add($path);
+    }
+
+    testPathExistsInArchive($target);
+
+    return $target;
+}
+
 # Resize and thumbnail via GraphicsMagick.
 #
 # If a path is not given, the archive is walked.
