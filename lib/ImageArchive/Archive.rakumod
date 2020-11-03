@@ -104,7 +104,12 @@ sub generateAlts(IO::Path $file?) is export {
                 }
 
                 my $proc = run qqw{
-                    gm mogrify -output-directory _cache/$size -create-directories -format $thumbnailExtension -thumbnail $size
+                    gm mogrify
+                    -create-directories
+                    -density 300
+                    -format $thumbnailExtension
+                    -output-directory _cache/$size
+                    -thumbnail $size
                 }, "@roster-{$size}.txt", :out, :err;
                 my $err = $proc.err.slurp(:close);
                 my $out = $proc.out.slurp(:close);
