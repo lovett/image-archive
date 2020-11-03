@@ -13,7 +13,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2020.11.01";
+our Str constant SCRIPT_VERSION = "2020.11.02";
 
 # Entry points
 # ------------------------------------------------------------------------
@@ -35,6 +35,38 @@ multi sub MAIN('alts') {
 #| Write the shell completion file.
 multi sub MAIN('completion') {
     writeShellCompletion(SCRIPT_VERSION);
+}
+
+#| Number of files per year.
+multi sub MAIN('count', 'years') {
+    my $undated = 0;
+
+    for countRecordsByYear() -> $tally {
+        if ($tally[0]) {
+            sprintf("%10s: %4d", $tally[0], $tally[1]).say;
+            next;
+        }
+
+        $undated = $tally[1];
+    }
+
+    say sprintf("%10s: %4d", 'Undated',  $undated);
+}
+
+#| Number of files in a given year per month.
+multi sub MAIN('count', Int $year) {
+    my $unknown = 0;
+
+    for countRecordsByMonth($year.Int) -> $tally {
+        if ($tally[0]) {
+            sprintf("%10s: %s", monthName($tally[0]), $tally[1]).say;
+            next;
+        }
+
+        $unknown = $tally[1];
+    }
+
+    say sprintf("%10s: %s", 'Unknown', $unknown);
 }
 
 #| Start a database CLI session.
@@ -148,42 +180,25 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
     writeShellCompletion(SCRIPT_VERSION);
 }
 
-#| Summarize the contents of the archive.
-multi sub MAIN('stats') {
+#| The size of the archive.
+multi sub MAIN('count') {
     my $root = getPath('root');
-    my %counts;
 
+    my $fileCount = 0;
     for walkArchive($root) -> $path {
-        my $topDir = $path.relative($root).split('/', 2).first;
-        %counts{$topDir}++;
-    }
-
-    my $fileCount = %counts.values.reduce: &infix:<+>;
-    my $fileLabel = ($fileCount == 1) ?? 'file' !! 'files';
-
-    given $fileCount {
-        when 0 {
-            say "Found no files.";
-        }
-
-        default {
-            my $format = "%10s: %{$fileCount.Str.chars}d";
-
-            for %counts.keys.sort -> $key {
-                my $total = %counts{$key};
-                sprintf($format, $key, $total).say;
-            }
-
-            sprintf($format, 'TOTAL', $fileCount).say;
-        }
+        $fileCount++;
     }
 
     my $recordCount = countRecords();
-    my $recordLabel = ($recordCount == 1) ?? 'record' !! 'records';
 
-    if ($recordCount !== $fileCount) {
-        say "";
-        note colored("The database contains $recordCount $recordLabel.", 'red');
+    sprintf('%s in the database.', pluralize($recordCount, 'record', 'records')).say;
+
+    if ($recordCount ne $fileCount) {
+        sprintf('%s files in the archive.', pluralize($fileCount, 'file', 'files')).say;
+
+        say '';
+        say(colored('Suggestion:', 'yellow') ~ ' run reimport');
+        say '';
     }
 }
 

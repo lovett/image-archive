@@ -122,7 +122,7 @@ class SearchActions {
     }
 }
 
-# Count metadata rows in the database.
+# Tally all records.
 sub countRecords() is export {
     my $dbh = openDatabase();
 
@@ -134,6 +134,43 @@ sub countRecords() is export {
     $dbh.dispose;
     return $row[0];
 }
+
+# Tally records by month.
+sub countRecordsByMonth(Int $year) is export {
+    my $dbh = openDatabase();
+    my $sth = $dbh.execute('SELECT substr(json_extract(tags, "$.XMP.CreateDate"), 0, 5) as year,
+    substr(json_extract(tags, "$.XMP.CreateDate"), 6, 2) as month,
+    count(*) AS tally
+    FROM archive
+    WHERE year=?
+    GROUP BY month
+    ORDER BY month', $year.Str);
+
+    return gather {
+        for $sth.allrows(:array-of-hash) -> $row {
+            take ($row<month>, $row<tally>);
+        }
+        $dbh.dispose;
+    }
+}
+
+# Tally records by year.
+sub countRecordsByYear() is export {
+    my $dbh = openDatabase();
+    my $sth = $dbh.execute('SELECT substr(json_extract(tags, "$.XMP.CreateDate"), 0, 5)
+    AS year, count(*) AS tally
+    FROM archive
+    GROUP BY year
+    ORDER BY year');
+
+    return gather {
+        for $sth.allrows(:array-of-hash) -> $row {
+            take ($row<year>, $row<tally>);
+        }
+        $dbh.dispose;
+    }
+}
+
 
 
 # Remove a file from the database.

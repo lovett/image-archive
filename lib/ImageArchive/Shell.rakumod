@@ -8,6 +8,7 @@ use ImageArchive::Config;
 our %commands = %(
     'alts' => Nil,
     'completion' => Nil,
+    'count' => Nil,
     'dbshell' => Nil,
     'deport' => <file>,
     'dump' => <alias file>,
@@ -17,7 +18,6 @@ our %commands = %(
     'reprompt' => <file>,
     'search' => Nil,
     'setup' => <directory>,
-    'stats' => Nil,
     'tag' => <file keyword>,
     'untag' => <file keyword>,
     'untag:alias' => <alias file>,

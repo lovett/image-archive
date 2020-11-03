@@ -1,7 +1,7 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2020.11.01",
+  "version" : "2020.11.02",
   "description" : "Automation for image metatdata tagging.",
   "provides" : {
     "ImageArchive::Archive": "lib/ImageArchive/Archive.rakumod",
@@ -20,6 +20,7 @@
   ],
   "depends" : [
     "Config::INI",
+    "Date::Names",
     "DBIish",
     "Terminal::ANSIColor"
   ],

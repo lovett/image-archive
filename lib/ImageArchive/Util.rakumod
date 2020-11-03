@@ -1,5 +1,6 @@
 unit module ImageArchive::Util;
 
+use Date::Names;
 use Terminal::ANSIColor;
 
 # Convert a comma-delimited list of values to a list.
@@ -33,6 +34,18 @@ sub generateUuid() is export {
     }
 
     die ImageArchive::Exception::UUID.new();
+}
+
+# Cnvert a numeric month to its name.
+sub monthName($month) is export {
+    my $d = Date::Names.new: :lang('en');
+    return $d.mon($month.Int);
+}
+
+# Pick the singular or plural form based on a quantity.
+sub pluralize(Int $quantity, Str $singular, Str $plural) is export {
+    my $label = ($quantity === 1) ?? $singular !! $plural;
+    return sprintf("%d %s", $quantity, $label);
 }
 
 # Print a messsage to stdout indicating what would have happened if
