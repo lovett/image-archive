@@ -10,10 +10,10 @@ our %commands = %(
     'completion' => Nil,
     'count' => Nil,
     'dbshell' => Nil,
-    'deport' => <file>,
+    'deport' => <archivefile>,
     'dump' => <alias file>,
     'import' => <file>,
-    'promote' => <file>,
+    'promote' => <archivefile>,
     'reindex' => Nil,
     'reprompt' => <file>,
     'search' => Nil,
@@ -23,8 +23,8 @@ our %commands = %(
     'untag:alias' => <alias file>,
     'untag:keyword' => <file>,
     'untag:value' => <alias fil>,
-    'version' => <file>,
-    'view' => <file>
+    'version' => <archivefile>,
+    'view' => <archivefile>
 );
 
 sub commandFilter($argumentKind) {
@@ -54,6 +54,7 @@ sub writeShellCompletion(Str $scriptVersion) is export {
 }
 
 sub writeFishCompletion(@keywords, @aliases, $scriptVersion) {
+    my $root = getPath('root');
     my $completionFile = getPath('completion-fish');
 
     my $prefix = "complete -c {$*PROGRAM-NAME.IO.basename}";
@@ -72,7 +73,25 @@ sub writeFishCompletion(@keywords, @aliases, $scriptVersion) {
         test (count \$tokens) -eq 1
     end
 
-    # Test for file path completion.
+    # Test for path completion inside archive.
+    # When used, file paths can only appear as the second argument.
+    function __fish_ia_file_in_archive
+        set -l tokens (commandline -ocp)
+        set -l validCommands { commandFilter('archivefile') }
+        set -l currentCommand \$tokens[2]
+
+        if test (count \$tokens) -gt 2
+            return 1
+        end
+
+        if not contains \$currentCommand \$validCommands
+            return 1
+        end
+
+        return 0
+    end
+
+    # Test for path completion outside archive.
     # When used, file paths can only appear as the second argument.
     function __fish_ia_file
         set -l tokens (commandline -ocp)
@@ -144,8 +163,23 @@ sub writeFishCompletion(@keywords, @aliases, $scriptVersion) {
         return 0
     end
 
-    # Disable file completion by default.
-    {$prefix} -f
+    # Autocomplete an archive file path.
+    function __fish_ia_complete_archive_path
+        set -l target
+        set -l description
+        switch (count \$argv)
+            case 0
+                # pass
+            case 1
+                set target "\$argv[1]"
+            case 2 "*"
+                set target "\$argv[1]"
+                set description "\$argv[2]"
+        end
+
+        set -l archivetarget "{$root}/\$target"
+        printf "%s\\t\$description\\n" (command ls -dp "\$archivetarget"*)
+    end
 
     # Option completion
     {$prefix} --long-option=dryrun
@@ -161,6 +195,7 @@ sub writeFishCompletion(@keywords, @aliases, $scriptVersion) {
     {$prefix} -n '__fish_ia_directory' -a "(__fish_complete_directories)"
 
     {$prefix} -n '__fish_ia_file' -a "(__fish_complete_path)"
+    {$prefix} -n '__fish_ia_file_in_archive' -a "(__fish_ia_complete_archive_path)"
 
     {$prefix} -n '__fish_ia_keyword' -a "{@keywords}"
 
