@@ -32,12 +32,34 @@ multi sub MAIN('alts') {
     generateAlts();
 }
 
-#| Write the shell completion file.
+#| Generate the shell completion file.
 multi sub MAIN('completion') {
     writeShellCompletion(SCRIPT_VERSION);
 }
 
-#| Number of files per year.
+#| The number of files in the archive.
+multi sub MAIN('count') {
+    my $root = getPath('root');
+
+    my $fileCount = 0;
+    for walkArchive($root) -> $path {
+        $fileCount++;
+    }
+
+    my $recordCount = countRecords();
+
+    sprintf('%s in the database.', pluralize($recordCount, 'record', 'records')).say;
+
+    if ($recordCount ne $fileCount) {
+        sprintf('%s files in the archive.', pluralize($fileCount, 'file', 'files')).say;
+
+        say '';
+        say(colored('Suggestion:', 'yellow') ~ ' run reimport');
+        say '';
+    }
+}
+
+#| The number of files per year.
 multi sub MAIN('count', 'years') {
     my $undated = 0;
 
@@ -53,7 +75,7 @@ multi sub MAIN('count', 'years') {
     say sprintf("%10s: %4d", 'Undated',  $undated);
 }
 
-#| Number of files in a given year per month.
+#| The number of files in a given year per month.
 multi sub MAIN('count', Int $year) {
     my $unknown = 0;
 
@@ -174,28 +196,6 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
     writeShellCompletion(SCRIPT_VERSION);
 }
 
-#| The size of the archive.
-multi sub MAIN('count') {
-    my $root = getPath('root');
-
-    my $fileCount = 0;
-    for walkArchive($root) -> $path {
-        $fileCount++;
-    }
-
-    my $recordCount = countRecords();
-
-    sprintf('%s in the database.', pluralize($recordCount, 'record', 'records')).say;
-
-    if ($recordCount ne $fileCount) {
-        sprintf('%s files in the archive.', pluralize($fileCount, 'file', 'files')).say;
-
-        say '';
-        say(colored('Suggestion:', 'yellow') ~ ' run reimport');
-        say '';
-    }
-}
-
 #| Annotate a file with metadata.
 multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
     testKeywords(@keywords);
@@ -265,7 +265,7 @@ multi sub MAIN('version', Str $path) {
     }
 }
 
-#| Display files.
+#| Open files in an external application.
 multi sub MAIN('view', *@paths) {
     my @targets = findBySearchIndex(@paths.join(' '));
 
@@ -277,7 +277,7 @@ multi sub MAIN('view', *@paths) {
     viewFiles(@paths);
 }
 
-#| Display version information.
+#| Display the application version.
 multi sub MAIN(Bool :$version) {
     say SCRIPT_VERSION if $version;
 }
