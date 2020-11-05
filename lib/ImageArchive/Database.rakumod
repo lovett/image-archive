@@ -6,6 +6,7 @@ use DBIish;
 use ImageArchive::Config;
 use ImageArchive::Tagging;
 use ImageArchive::Exception;
+use ImageArchive::Util;
 
 grammar Range {
     rule TOP {
@@ -81,8 +82,14 @@ class SearchActions {
     has $!tag = 'any';
     has %!terms;
     has %.filters;
+    has $!order;
 
     method tag ($/) {
+        if $/<name> eq 'order' {
+            $!tag = $/<name>;
+            return;
+        }
+
         my $formalTag = %.filters{$/<name>};
 
         unless ($formalTag) {
@@ -97,7 +104,7 @@ class SearchActions {
     }
 
     method date ($/) {
-        %!terms{$!tag}.append('"' ~ $/.subst(/\-/, ':', :g) ~ '"');
+        %!terms{$!tag}.append(sprintf('"%s"', $/.subst(/\-/, ':', :g)));
     }
 
     method TOP ($/) {
@@ -112,13 +119,23 @@ class SearchActions {
                     @fragments.append: $phrase;
                 }
 
+                when 'order' {
+                    $!order = $phrase;
+                }
+
                 default {
                     @fragments.append: "NEAR($key $phrase, $distance)";
                 }
             }
         }
 
-        $/.make: "archive_fts MATCH '" ~ @fragments.join(' ') ~ "'";
+        $/.make: %(
+            ftsClause => sprintf(
+                "archive_fts MATCH '%s'",
+                @fragments.join(' ')
+            ),
+            order => $!order
+        )
     }
 }
 
@@ -194,12 +211,14 @@ sub indexFile(IO $file) is export {
     -x EXIF:StripByteCounts
     -x EXIF:StripOffsets
     -x Exif:ThumbnailImage
+    -x Exif:PreviewImageStart
+    -x Exif:PreviewImageLength
     -x ExifTool:all
     -x File:Directory
     -x File:FilePermissions
     -x ICC_Profile:all
     -x MPF:all
-    -j -g -struct>, $file.Str, :out, :err;
+    -json>, $file.Str, :out, :err;
 
     my Str $json = chomp($proc.out.slurp(:close));
     my $err  = $proc.err.slurp(:close);
@@ -272,7 +291,7 @@ sub findBySearchIndex(Str $query) is export {
 }
 
 # Locate archive paths by fulltext
-sub searchMetadata(Str $query) is export {
+sub searchMetadata(Str $query, Bool $debug = False) is export {
     my $parserActions = SearchActions.new(
         filters => readConfig('filters')
     );
@@ -287,20 +306,50 @@ sub searchMetadata(Str $query) is export {
     $dbh.execute("DELETE FROM history
     WHERE key='searchresults'");
 
-    $dbh.execute("INSERT INTO history (key, value)
+    my $ftsQuery = qq:to/SQL/;
+    INSERT INTO history (key, value)
     SELECT 'searchresults', rowid
     FROM archive_fts
-    WHERE {$parsedQuery.made}");
+    WHERE {$parsedQuery.made<ftsClause>}
+    SQL
 
-    my $sth = $dbh.execute("SELECT json_extract(a.tags, '\$.SourceFile') as path
+    $dbh.execute($ftsQuery);
+
+    my $historyQuery = q:to/SQL/;
+    SELECT json_extract(a.tags, '$.SourceFile') as path,
+    IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
+    CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, history h
     WHERE a.id=h.value AND h.key='searchresults'
-    ORDER BY h.id");
+    SQL
+
+    given $parsedQuery.made<order> {
+        when 'series' {
+            $historyQuery ~= 'ORDER BY series, seriesid';
+        }
+
+        when 'filename' {
+            $historyQuery ~= 'ORDER BY json_extract(a.tags, "$.FileName")';
+        }
+
+        default {
+            $historyQuery ~= 'ORDER BY path';
+        }
+    }
+
+
+    my $sth = $dbh.execute($historyQuery);
 
     my $root = getPath('root');
     return gather {
-        for $sth.allrows() -> $row {
-            take relativePath($row[0]);
+        for $sth.allrows(:array-of-hash) -> $row {
+            take $row;
+        }
+
+        if ($debug) {
+            say '';
+            debug($ftsQuery, 'fts query');
+            debug($historyQuery, 'history query');
         }
 
         $dbh.dispose;

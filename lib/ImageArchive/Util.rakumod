@@ -53,3 +53,13 @@ sub pluralize(Int $quantity, Str $singular, Str $plural) is export {
 sub wouldHaveDone(Str $message) is export {
     say colored("DRYRUN", "magenta") ~ " " ~ $message;
 }
+
+# Print a troubleshooting message to stdout.
+sub debug(Str $message, Str $label='') is export {
+    my $header = "-- DEBUG $label";
+
+    say colored($header, 'yellow');
+    say colored('-' x $header.chars, 'yellow');
+    say $message.chomp;
+    say "";
+}

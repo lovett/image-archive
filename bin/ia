@@ -159,13 +159,21 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
 }
 
 #| Find images in the archive by their tags.
-multi sub MAIN('search', *@terms) {
+multi sub MAIN('search', Bool :$debug = False, *@terms) {
+
     my $query = @terms.join(' ');
 
     my $counter = 0;
-    for searchMetadata($query) -> $result {
-        my $index = colored(sprintf("%3d", ++$counter), 'cyan');
-        say " $index $result";
+    for searchMetadata($query, $debug) -> $result {
+        my $index = sprintf("%3d", ++$counter);
+        my $series = sprintf('%s-%03d', $result<series>, $result<seriesid>);
+
+        printf(
+            "%s %s %s\n",
+            colored($index, 'cyan'),
+            colored($series, 'magenta'),
+            $result<path>
+        );
     }
 
     unless ($counter) {
