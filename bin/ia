@@ -54,7 +54,7 @@ multi sub MAIN('count') {
         sprintf('%s files in the archive.', pluralize($fileCount, 'file', 'files')).say;
 
         say '';
-        say(colored('Suggestion:', 'yellow') ~ ' run reimport');
+        say(colored('Suggestion:', 'yellow') ~ ' run reindex');
         say '';
     }
 }
