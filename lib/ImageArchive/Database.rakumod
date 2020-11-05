@@ -308,10 +308,28 @@ sub searchMetadata(Str $query, Bool $debug = False) is export {
 
     my $ftsQuery = qq:to/SQL/;
     INSERT INTO history (key, value)
-    SELECT 'searchresults', rowid
+    SELECT 'searchresults', archive_fts.rowid
     FROM archive_fts
+    JOIN archive ON archive_fts.rowid=archive.id
     WHERE {$parsedQuery.made<ftsClause>}
     SQL
+
+    given $parsedQuery.made<order> {
+        when 'series' {
+            $ftsQuery ~= q:to/SQL/;
+            ORDER BY json_extract(archive.tags, '$.SeriesName'),
+            CAST(IFNULL(json_extract(archive.tags, '$.SeriesIdentifier'), 0) AS INT)
+            SQL
+        }
+
+        when 'filename' {
+            $ftsQuery ~= 'ORDER BY json_extract(archive.tags, "$.FileName")';
+        }
+
+        default {
+            $ftsQuery ~= 'ORDER BY json_extract(archive.tags, "$.SourceFile")';
+        }
+    }
 
     $dbh.execute($ftsQuery);
 
@@ -321,22 +339,8 @@ sub searchMetadata(Str $query, Bool $debug = False) is export {
     CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, history h
     WHERE a.id=h.value AND h.key='searchresults'
+    ORDER BY h.rowid
     SQL
-
-    given $parsedQuery.made<order> {
-        when 'series' {
-            $historyQuery ~= 'ORDER BY series, seriesid';
-        }
-
-        when 'filename' {
-            $historyQuery ~= 'ORDER BY json_extract(a.tags, "$.FileName")';
-        }
-
-        default {
-            $historyQuery ~= 'ORDER BY path';
-        }
-    }
-
 
     my $sth = $dbh.execute($historyQuery);
 

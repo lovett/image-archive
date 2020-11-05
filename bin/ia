@@ -13,7 +13,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2020.11.04";
+our Str constant SCRIPT_VERSION = "2020.11.05";
 
 # Entry points
 # ------------------------------------------------------------------------
