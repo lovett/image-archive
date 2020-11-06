@@ -51,7 +51,7 @@ sub pluralize(Int $quantity, Str $singular, Str $plural) is export {
 # Print a messsage to stdout indicating what would have happened if
 # the --dryrun flag had not been specified.
 sub wouldHaveDone(Str $message) is export {
-    say colored("DRYRUN", "magenta") ~ " " ~ $message;
+    say sprintf('%s %s', colored('DRYRUN', 'white on_magenta'), $message);
 }
 
 # Print a troubleshooting message to stdout.

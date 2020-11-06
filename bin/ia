@@ -21,7 +21,7 @@ proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
     CATCH {
         default {
-            try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red bold'); &*EXIT(1)
+            try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
         }
     }
     {*}
@@ -54,7 +54,7 @@ multi sub MAIN('count') {
         sprintf('%s files in the archive.', pluralize($fileCount, 'file', 'files')).say;
 
         say '';
-        say(colored('Suggestion:', 'yellow') ~ ' run reindex');
+        say(colored('Suggestion:', 'green') ~ ' run reindex');
         say '';
     }
 }
@@ -136,7 +136,7 @@ multi sub MAIN('promote', Str $path, Bool :$dryrun) {
 
     CATCH {
         when ImageArchive::Exception::PathNotFoundInWorkspace {
-            note colored($_.message, 'red bold');
+            note colored($_.message, 'red');
             exit 1;
         }
     }
@@ -169,9 +169,9 @@ multi sub MAIN('search', Bool :$debug = False, *@terms) {
         my $series = sprintf('%s-%03d', $result<series>, $result<seriesid>);
 
         printf(
-            "%s %s %s\n",
-            colored($index, 'cyan'),
-            colored($series, 'magenta'),
+            "%s | %15s | %s\n",
+            colored($index, 'white on_blue'),
+            $series,
             $result<path>
         );
     }
@@ -182,7 +182,7 @@ multi sub MAIN('search', Bool :$debug = False, *@terms) {
 
     CATCH {
         when ImageArchive::Exception::BadFilter {
-            note colored($_.message, 'red bold');
+            note colored($_.message, 'red');
             suggestFilters();
             exit 1;
         }
@@ -235,7 +235,7 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
 
     CATCH {
         when ImageArchive::Exception::MissingContext {
-            note colored($_.message, 'red bold');
+            note colored($_.message, 'red');
             suggestContextKeywords($_.offenders);
             exit 1;
         }
@@ -263,8 +263,8 @@ multi sub MAIN('version', Str $path) {
 
     my $version = workspaceImport($target.IO);
 
-    say "The workspace is: " ~ colored($version.parent.Str, 'cyan');
-    say "The version is: " ~ colored($version.Str, 'yellow');
+    say sprintf('%s %s', colored('Workspace:', 'magenta'), $version.parent.Str);
+    say sprintf('%s %S', colored('Version:', 'magenta'), $version.Str);
 
     my $viewCommand = readConfig('view_workspace');
 

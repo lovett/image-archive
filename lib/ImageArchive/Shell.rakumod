@@ -48,7 +48,7 @@ sub writeShellCompletion(Str $scriptVersion) is export {
         }
 
         default {
-            note colored("Sorry, shell completion isn't available for your shell", "yellow bold");
+            note colored("Sorry, completion for {%*ENV<SHELL>} isn't available.", "red");
         }
     }
 }

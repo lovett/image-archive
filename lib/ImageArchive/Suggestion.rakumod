@@ -13,8 +13,9 @@ sub suggestContextKeywords(@contexts) is export {
 
     for %suggestionContexts.kv -> $context, $aliases {
         my @keywords = keywordsInContext($context);
-        say colored("{$context} keywords", 'cyan') ~ "\n" ~ @keywords.sort.join(", ");
-        say "to disable: " ~ colored("no{$context}", 'yellow') ~ "\n"
+        say colored("{$context} keywords", 'cyan underline') ~ "\n" ~ @keywords.sort.join(", ");
+        say "To disable: no{$context}";
+        say "";
     }
 }
 
@@ -23,5 +24,5 @@ sub suggestFilters() is export {
     my @filters = %filters.keys.sort;
 
     say "";
-    say colored("Search Filters", 'cyan') ~ "\n" ~ @filters.sort.join(", ");
+    say colored('Filters', 'cyan underline') ~ "\n" ~ @filters.sort.join(", ");
 }
