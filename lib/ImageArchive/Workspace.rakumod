@@ -1,7 +1,5 @@
 unit module ImageArchive::Workspace;
 
-use Terminal::ANSIColor;
-
 use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Database;

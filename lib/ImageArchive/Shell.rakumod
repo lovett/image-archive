@@ -1,8 +1,7 @@
 unit module ImageArchive::Shell;
 
-use Terminal::ANSIColor;
-
 use ImageArchive::Config;
+use ImageArchive::Exception;
 
 # A mapping between commands and the kinds of arguments they accept.
 our %commands = %(
@@ -48,7 +47,7 @@ sub writeShellCompletion(Str $scriptVersion) is export {
         }
 
         default {
-            note colored("Sorry, completion for {%*ENV<SHELL>} isn't available.", "red");
+            die ImageArchive::Exception::UnsupportedShell.new;
         }
     }
 }

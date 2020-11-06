@@ -107,3 +107,10 @@ class ImageArchive::Exception::UUID is Exception is export {
         "Unable to generate a unique id.";
     }
 }
+
+# The current shell is not supported.
+class ImageArchive::Exception::UnsupportedShell is Exception is export {
+    method message {
+        "Sorry, support for for {%*ENV<SHELL>} is not available.";
+    }
+}

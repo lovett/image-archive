@@ -1,7 +1,5 @@
 unit module ImageArchive::Archive;
 
-use Terminal::ANSIColor;
-
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
@@ -113,7 +111,7 @@ sub generateAlts(IO::Path $file?) is export {
                 my $label = ($count == 1) ?? 'file' !! 'files';
 
                 unless ($file) {
-                    print colored("Generating {$count} {$label } at {$size}...", 'magenta');
+                    print "Generating {$count} {$label } at {$size}...";
                 }
 
                 my $proc = run qqw{
