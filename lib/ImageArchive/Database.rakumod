@@ -114,6 +114,7 @@ class SearchActions {
         my @fragments;
         for %!terms.kv -> $key, @values {
             my $phrase = @values.join(' ');
+
             given $key {
                 when 'any' {
                     @fragments.append: $phrase;
@@ -124,7 +125,19 @@ class SearchActions {
                 }
 
                 default {
-                    @fragments.append: "NEAR($key $phrase, $distance)";
+                    given $phrase {
+                        when 'unknown' {
+                            @fragments.append("(SourceFile NOT $key)");
+                        }
+
+                        when 'any' {
+                            @fragments.append("(SourceFile AND $key)");
+                        }
+
+                        default {
+                            @fragments.append: "NEAR($key $phrase, $distance)";
+                        }
+                    }
                 }
             }
         }
@@ -132,7 +145,7 @@ class SearchActions {
         $/.make: %(
             ftsClause => sprintf(
                 "archive_fts MATCH '%s'",
-                @fragments.join(' ')
+                @fragments.join(' AND ')
             ),
             order => $!order
         )
