@@ -1,4 +1,9 @@
--- Tables
+-- The schema below intentionally does not enable the WAL journal_mode
+-- pragma. Based on the disadvantages documented at
+-- https://sqlite.org/wal.html, the main one of interest to this
+-- application is not being able to use network filesystems. Also, the
+-- application doesn't really have any troubles with blocking between
+-- readers and writers.
 
 CREATE TABLE IF NOT EXISTS history (
     id INTEGER PRIMARY KEY,
