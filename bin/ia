@@ -8,7 +8,7 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
 use ImageArchive::Shell;
-use ImageArchive::Suggestion;
+use ImageArchive::Hints;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
@@ -54,7 +54,7 @@ multi sub MAIN('count') {
         sprintf('%s files in the archive.', pluralize($fileCount, 'file', 'files')).say;
 
         say '';
-        say(colored('Suggestion:', 'green') ~ ' run reindex');
+        say(colored('To fix:', 'green') ~ ' run reindex');
         say '';
     }
 }
@@ -288,4 +288,25 @@ multi sub MAIN('view', *@paths) {
 #| Display the application version.
 multi sub MAIN(Bool :$version) {
     say SCRIPT_VERSION if $version;
+}
+
+sub USAGE() {
+    if @*ARGS.elems == 2 && @*ARGS.first eq '--help' {
+        my $command = @*ARGS[1];
+        my $shortSummary = $*USAGE.lines.grep( / ' ' $command ' ' / ).first;
+
+        if ($shortSummary) {
+            say "Usage:";
+            say $shortSummary;
+
+            if ($command eq 'search') {
+                say explainSearchSynax();
+            }
+            return;
+        }
+
+
+    }
+
+    say $*USAGE;
 }
