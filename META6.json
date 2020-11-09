@@ -1,10 +1,11 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2020.11.05",
+  "version" : "2020.11.08",
   "description" : "Automation for image metatdata tagging.",
   "provides" : {
     "ImageArchive::Archive": "lib/ImageArchive/Archive.rakumod",
+    "ImageArchive::Color": "lib/ImageArchive/Color.rakumod",
     "ImageArchive::Config": "lib/ImageArchive/Config.rakumod",
     "ImageArchive::Database": "lib/ImageArchive/Database.rakumod",
     "ImageArchive::Exception": "lib/ImageArchive/Exception.rakumod",

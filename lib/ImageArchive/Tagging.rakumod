@@ -1,5 +1,6 @@
 unit module ImageArchive::Tagging;
 
+use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Exception;
 use ImageArchive::Util;
@@ -115,6 +116,13 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
     unless (%existingTags<id>) {
         %tags<id> = generateUuid();
         %tags<datetagged> = DateTime.now();
+    }
+
+    unless (%existingTags<relation>) {
+        %tags<relation> = sprintf(
+            'average-color:srgb(%s)',
+            getAverageColor($file).join(',')
+        );
     }
 
     %tags<modified> = DateTime.now();
