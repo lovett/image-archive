@@ -125,6 +125,10 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
         );
     }
 
+    unless (%tags) {
+        return;
+    }
+
     %tags<modified> = DateTime.now();
 
     for %tags.kv -> $tag, $value {
