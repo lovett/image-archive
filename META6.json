@@ -1,7 +1,7 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2020.11.08",
+  "version" : "2020.11.09",
   "description" : "Automation for image metatdata tagging.",
   "provides" : {
     "ImageArchive::Archive": "lib/ImageArchive/Archive.rakumod",
@@ -17,6 +17,7 @@
   },
   "resources": [
     "config.ini",
+    "exiftool.config",
     "schema-sqlite.sql"
   ],
   "depends" : [

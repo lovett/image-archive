@@ -23,12 +23,14 @@ sub askQuestions() is export {
 
 # Write one or more tags to a file via exiftool.
 sub commitTags(IO $file, @commands, Bool $dryRun? = False) is export {
+    my $configPath = %?RESOURCES<exiftool.config>.IO.absolute;
+
     if ($dryRun) {
-        wouldHaveDone("exiftool -ignoreMinorErrors {@commands} {$file}");
+        wouldHaveDone("exiftool -config {$configPath} -ignoreMinorErrors {@commands} {$file}");
         return;
     }
 
-    my $proc = run <exiftool -ignoreMinorErrors>, @commands, $file.Str, :out, :err;
+    my $proc = run qqw{exiftool -config $configPath -ignoreMinorErrors}, @commands, $file.Str, :out, :err;
 
     my $err = $proc.err.slurp(:close);
     my $out = $proc.out.slurp(:close);
@@ -118,11 +120,8 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
         %tags<datetagged> = DateTime.now();
     }
 
-    unless (%existingTags<relation>) {
-        %tags<relation> = sprintf(
-            'average-color:srgb(%s)',
-            getAverageColor($file).join(',')
-        );
+    unless (%existingTags<avgrgb>) {
+        %tags<avgrgb> = getAverageColor($file).join(',');
     }
 
     unless (%tags) {

@@ -12,9 +12,13 @@ sub getAverageColor(IO::Path $file) is export {
         die ImageArchive::Exception::BadExit.new(:err($err));
     }
 
+    return extractRgbTriple($out);
+}
 
+#| Isolate RGB integers from a larger string.
+sub extractRgbTriple($string) is export {
     my regex separator { <[\s,]>+ }
-    $out ~~ / '(' \s* $<r> = (\d+) <separator>  $<g> = (\d+) <separator>  $<b> = (\d+)/;
+    $string ~~ / '(' \s* $<r> = (\d+) <separator>  $<g> = (\d+) <separator>  $<b> = (\d+)/;
 
-    return (~$<r>, ~$<g>, ~$<b>)
+    return (~$<r>, ~$<g>, ~$<b>).map({ .Int });
 }
