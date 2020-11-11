@@ -4,6 +4,7 @@ use DBIish;
 use Terminal::ANSIColor;
 
 use ImageArchive::Archive;
+use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
@@ -194,6 +195,27 @@ multi sub MAIN('search', Bool :$debug = False, *@terms) {
 multi sub MAIN('search') is hidden-from-USAGE {
     die ImageArchive::Exception::NoSearchQuery.new;
 }
+
+#| Find images in the archive by color similarity.
+multi sub MAIN('search:color', Str $file where *.IO.f) {
+    my @rgb = getAverageColor($file.IO);
+
+    my $counter = 0;
+    for findBySimilarColor(@rgb) -> $result {
+        my $index = sprintf("%3d", ++$counter);
+
+        printf(
+            "%s | %s\n",
+            colored($index, 'white on_blue'),
+            $result<path>
+        );
+    }
+
+    unless ($counter) {
+        note 'No matches.';
+    }
+}
+
 
 #| Establish the application's configuration and database.
 multi sub MAIN('setup', Str $directory where *.IO.d) {

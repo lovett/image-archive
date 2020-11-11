@@ -4,5 +4,6 @@
 *.png
 *.tiff
 *_original
+resources/colordelta.so
 testroot
 .precomp

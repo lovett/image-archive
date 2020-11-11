@@ -303,6 +303,66 @@ sub findBySearchIndex(Str $query) is export {
     }
 }
 
+# Locate archive paths by closeness to an RGB color.
+#
+# This uses an SQLite extension loaded at runtime, but there are
+# complications (no obvious way to invoke
+# sqlite3_enable_load_extension() through DBIish). The workaround is
+# to shell out to the sqlite3 command-line client where extension
+# loading is already enabled. Once that happens a standard DBIish
+# connection is used for followup queries that do not need the
+# extension.
+sub findBySimilarColor(@rgb) is export {
+
+    my $dbPath = getPath('database');
+
+    my $proc = run 'sqlite3', $dbPath, :in, :err;
+
+    my $extension = %?RESOURCES<colordelta.so>.IO.extension('').absolute;
+
+    $proc.in.say: qq:to/SQL/;
+    .load {$extension} sqlite3_colordelta_init
+
+    DELETE FROM HISTORY WHERE key='similarcolor';
+
+    INSERT INTO history (key, value)
+    SELECT 'similarcolor', archive.id
+    FROM archive
+    WHERE colordelta(
+        '{@rgb.join(',')}',
+        json_extract(tags, '\$.AverageRGB')
+    ) < 10;
+    SQL
+
+    $proc.in.close;
+
+    my $err = $proc.err.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+
+    my $dbh = openDatabase();
+
+    my $historyQuery = q:to/SQL/;
+    SELECT json_extract(a.tags, '$.SourceFile') as path
+    FROM archive a, history h
+    WHERE a.id=h.value AND h.key='similarcolor'
+    ORDER BY h.rowid
+    SQL
+
+    my $sth = $dbh.execute($historyQuery);
+
+    my $root = getPath('root');
+    return gather {
+        for $sth.allrows(:array-of-hash) -> $row {
+            take $row;
+        }
+        $dbh.dispose;
+    }
+}
+
+
 # Locate archive paths by fulltext
 sub searchMetadata(Str $query, Bool $debug = False) is export {
     my $parserActions = SearchActions.new(
