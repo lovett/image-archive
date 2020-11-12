@@ -203,10 +203,12 @@ multi sub MAIN('search:color', Str $file where *.IO.f) {
     my $counter = 0;
     for findBySimilarColor(@rgb) -> $result {
         my $index = sprintf("%3d", ++$counter);
+        my $score = sprintf("%2.2f", $result<score>);
 
         printf(
-            "%s | %s\n",
+            "%s | %s | %s\n",
             colored($index, 'white on_blue'),
+            $score,
             $result<path>
         );
     }

@@ -288,9 +288,9 @@ sub findBySearchIndex(Str $query) is export {
 
     my $sth = $dbh.execute("SELECT * FROM (
     SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
-    OVER (ORDER BY h.id) as rownum
+    OVER (ORDER BY h.archive_id) as rownum
     FROM archive a, history h
-    WHERE a.id=h.value
+    WHERE a.id=h.archive_id
     AND h.key='searchresults')
     WHERE {$parsedQuery.made}");
 
@@ -325,13 +325,14 @@ sub findBySimilarColor(@rgb) is export {
 
     DELETE FROM HISTORY WHERE key='similarcolor';
 
-    INSERT INTO history (key, value)
-    SELECT 'similarcolor', archive.id
+    INSERT INTO history (key, score, archive_id)
+    SELECT 'similarcolor',
+      colordelta('{@rgb.join(',')}', json_extract(tags, '\$.AverageRGB'))
+        AS delta,
+      archive.id
     FROM archive
-    WHERE colordelta(
-        '{@rgb.join(',')}',
-        json_extract(tags, '\$.AverageRGB')
-    ) < 10;
+    WHERE delta < 10
+    ORDER BY delta ASC;
     SQL
 
     $proc.in.close;
@@ -345,9 +346,9 @@ sub findBySimilarColor(@rgb) is export {
     my $dbh = openDatabase();
 
     my $historyQuery = q:to/SQL/;
-    SELECT json_extract(a.tags, '$.SourceFile') as path
+    SELECT json_extract(a.tags, '$.SourceFile') as path, h.score
     FROM archive a, history h
-    WHERE a.id=h.value AND h.key='similarcolor'
+    WHERE a.id=h.archive_id AND h.key='similarcolor'
     ORDER BY h.rowid
     SQL
 
@@ -380,7 +381,7 @@ sub searchMetadata(Str $query, Bool $debug = False) is export {
     WHERE key='searchresults'");
 
     my $ftsQuery = qq:to/SQL/;
-    INSERT INTO history (key, value)
+    INSERT INTO history (key, archive_id)
     SELECT 'searchresults', archive_fts.rowid
     FROM archive_fts
     JOIN archive ON archive_fts.rowid=archive.id
@@ -411,7 +412,7 @@ sub searchMetadata(Str $query, Bool $debug = False) is export {
     IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
     CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, history h
-    WHERE a.id=h.value AND h.key='searchresults'
+    WHERE a.id=h.archive_id AND h.key='searchresults'
     ORDER BY h.rowid
     SQL
 

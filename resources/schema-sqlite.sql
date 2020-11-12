@@ -5,10 +5,15 @@
 -- application doesn't really have any troubles with blocking between
 -- readers and writers.
 
+PRAGMA foreign_keys = ON;
+
 CREATE TABLE IF NOT EXISTS history (
     id INTEGER PRIMARY KEY,
     key TEXT,
-    value TEXT
+    score REAL DEFAULT NULL,
+    archive_id INTEGER,
+    FOREIGN KEY (archive_id) REFERENCES archive(id)
+      ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS archive (
