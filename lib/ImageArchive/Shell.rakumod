@@ -16,6 +16,7 @@ our %commands = %(
     'reindex' => Nil,
     'reprompt' => <file>,
     'search' => Nil,
+    'search:color' => <file>,
     'setup' => <directory>,
     'tag' => <file keyword>,
     'untag' => <file keyword>,
