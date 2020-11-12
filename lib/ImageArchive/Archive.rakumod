@@ -188,6 +188,7 @@ sub walkArchive(IO::Path $dir) is export {
     gather for dir $dir -> $path {
         next if $path.basename eq '_cache';
         next if $path.basename.starts-with('.');
+        next if $path.extension.ends-with('_original');
         next if $path.extension ∈ @skipExtensions;
         if $path.d { .take for walkArchive($path) };
         if $path.f { take $path };
