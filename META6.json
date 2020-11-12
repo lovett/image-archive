@@ -1,7 +1,7 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2020.11.10",
+  "version" : "2020.11.12",
   "description" : "Automation for image metatdata tagging.",
   "provides" : {
     "ImageArchive::Archive": "lib/ImageArchive/Archive.rakumod",
@@ -13,7 +13,9 @@
     "ImageArchive::Hints": "lib/ImageArchive/Hints.rakumod",
     "ImageArchive::Tagging": "lib/ImageArchive/Tagging.rakumod",
     "ImageArchive::Util": "lib/ImageArchive/Util.rakumod",
-    "ImageArchive::Workspace": "lib/ImageArchive/Workspace.rakumod"
+    "ImageArchive::Workspace": "lib/ImageArchive/Workspace.rakumod",
+    "ImageArchive::Grammar::Range": "lib/ImageArchive/Grammar/Range.rakumod",
+    "ImageArchive::Grammar::Search": "lib/ImageArchive/Grammar/Search.rakumod"
   },
   "resources": [
     "colordelta.c",
