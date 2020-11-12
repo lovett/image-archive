@@ -288,10 +288,10 @@ sub findBySearchIndex(Str $query) is export {
 
     my $sth = $dbh.execute("SELECT * FROM (
     SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
-    OVER (ORDER BY h.archive_id) as rownum
-    FROM archive a, history h
-    WHERE a.id=h.archive_id
-    AND h.key='searchresults')
+    OVER (ORDER BY s.archive_id) as rownum
+    FROM archive a, stash s
+    WHERE a.id=s.archive_id
+    AND s.key='searchresults')
     WHERE {$parsedQuery.made}");
 
     return gather {
@@ -323,9 +323,9 @@ sub findBySimilarColor(@rgb) is export {
     $proc.in.say: qq:to/SQL/;
     .load {$extension} sqlite3_colordelta_init
 
-    DELETE FROM HISTORY WHERE key='similarcolor';
+    DELETE FROM stash WHERE key='similarcolor';
 
-    INSERT INTO history (key, score, archive_id)
+    INSERT INTO stash (key, score, archive_id)
     SELECT 'similarcolor',
       colordelta('{@rgb.join(',')}', json_extract(tags, '\$.AverageRGB'))
         AS delta,
@@ -345,14 +345,14 @@ sub findBySimilarColor(@rgb) is export {
 
     my $dbh = openDatabase();
 
-    my $historyQuery = q:to/SQL/;
-    SELECT json_extract(a.tags, '$.SourceFile') as path, h.score
-    FROM archive a, history h
-    WHERE a.id=h.archive_id AND h.key='similarcolor'
-    ORDER BY h.rowid
+    my $stashQuery = q:to/SQL/;
+    SELECT json_extract(a.tags, '$.SourceFile') as path, s.score
+    FROM archive a, stash s
+    WHERE a.id=s.archive_id AND s.key='similarcolor'
+    ORDER BY s.rowid
     SQL
 
-    my $sth = $dbh.execute($historyQuery);
+    my $sth = $dbh.execute($stashQuery);
 
     my $root = getPath('root');
     return gather {
@@ -377,11 +377,10 @@ sub searchMetadata(Str $query, Bool $debug = False) is export {
 
     my $dbh = openDatabase();
 
-    $dbh.execute("DELETE FROM history
-    WHERE key='searchresults'");
+    $dbh.execute("DELETE FROM stash WHERE key='searchresults'");
 
     my $ftsQuery = qq:to/SQL/;
-    INSERT INTO history (key, archive_id)
+    INSERT INTO stash (key, archive_id)
     SELECT 'searchresults', archive_fts.rowid
     FROM archive_fts
     JOIN archive ON archive_fts.rowid=archive.id
@@ -407,16 +406,16 @@ sub searchMetadata(Str $query, Bool $debug = False) is export {
 
     $dbh.execute($ftsQuery);
 
-    my $historyQuery = q:to/SQL/;
+    my $stashQuery = q:to/SQL/;
     SELECT json_extract(a.tags, '$.SourceFile') as path,
     IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
     CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
-    FROM archive a, history h
-    WHERE a.id=h.archive_id AND h.key='searchresults'
-    ORDER BY h.rowid
+    FROM archive a, stash s
+    WHERE a.id=s.archive_id AND s.key='searchresults'
+    ORDER BY s.rowid
     SQL
 
-    my $sth = $dbh.execute($historyQuery);
+    my $sth = $dbh.execute($stashQuery);
 
     my $root = getPath('root');
     return gather {
@@ -427,7 +426,7 @@ sub searchMetadata(Str $query, Bool $debug = False) is export {
         if ($debug) {
             say '';
             debug($ftsQuery, 'fts query');
-            debug($historyQuery, 'history query');
+            debug($stashQuery, 'stash query');
         }
 
         $dbh.dispose;

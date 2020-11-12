@@ -7,7 +7,9 @@
 
 PRAGMA foreign_keys = ON;
 
-CREATE TABLE IF NOT EXISTS history (
+-- Tables
+
+CREATE TABLE stash (
     id INTEGER PRIMARY KEY,
     key TEXT,
     score REAL DEFAULT NULL,
@@ -16,49 +18,38 @@ CREATE TABLE IF NOT EXISTS history (
       ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS archive (
+CREATE INDEX stash_key ON stash(key);
+
+CREATE TABLE archive (
     id INTEGER PRIMARY KEY,
     uuid TEXT,
     tags TEXT
 );
-
-DROP TABLE IF EXISTS archive_fts;
 
 CREATE VIRTUAL TABLE archive_fts USING fts5(
     tags, content=archive, content_rowid=id,
     tokenize='porter unicode61'
 );
 
-INSERT INTO archive_fts(rowid, tags)
-SELECT id, tags from archive;
-
-
--- Indexes
-
-CREATE INDEX IF NOT EXISTS history_key
-ON history(key);
-
-CREATE UNIQUE INDEX IF NOT EXISTS archive_uuid
-ON archive(uuid);
-
+CREATE UNIQUE INDEX archive_uuid ON archive(uuid);
 
 -- Triggers
 
-CREATE TRIGGER IF NOT EXISTS archive_after_insert
+CREATE TRIGGER archive_after_insert
 AFTER INSERT ON archive
 BEGIN
     INSERT INTO archive_fts(rowid, tags)
     VALUES (new.id, new.tags);
 END;
 
-CREATE TRIGGER IF NOT EXISTS archive_after_delete
+CREATE TRIGGER archive_after_delete
 AFTER DELETE ON archive
 BEGIN
     INSERT INTO archive_fts(archive_fts, rowid, tags)
     VALUES('delete', old.id, old.tags);
 END;
 
-CREATE TRIGGER IF NOT EXISTS archive_after_update
+CREATE TRIGGER archive_after_update
 AFTER UPDATE ON archive
 BEGIN
     INSERT INTO archive_fts(archive_fts, rowid, tags)
