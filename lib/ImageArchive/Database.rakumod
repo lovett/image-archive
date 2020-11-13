@@ -143,7 +143,9 @@ sub openDatabase() is export {
 }
 
 # Locate archive paths by index from a previous search.
-sub findByStashIndex(Str $query) is export {
+sub findByStashIndex(Str $query, Bool $debug = False) is export {
+    my $stashKey = 'searchresult';
+
     my $parserActions = RangeActions.new;
 
     my $parsedQuery = Range.parse(
@@ -155,19 +157,28 @@ sub findByStashIndex(Str $query) is export {
         return;
     }
 
+    my $stashQuery = qq:to/SQL/;
+    SELECT * FROM (
+        SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
+        OVER (ORDER BY s.id) as rownum
+        FROM archive a, stash s
+        WHERE a.id=s.archive_id
+        AND s.key='{$stashKey}'
+    ) WHERE {$parsedQuery.made}
+    SQL
+
     my $dbh = openDatabase();
 
-    my $sth = $dbh.execute("SELECT * FROM (
-    SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
-    OVER (ORDER BY s.archive_id) as rownum
-    FROM archive a, stash s
-    WHERE a.id=s.archive_id
-    AND s.key='searchresults')
-    WHERE {$parsedQuery.made}");
+    my $sth = $dbh.execute($stashQuery);
 
     return gather {
         for $sth.allrows() -> $row {
             take $row[0];
+        }
+
+        if ($debug) {
+            say '';
+            debug($stashQuery, 'stash query');
         }
 
         $dbh.dispose;
@@ -185,6 +196,8 @@ sub findByStashIndex(Str $query) is export {
 # extension.
 sub findBySimilarColor(@rgb) is export {
 
+    my $stashKey = 'searchresult';
+
     my $dbPath = getPath('database');
 
     my $proc = run 'sqlite3', $dbPath, :in, :err;
@@ -194,10 +207,10 @@ sub findBySimilarColor(@rgb) is export {
     $proc.in.say: qq:to/SQL/;
     .load {$extension} sqlite3_colordelta_init
 
-    DELETE FROM stash WHERE key='similarcolor';
+    DELETE FROM stash WHERE key='{$stashKey}';
 
     INSERT INTO stash (key, score, archive_id)
-    SELECT 'similarcolor',
+    SELECT '{$stashKey}',
       colordelta('{@rgb.join(',')}', json_extract(tags, '\$.AverageRGB'))
         AS delta,
       archive.id
@@ -216,10 +229,10 @@ sub findBySimilarColor(@rgb) is export {
 
     my $dbh = openDatabase();
 
-    my $stashQuery = q:to/SQL/;
-    SELECT json_extract(a.tags, '$.SourceFile') as path, s.score
+    my $stashQuery = qq:to/SQL/;
+    SELECT json_extract(a.tags, '\$.SourceFile') as path, s.score
     FROM archive a, stash s
-    WHERE a.id=s.archive_id AND s.key='similarcolor'
+    WHERE a.id=s.archive_id AND s.key='{$stashKey}'
     ORDER BY s.rowid
     SQL
 
@@ -236,6 +249,8 @@ sub findBySimilarColor(@rgb) is export {
 
 # Locate archive paths by fulltext search
 sub findByTag(Str $query, Bool $debug = False) is export {
+    my $stashKey = 'searchresult';
+
     my $parserActions = SearchActions.new(
         filters => readConfig('filters')
     );
@@ -247,11 +262,11 @@ sub findByTag(Str $query, Bool $debug = False) is export {
 
     my $dbh = openDatabase();
 
-    $dbh.execute("DELETE FROM stash WHERE key='searchresults'");
+    $dbh.execute("DELETE FROM stash WHERE key='{$stashKey}'");
 
     my $ftsQuery = qq:to/SQL/;
     INSERT INTO stash (key, archive_id)
-    SELECT 'searchresults', archive_fts.rowid
+    SELECT '{$stashKey}', archive_fts.rowid
     FROM archive_fts
     JOIN archive ON archive_fts.rowid=archive.id
     WHERE {$parsedQuery.made<ftsClause>}
@@ -276,12 +291,12 @@ sub findByTag(Str $query, Bool $debug = False) is export {
 
     $dbh.execute($ftsQuery);
 
-    my $stashQuery = q:to/SQL/;
-    SELECT json_extract(a.tags, '$.SourceFile') as path,
-    IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
-    CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
+    my $stashQuery = qq:to/SQL/;
+    SELECT json_extract(a.tags, '\$.SourceFile') as path,
+    IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
+    CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, stash s
-    WHERE a.id=s.archive_id AND s.key='searchresults'
+    WHERE a.id=s.archive_id AND s.key='{$stashKey}'
     ORDER BY s.rowid
     SQL
 

@@ -300,8 +300,8 @@ multi sub MAIN('version', Str $path) {
 }
 
 #| Open files in an external application.
-multi sub MAIN('view', *@paths) {
-    my @targets = findByStashIndex(@paths.join(' '));
+multi sub MAIN('view', Bool :$debug = False, *@paths) {
+    my @targets = findByStashIndex(@paths.join(' '), $debug);
 
     unless (@targets.first) {
         @targets = @paths;
