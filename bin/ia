@@ -148,10 +148,11 @@ multi sub MAIN('reindex') {
     my $root = getPath('root');
 
     for walkArchive($root) -> $path {
+        print "Reindexing {$path}...";
         # Don't add any new tags, but do add auto-generated ones.
         tagFile($path, {});
         indexFile($path);
-        say "Reindexed {$path}";
+        say "done.";
     }
 }
 
