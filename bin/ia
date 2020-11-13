@@ -167,7 +167,7 @@ multi sub MAIN('search', Bool :$debug = False, *@terms) {
     my $query = @terms.join(' ');
 
     my $counter = 0;
-    for searchMetadata($query, $debug) -> $result {
+    for findByTag($query, $debug) -> $result {
         my $index = sprintf("%3d", ++$counter);
         my $series = sprintf('%s-%03d', $result<series>, $result<seriesid>);
 
@@ -225,7 +225,7 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
 
     writeArchiveConfig();
 
-    applyDatabaseSchema();
+    createDatabase();
 
     writeShellCompletion(SCRIPT_VERSION);
 }
@@ -301,7 +301,7 @@ multi sub MAIN('version', Str $path) {
 
 #| Open files in an external application.
 multi sub MAIN('view', *@paths) {
-    my @targets = findBySearchIndex(@paths.join(' '));
+    my @targets = findByStashIndex(@paths.join(' '));
 
     unless (@targets.first) {
         @targets = @paths;

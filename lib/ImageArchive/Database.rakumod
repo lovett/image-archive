@@ -59,15 +59,29 @@ sub countRecordsByYear() is export {
     }
 }
 
+# Establish the SQLite database.
+sub createDatabase() is export {
+    my $dbPath = getPath('database');
 
+    my $schemaPath = %?RESOURCES<schema-sqlite.sql>.absolute;
+
+    my $proc = run 'sqlite3', $dbPath, :in;
+    $proc.in.say(".read {$schemaPath}");
+    $proc.in.close;
+
+    CATCH {
+        when X::Proc::Unsuccessful {
+            my $err = "Failed to apply database schema.";
+            ImageArchive::Exception::BadExit.new(:err($err)).throw;
+        }
+    }
+}
 
 # Remove a file from the database.
 sub deindexFile(IO::Path $file) is export {
     my $uuid = readRawTag($file, 'id');
     my $dbh = openDatabase();
-    my $sth = $dbh.prepare(q:to/STATEMENT/);
-    DELETE FROM archive WHERE uuid=?
-    STATEMENT
+    my $sth = $dbh.prepare('DELETE FROM archive WHERE uuid=?');
 
     $sth.execute($uuid);
     $dbh.dispose;
@@ -76,8 +90,7 @@ sub deindexFile(IO::Path $file) is export {
 # Store a file's tags in a database.
 sub indexFile(IO $file) is export {
     my $uuid = readRawTag($file, 'id');
-    my $proc = run <
-    exiftool
+    my $proc = run <exiftool
     -x Composite:all
     -x EXIF:StripByteCounts
     -x EXIF:StripOffsets
@@ -130,7 +143,7 @@ sub openDatabase() is export {
 }
 
 # Locate archive paths by index from a previous search.
-sub findBySearchIndex(Str $query) is export {
+sub findByStashIndex(Str $query) is export {
     my $parserActions = RangeActions.new;
 
     my $parsedQuery = Range.parse(
@@ -221,9 +234,8 @@ sub findBySimilarColor(@rgb) is export {
     }
 }
 
-
-# Locate archive paths by fulltext
-sub searchMetadata(Str $query, Bool $debug = False) is export {
+# Locate archive paths by fulltext search
+sub findByTag(Str $query, Bool $debug = False) is export {
     my $parserActions = SearchActions.new(
         filters => readConfig('filters')
     );
@@ -288,23 +300,5 @@ sub searchMetadata(Str $query, Bool $debug = False) is export {
         }
 
         $dbh.dispose;
-    }
-}
-
-# Establish (or update) the SQLite database.
-sub applyDatabaseSchema() is export {
-    my $dbPath = getPath('database');
-
-    my $schemaPath = %?RESOURCES<schema-sqlite.sql>.absolute;
-
-    my $proc = run 'sqlite3', $dbPath, :in;
-    $proc.in.say(".read {$schemaPath}");
-    $proc.in.close;
-
-    CATCH {
-        when X::Proc::Unsuccessful {
-            my $err = "Failed to apply database schema.";
-            ImageArchive::Exception::BadExit.new(:err($err)).throw;
-        }
     }
 }
