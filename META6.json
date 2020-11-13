@@ -1,7 +1,7 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2020.11.12",
+  "version" : "2020.11.13",
   "description" : "Automation for image metatdata tagging.",
   "provides" : {
     "ImageArchive::Archive": "lib/ImageArchive/Archive.rakumod",
@@ -19,7 +19,7 @@
   },
   "resources": [
     "colordelta.c",
-    "colordelta.so",
+    "colordelta.sqlite3extension",
     "config.ini",
     "exiftool.config",
     "schema-sqlite.sql"

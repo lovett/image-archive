@@ -4,6 +4,7 @@
 *.png
 *.tiff
 *_original
-resources/colordelta.so
+resources/*.sqlite3extension
+resources/*.dSYM
 testroot
 .precomp

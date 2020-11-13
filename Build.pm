@@ -1,8 +1,15 @@
 class Build {
     method build($dist-path) {
-        my $colordeltaIn = $dist-path.IO.add('resources/colordelta.c');
-        my $colordeltaOut = $colordeltaIn.parent.add("colordelta.so");
+        my $in = $dist-path.IO.add('resources/colordelta.c');
+        my $out = $in.parent.add('colordelta.sqlite3extension');
+        my $gccFlags = '-shared';
 
-        run qqw{gcc -g -fPIC -shared  $colordeltaIn -o $colordeltaOut }
+        given $*KERNEL {
+            when 'darwin' {
+                $gccFlags = '-dynamiclib';
+            }
+        }
+
+        run qqw{gcc -g -fPIC $gccFlags $in -o $out}
     }
 }

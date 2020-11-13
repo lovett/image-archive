@@ -26,7 +26,7 @@ void rgbToLab(const unsigned char *triple, float *ret)
   float tmp[3];
   float xyz[3];
 
-  tripletmp = strdup(triple);
+  tripletmp = strdup((const char*)triple);
 
   strcpy(red, strtok(tripletmp, ","));
   strcpy(green, strtok(NULL, ","));
