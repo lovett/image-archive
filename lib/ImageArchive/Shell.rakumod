@@ -7,6 +7,7 @@ use ImageArchive::Exception;
 our %commands = %(
     'alts' => Nil,
     'completion' => Nil,
+    'color' => <file>,
     'count' => Nil,
     'dbshell' => Nil,
     'deport' => <archivefile>,

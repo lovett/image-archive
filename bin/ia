@@ -33,6 +33,12 @@ multi sub MAIN('alts') {
     generateAlts();
 }
 
+#| Find the average color of a file.
+multi sub MAIN('color', Str $file where *.IO.f) {
+    my @rgb = getAverageColor($file.IO);
+    printf("rgb(%s)\n", @rgb.join(','));
+}
+
 #| Generate the shell completion file.
 multi sub MAIN('completion') {
     writeShellCompletion(SCRIPT_VERSION);
