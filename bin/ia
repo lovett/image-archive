@@ -297,7 +297,7 @@ multi sub MAIN('version', Str $path) {
     my $version = workspaceImport($target.IO);
 
     say sprintf('%s %s', colored('Workspace:', 'magenta'), $version.parent.Str);
-    say sprintf('%s %S', colored('Version:', 'magenta'), $version.Str);
+    say sprintf('%s %s', colored('Version:', 'magenta'), $version.Str);
 
     my $viewCommand = readConfig('view_workspace');
 
