@@ -43,16 +43,16 @@ sub workspaceImport(IO::Path $source) is export {
     my $workspace = createWorkspace($source);
     my $destination = $workspace.add($source.basename);
 
-    for lazy 1...99 -> $counter {
-        last unless $destination ~~ :f;
+    for lazy 0...99 -> $counter {
         my $candidate = sprintf(
-            '%s-%02d.%s',
-            $source.extension('').basename,
+            'v-%02d.%s',
             $counter,
             $source.extension
         );
 
         $destination = $workspace.add($candidate);
+
+        last unless $destination ~~ :f;
     }
 
     $source.copy($destination);
