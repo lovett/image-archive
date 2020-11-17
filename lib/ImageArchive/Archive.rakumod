@@ -70,7 +70,7 @@ sub findFile(Str $path) is export {
 }
 
 # Resize an imported file to smaller sizes for faster access.
-multi sub generateAlts(IO::Path $file) is export {
+multi sub generateAlts(IO::Path $file, Bool $dryRun? = False) is export {
     testPathExistsInArchive($file);
 
     my $archiveRoot = getPath('root');
@@ -83,6 +83,11 @@ multi sub generateAlts(IO::Path $file) is export {
         my $destinationFile = $cacheRoot.add($size).add($target).extension($thumbnailExtension);
 
         next if ($destinationFile.f);
+
+        if ($dryRun) {
+            wouldHaveDone("Create {$destinationFile}");
+            next;
+        }
 
         my $destinationDir = $destinationFile.parent;
         mkdir($destinationDir) unless $destinationDir.d;
@@ -105,11 +110,11 @@ multi sub generateAlts(IO::Path $file) is export {
 }
 
 # Resize all images in the archive to smaller sizes.
-multi sub generateAlts() is export {
+multi sub generateAlts(Bool $dryRun? = False) is export {
     my $root = getPath('root');
 
     for walkArchive($root) -> $path {
-        generateAlts($path);
+        generateAlts($path, $dryRun);
     }
 }
 

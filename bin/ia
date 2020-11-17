@@ -29,8 +29,8 @@ proto MAIN(|) {
 }
 
 #| Generate alternate image sizes.
-multi sub MAIN('alts') {
-    generateAlts();
+multi sub MAIN('alts', Bool :$dryrun) {
+    generateAlts($dryrun);
 }
 
 #| Find the average color of a file.
