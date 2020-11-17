@@ -69,77 +69,50 @@ sub findFile(Str $path) is export {
     return $target;
 }
 
-# Resize and thumbnail via GraphicsMagick.
-#
-# If a path is not given, the archive is walked.
-sub generateAlts(IO::Path $file?) is export {
-    my $root = getPath('root');
+# Resize an imported file to smaller sizes for faster access.
+multi sub generateAlts(IO::Path $file) is export {
+    testPathExistsInArchive($file);
+
+    my $archiveRoot = getPath('root');
     my $cacheRoot = getPath('cache');
-    my %rosters;
-    my %counters;
     my $thumbnailExtension = readConfig('alt_format');
 
-    indir $root, {
-        for readConfig('alt_sizes').split(' ') -> $size {
-            %rosters{$size} = "roster-{$size}.txt".IO.open(:w);
-        }
+    my $target = $file.relative($archiveRoot);
 
-        if ($file) {
-            testPathExistsInArchive($file);
+    for readConfig('alt_sizes').split(' ') -> $size {
+        my $destinationFile = $cacheRoot.add($size).add($target).extension($thumbnailExtension);
 
-            for %rosters.kv -> $size, $handle {
-                $handle.say($file.relative($root));
-                %counters{$size}++;
-            }
-        } else {
-            for walkArchive($root) -> $path {
-                for %rosters.kv -> $size, $handle {
-                    my $relativePath = $path.relative($root);
-                    my $target = $cacheRoot.add("$size/{$relativePath}").extension($thumbnailExtension);
-                    next if $target ~~ :f;
-                    $handle.say($relativePath.Str);
-                    %counters{$size}++;
-                }
-            }
-        }
+        next if ($destinationFile.f);
 
-        for %rosters.kv -> $size, $handle {
-            $handle.close;
+        my $destinationDir = $destinationFile.parent;
+        mkdir($destinationDir) unless $destinationDir.d;
 
-            unless ($handle.path ~~ :z) {
-                my $count = %counters{$size};
-                my $label = ($count == 1) ?? 'file' !! 'files';
+        my $proc = run qqw{
+            mogrify
+            -density 300
+            -format $thumbnailExtension
+            -path $destinationDir
+            -thumbnail $size
+        }, "{$file}[0]", :out, :err;
 
-                unless ($file) {
-                    print "Generating {$count} {$label } at {$size}...";
-                }
+        my $err = $proc.err.slurp(:close);
+        my $out = $proc.out.slurp(:close);
 
-                my $proc = run qqw{
-                    gm mogrify
-                    -create-directories
-                    -density 300
-                    -format $thumbnailExtension
-                    -output-directory _cache/$size
-                    -thumbnail $size
-                }, "@roster-{$size}.txt", :out, :err;
-                my $err = $proc.err.slurp(:close);
-                my $out = $proc.out.slurp(:close);
-
-
-                if ($proc.exitcode !== 0) {
-                    say $err;
-                    die ImageArchive::Exception::BadExit.new(:err($err));
-                }
-
-                unless ($file) {
-                    say "done";
-                }
-            }
-
-            $handle.path.unlink;
+        if ($proc.exitcode !== 0) {
+            die ImageArchive::Exception::BadExit.new(:err($err));
         }
     }
 }
+
+# Resize all images in the archive to smaller sizes.
+multi sub generateAlts() is export {
+    my $root = getPath('root');
+
+    for walkArchive($root) -> $path {
+        generateAlts($path);
+    }
+}
+
 # Move a file to a subfolder under the archive root.
 sub importFile(IO $file, Bool $dryRun? = False) is export {
     my $root = getPath('root');
