@@ -34,7 +34,7 @@ sub deportWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is
         return;
     }
 
-    move($dir, $destinationPath);
+    rename($dir, $destinationPath);
 }
 
 
