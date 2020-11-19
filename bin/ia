@@ -290,22 +290,6 @@ multi sub MAIN('untag:value', Str $file where *.IO.f, Str $alias, Str $value, Bo
     untagAlias($file.IO, $alias, $value, $dryrun);
 }
 
-#| Make an editable copy of a file in the archive.
-multi sub MAIN('version', Str $path) {
-    my $target = findFile($path);
-
-    my $version = workspaceImport($target.IO);
-
-    say sprintf('%s %s', colored('Workspace:', 'magenta'), $version.parent.Str);
-    say sprintf('%s %s', colored('Version:', 'magenta'), $version.Str);
-
-    my $viewCommand = readConfig('view_workspace');
-
-    if ($viewCommand) {
-        openWorkspace($target, $viewCommand);
-    }
-}
-
 #| Open files in an external application.
 multi sub MAIN('view', Bool :$debug = False, *@paths) {
     my @targets = findByStashIndex(@paths.join(' '), $debug);
@@ -316,6 +300,21 @@ multi sub MAIN('view', Bool :$debug = False, *@paths) {
 
     @paths = @targets.map({ findFile $_ });
     viewFiles(@paths);
+}
+
+#| Set up an editing workspace.
+multi sub MAIN('workon', Str $path) {
+    my $target = findFile($path);
+
+    my $version = copyToWorkspace($target.IO);
+
+    say sprintf('%s %s', colored('Workspace:', 'magenta'), $version.parent.Str);
+
+    my $viewCommand = readConfig('view_workspace');
+
+    if ($viewCommand) {
+        openWorkspace($target, $viewCommand);
+    }
 }
 
 #| Display the application version.

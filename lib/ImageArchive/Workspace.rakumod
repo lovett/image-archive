@@ -14,6 +14,28 @@ sub addShortcut(IO::Path $dir) is export {
     return $shortcut;
 }
 
+# Create an editable version of a file in the archive.
+sub copyToWorkspace(IO::Path $source) is export {
+    my $workspace = createWorkspace($source);
+    my $destination = $workspace.add($source.basename);
+
+    for lazy 0...99 -> $counter {
+        my $candidate = sprintf(
+            'v-%02d.%s',
+            $counter,
+            $source.extension
+        );
+
+        $destination = $workspace.add($candidate);
+
+        last unless $destination ~~ :f;
+    }
+
+    $source.copy($destination);
+
+    return $destination;
+}
+
 # Delete the workspace quick-access symlink.
 sub removeShortcut(IO::Path $dir) is export {
     my $shortcut = getShortcut($dir);
@@ -22,7 +44,7 @@ sub removeShortcut(IO::Path $dir) is export {
 
 # Locate the editing workspace for a given file.
 sub findWorkspace(IO::Path $file) is export {
-    my $workspace = $file.extension('versions');
+    my $workspace = $file.extension('workspace');
     return $workspace;
 }
 
@@ -63,28 +85,6 @@ sub getShortcut(IO::Path $dir) is export {
     $shortcutRoot.mkdir unless $shortcutRoot ~~ :d;
 
     return $shortcut;
-}
-
-# Copy an archive file into its corresponding workspace.
-sub workspaceImport(IO::Path $source) is export {
-    my $workspace = createWorkspace($source);
-    my $destination = $workspace.add($source.basename);
-
-    for lazy 0...99 -> $counter {
-        my $candidate = sprintf(
-            'v-%02d.%s',
-            $counter,
-            $source.extension
-        );
-
-        $destination = $workspace.add($candidate);
-
-        last unless $destination ~~ :f;
-    }
-
-    $source.copy($destination);
-
-    return $destination;
 }
 
 # Locate the file associated with the workspace.
@@ -136,6 +136,6 @@ sub openWorkspace(IO::Path $file, Str $command) is export {
 
 # See if a file exists within a workspace directory.
 sub testPathExistsInWorkspace(IO::Path $file) is export {
-    return if $file.parent.basename.ends-with('versions');
+    return if $file.parent.basename.ends-with('workspace');
     die ImageArchive::Exception::PathNotFoundInWorkspace.new;
 }

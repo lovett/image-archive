@@ -23,8 +23,8 @@ our %commands = %(
     'untag' => <file keyword>,
     'untag:alias' => <alias file>,
     'untag:keyword' => <file>,
-    'untag:value' => <alias fil>,
-    'version' => <archivefile>,
+    'untag:value' => <alias file>,
+    'workon' => <archivefile>,
     'view' => <archivefile>
 );
 
