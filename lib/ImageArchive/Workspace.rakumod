@@ -7,6 +7,19 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
+# Symlink a workspace into a top-level folder for quick access.
+sub addShortcut(IO::Path $dir) is export {
+    my $shortcut = getShortcut($dir);
+    symlink($dir, $shortcut) unless $shortcut ~~ :l;
+    return $shortcut;
+}
+
+# Delete the workspace quick-access symlink.
+sub removeShortcut(IO::Path $dir) is export {
+    my $shortcut = getShortcut($dir);
+    unlink($shortcut);
+}
+
 # Locate the editing workspace for a given file.
 sub findWorkspace(IO::Path $file) is export {
     my $workspace = $file.extension('versions');
@@ -18,6 +31,9 @@ sub createWorkspace(IO::Path $file) is export {
     my $workspace = findWorkspace($file);
 
     $workspace.mkdir unless $workspace ~~ :d;
+
+    addShortcut($workspace);
+
     return $workspace;
 }
 
@@ -35,8 +51,19 @@ sub deportWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is
     }
 
     rename($dir, $destinationPath);
+    removeShortcut($dir);
 }
 
+# The path to the symlink providing quick access to a workspace.
+sub getShortcut(IO::Path $dir) is export {
+    my $shortcutRoot = getPath('root').add('_workspaces');
+    my $flatPath = relativePath($dir).subst('/', '-', :g);
+    my $shortcut = $shortcutRoot.add($flatPath);
+
+    $shortcutRoot.mkdir unless $shortcutRoot ~~ :d;
+
+    return $shortcut;
+}
 
 # Copy an archive file into its corresponding workspace.
 sub workspaceImport(IO::Path $source) is export {
