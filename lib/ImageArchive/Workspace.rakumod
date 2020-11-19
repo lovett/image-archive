@@ -8,9 +8,16 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 
 # Symlink a workspace into a top-level folder for quick access.
+#
+# ln is invoked to get a relative symlink, which doesn't seem to be
+# available when using symlink();
 sub addShortcut(IO::Path $dir) is export {
     my $shortcut = getShortcut($dir);
-    symlink($dir, $shortcut) unless $shortcut ~~ :l;
+
+    indir $shortcut.parent, {
+        run <ln -srf>, $dir.relative, $shortcut.basename;
+    };
+
     return $shortcut;
 }
 
