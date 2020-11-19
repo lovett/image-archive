@@ -1,6 +1,7 @@
 # Install the application.
 install:
-	zef --force-install install .
+	zef uninstall ImageArchive || true
+	zef install .
 
 # Push the repository to GitHub.
 mirror:
