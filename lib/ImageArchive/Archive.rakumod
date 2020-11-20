@@ -160,16 +160,18 @@ sub testPathExistsInArchive(IO $file) is export {
 }
 
 # List the files in the archive.
-sub walkArchive(IO::Path $dir) is export {
-    my @skipExtensions := <bak db ini txt versions>;
-
-    gather for dir $dir -> $path {
-        next if $path.basename eq '_cache';
-        next if $path.basename.starts-with('.');
-        next if $path.extension.ends-with('_original');
-        next if $path.extension ∈ @skipExtensions;
-        if $path.d { .take for walkArchive($path) };
-        if $path.f { take $path };
+sub walkArchive(IO::Path $dir) returns Supply is export {
+    supply for ($dir.dir) {
+        next when .basename eq '_cache';
+        next when .basename.starts-with: '.';
+        next when .ends-with: '_original';
+        next when .extension eq 'bak';
+        next when .extension eq 'db';
+        next when .extension eq 'ini';
+        next when .extension eq 'txt';
+        next when .extension eq 'workspace';
+        when :d { .emit for walkArchive($_) }
+        when :f { .emit }
     }
 }
 
