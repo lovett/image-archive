@@ -8,17 +8,25 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 
 # Symlink a workspace into a top-level folder for quick access.
-#
-# ln is invoked to get a relative symlink, which doesn't seem to be
-# available when using symlink();
-sub addShortcut(IO::Path $dir) is export {
+sub addWorkspaceShortcut(IO::Path $dir) returns Nil is export {
     my $shortcut = getShortcut($dir);
 
-    indir $shortcut.parent, {
-        run <ln -srf>, $dir.relative, $shortcut.basename;
-    };
+    unless $shortcut.l {
+        symlink($dir, $shortcut);
+    }
 
-    return $shortcut;
+    return Nil;
+}
+
+# Create shortcuts for all existing workspaces.
+sub addWorkspaceShortcuts() returns Nil is export {
+    my $root = getPath('root');
+
+    my $supply = walkArchive($root, / \.workspace $ /);
+
+    $supply.tap(&addWorkspaceShortcut);
+
+    return Nil;
 }
 
 # Create an editable version of a file in the archive.
@@ -61,7 +69,7 @@ sub createWorkspace(IO::Path $file) is export {
 
     $workspace.mkdir unless $workspace ~~ :d;
 
-    addShortcut($workspace);
+    addWorkspaceShortcut($workspace);
 
     return $workspace;
 }

@@ -172,7 +172,7 @@ sub testPathExistsInArchive(IO $file) is export {
 }
 
 # List the files in the archive.
-sub walkArchive(IO::Path $origin) returns Supply is export {
+multi sub walkArchive(IO::Path $origin) returns Supply is export {
     supply for ($origin.dir) {
         next when .basename eq '_cache';
         next when .basename.starts-with: '.';
@@ -184,6 +184,16 @@ sub walkArchive(IO::Path $origin) returns Supply is export {
         next when .extension eq 'workspace';
         when :d { .emit for walkArchive($_) }
         when :f { .emit }
+    }
+}
+
+# List the files in the archive matching a given regex.
+multi sub walkArchive(IO::Path $origin, Regex $matcher) returns Supply is export {
+    supply for ($origin.dir) {
+        next when .basename eq '_cache';
+        next when .basename eq '_workspaces';
+        .emit if ($_ ~~ $matcher);
+        when :d { .emit for walkArchive($_, $matcher) }
     }
 }
 
