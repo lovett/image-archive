@@ -70,52 +70,64 @@ sub findFile(Str $path) is export {
 }
 
 # Resize an imported file to smaller sizes for faster access.
-multi sub generateAlts(IO::Path $file, Bool $dryRun? = False) is export {
+multi sub generateAlts(IO::Path $file, Bool $dryRun? = False) returns Nil is export {
     testPathExistsInArchive($file);
 
     my $archiveRoot = getPath('root');
     my $cacheRoot = getPath('cache');
     my $thumbnailExtension = readConfig('alt_format');
+    my $source = $file.relative($archiveRoot);
+    my @sizes = readConfig('alt_sizes').split(' ');
+    my @clones;
 
-    my $target = $file.relative($archiveRoot);
-
-    for readConfig('alt_sizes').split(' ') -> $size {
-        my $destinationFile = $cacheRoot.add($size).add($target).extension($thumbnailExtension);
-
-        next if ($destinationFile.f);
+    for @sizes -> $size {
+        my $destination = $cacheRoot.add($size).add($source).extension($thumbnailExtension);
+        next if $destination.f;
 
         if ($dryRun) {
-            wouldHaveDone("Create {$destinationFile}");
+            wouldHaveDone("Create {$destination}");
             next;
         }
 
-        my $destinationDir = $destinationFile.parent;
-        mkdir($destinationDir) unless $destinationDir.d;
+        mkdir($destination.parent) unless $destination.parent.d;
+        @clones.append(qqw{ ( -clone 0 -resize $size -write $destination ) });
+    }
 
-        my $proc = run qqw{
-            mogrify
-            -density 300
-            -format $thumbnailExtension
-            -path $destinationDir
-            -thumbnail $size
-        }, "{$file}[0]", :out, :err;
+    return unless @clones;
 
-        my $err = $proc.err.slurp(:close);
-        my $out = $proc.out.slurp(:close);
+    my @args = (qqw{ convert $file\[0\] -density 300x300 }, @clones, 'null:').flat;
 
-        if ($proc.exitcode !== 0) {
-            die ImageArchive::Exception::BadExit.new(:err($err));
+    my $proc = Proc::Async.new(@args);
+
+    my $stderr;
+    react {
+        whenever $proc.stderr {
+            $stderr ~= $_;
+        }
+        whenever $proc.start {
+            when .exitcode !== 0 {
+                die ImageArchive::Exception::BadExit.new(:err($stderr));
+            }
         }
     }
 }
 
 # Resize all images in the archive to smaller sizes.
-multi sub generateAlts(Bool $dryRun? = False) is export {
+multi sub generateAlts(Bool $dryRun? = False) returns Nil is export {
     my $root = getPath('root');
+    my $channel = walkArchive($root).Channel;
 
-    for walkArchive($root) -> $path {
-        generateAlts($path, $dryRun);
+    await (^$*KERNEL.cpu-cores).map: {
+        start {
+            react {
+                whenever $channel -> $path {
+                    generateAlts($path);
+                }
+            }
+        }
     }
+
+    return Nil;
 }
 
 # Move a file to a subfolder under the archive root.
@@ -160,8 +172,8 @@ sub testPathExistsInArchive(IO $file) is export {
 }
 
 # List the files in the archive.
-sub walkArchive(IO::Path $dir) returns Supply is export {
-    supply for ($dir.dir) {
+sub walkArchive(IO::Path $origin) returns Supply is export {
+    supply for ($origin.dir) {
         next when .basename eq '_cache';
         next when .basename.starts-with: '.';
         next when .ends-with: '_original';
