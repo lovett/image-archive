@@ -19,7 +19,6 @@ sub countRecords() is export {
     STATEMENT
 
     my $row = $sth.row;
-    $dbh.dispose;
     return $row[0];
 }
 
@@ -38,7 +37,6 @@ sub countRecordsByMonth(Int $year) is export {
         for $sth.allrows(:array-of-hash) -> $row {
             take ($row<month>, $row<tally>);
         }
-        $dbh.dispose;
     }
 }
 
@@ -55,7 +53,6 @@ sub countRecordsByYear() is export {
         for $sth.allrows(:array-of-hash) -> $row {
             take ($row<year>, $row<tally>);
         }
-        $dbh.dispose;
     }
 }
 
@@ -86,7 +83,6 @@ sub deindexFile(IO::Path $file) is export {
     my $sth = $dbh.prepare('DELETE FROM archive WHERE uuid=?');
 
     $sth.execute($uuid);
-    $dbh.dispose;
 }
 
 # Store a file's tags in a database.
@@ -131,17 +127,19 @@ sub indexFile(IO $file) is export {
     STATEMENT
 
     $sth.execute($uuid, $json);
-    $dbh.dispose;
 }
 
 # Open a connection to the SQLite database.
 #
-# Caller is responsible for disposing of the returned handle.
+# Uses Raku's state declarator for connection reuse.
+# See https://docs.raku.org/syntax/state
 sub openDatabase() is export {
-    return DBIish.connect(
+    state $dbh = DBIish.connect(
         'SQLite',
         database => getPath('database')
     );
+
+    return $dbh;
 }
 
 # Locate archive paths by index from a previous search.
@@ -182,8 +180,6 @@ sub findByStashIndex(Str $query, Bool $debug = False) is export {
             say '';
             debug($stashQuery, 'stash query');
         }
-
-        $dbh.dispose;
     }
 }
 
@@ -247,7 +243,6 @@ sub findBySimilarColor(@rgb) is export {
         for $sth.allrows(:array-of-hash) -> $row {
             take $row;
         }
-        $dbh.dispose;
     }
 }
 
@@ -317,7 +312,5 @@ sub findByTag(Str $query, Bool $debug = False) is export {
             debug($ftsQuery, 'fts query');
             debug($stashQuery, 'stash query');
         }
-
-        $dbh.dispose;
     }
 }
