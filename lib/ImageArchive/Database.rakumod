@@ -63,6 +63,8 @@ sub countRecordsByYear() is export {
 sub createDatabase() is export {
     my $dbPath = getPath('database');
 
+    return if $dbPath.f;
+
     my $schemaPath = %?RESOURCES<schema-sqlite.sql>.absolute;
 
     my $proc = run 'sqlite3', $dbPath, :in;
