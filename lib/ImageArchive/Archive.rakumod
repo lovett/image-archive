@@ -6,6 +6,18 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
+# Tally of all walkable files.
+sub countFiles() is export {
+    my $root = getPath('root');
+
+    my $fileCount = 0;
+    for walkArchive($root) -> $path {
+        $fileCount++;
+    }
+
+    return $fileCount;
+}
+
 sub deleteAlts(IO::Path $file) is export {
     my $cacheRoot = getPath('cache');
 

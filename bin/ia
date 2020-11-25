@@ -44,23 +44,22 @@ multi sub MAIN('completion') {
 
 #| The number of files in the archive.
 multi sub MAIN('count') {
-    my $root = getPath('root');
-
-    my $fileCount = 0;
-    for walkArchive($root) -> $path {
-        $fileCount++;
-    }
-
+    my $fileCount = countFiles();
     my $recordCount = countRecords();
 
-    sprintf('%s in the database.', pluralize($recordCount, 'record', 'records')).say;
+    say pluralize($fileCount, 'file', 'files');
 
     if ($recordCount ne $fileCount) {
-        sprintf('%s files in the archive.', pluralize($fileCount, 'file', 'files')).say;
+        say pluralize($recordCount, 'database record', 'database records');
 
-        say '';
-        say(colored('To fix:', 'green') ~ ' run reindex');
-        say '';
+        say qq:to/END/;
+
+        {colored('Fix', 'cyan underline')}
+          {$*PROGRAM-NAME} reindex
+
+        {colored('View', 'cyan underline')}
+          {$*PROGRAM-NAME} search:unindexed
+        END
     }
 }
 
