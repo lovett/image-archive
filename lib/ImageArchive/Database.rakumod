@@ -10,7 +10,7 @@ use ImageArchive::Util;
 use ImageArchive::Grammar::Range;
 use ImageArchive::Grammar::Search;
 
-# Tally all records.
+# Tally of all records.
 sub countRecords() is export {
     my $dbh = openDatabase();
 
@@ -22,7 +22,7 @@ sub countRecords() is export {
     return $row[0];
 }
 
-# Tally records by month.
+# Tally of records by month.
 sub countRecordsByMonth(Int $year) is export {
     my $dbh = openDatabase();
     my $sth = $dbh.execute('SELECT substr(json_extract(tags, "$.XMP.CreateDate"), 0, 5) as year,
@@ -40,7 +40,30 @@ sub countRecordsByMonth(Int $year) is export {
     }
 }
 
-# Tally records by year.
+# Tally of records by fulltext search.
+sub countRecordsByTag(Str $query, Bool $debug = False) is export {
+    my $parserActions = SearchActions.new(
+        filters => readConfig('filters')
+    );
+
+    my $parsedQuery = Search.parse(
+        $query,
+        actions => $parserActions
+    );
+
+    my $dbh = openDatabase();
+
+    my $ftsQuery = qq:to/SQL/;
+    SELECT count(*) FROM archive_fts
+    WHERE {$parsedQuery.made<ftsClause>}
+    SQL
+
+    my $sth = $dbh.execute($ftsQuery);
+
+    return $sth.row[0];
+}
+
+# Tally of records by year.
 sub countRecordsByYear() is export {
     my $dbh = openDatabase();
     my $sth = $dbh.execute('SELECT substr(json_extract(tags, "$.XMP.CreateDate"), 0, 5)

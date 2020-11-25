@@ -12,7 +12,7 @@ grammar Search is export {
     }
 
     token term {
-        <[ \w \' \" \- \. ]>+
+        <[ \w \' \" \- \. \/ ]>+
     }
 }
 
@@ -23,7 +23,7 @@ class SearchActions is export {
     has $!order;
 
     method tag ($/) {
-        if $/<name> eq 'order' {
+        if <order sourcefile>.grep: $/<name> {
             $!tag = $/<name>;
             return;
         }

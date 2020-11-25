@@ -223,6 +223,23 @@ multi sub MAIN('search:color', Str $file where *.IO.f) {
     }
 }
 
+#| Files in the archive that are not in the database.
+multi sub MAIN('search:unindexed') {
+    my $counter = 0;
+
+    for findUnindexed() -> $path {
+        my $index = sprintf("%3d", ++$counter);
+        printf(
+            "%s | %s\n",
+            colored($index, 'white on_red'),
+            relativePath($path),
+        );
+    }
+
+    unless $counter {
+        say "No unindexed files.";
+    }
+}
 
 #| Establish the application's configuration and database.
 multi sub MAIN('setup', Str $directory where *.IO.d) {

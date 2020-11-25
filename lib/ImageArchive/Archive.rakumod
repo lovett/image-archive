@@ -69,6 +69,17 @@ sub findFile(Str $path) is export {
     return $target;
 }
 
+# Locate files that are not in the database.
+sub findUnindexed() returns Supply is export {
+    my $archiveRoot = getPath('root');
+
+    return walkArchive($archiveRoot).grep({
+        my $query = 'sourcefile:' ~ relativePath($_);
+        my $count = countRecordsByTag($query);
+        $count == 0;
+    });
+}
+
 # Resize an imported file to smaller sizes for faster access.
 multi sub generateAlts(IO::Path $file, Bool $dryRun? = False) returns Nil is export {
     testPathExistsInArchive($file);
@@ -175,6 +186,7 @@ sub testPathExistsInArchive(IO $file) is export {
 multi sub walkArchive(IO::Path $origin) returns Supply is export {
     supply for ($origin.dir) {
         next when .basename eq '_cache';
+        next when .basename eq '_workspaces';
         next when .basename.starts-with: '.';
         next when .ends-with: '_original';
         next when .extension eq 'bak';
