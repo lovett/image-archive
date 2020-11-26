@@ -64,35 +64,19 @@ multi sub MAIN('count') {
 }
 
 #| The number of files per year.
-multi sub MAIN('count', 'years') {
-    my $undated = 0;
-
+multi sub MAIN('count:years') {
     for countRecordsByYear() -> $tally {
-        if ($tally[0]) {
-            sprintf("%10s: %4d", $tally[0], $tally[1]).say;
-            next;
-        }
-
-        $undated = $tally[1];
+        printf("%7s | %s\n", $tally[0], $tally[1]);
     }
-
-    say sprintf("%10s: %4d", 'Undated',  $undated);
 }
 
 #| The number of files in a given year per month.
 multi sub MAIN('count', Int $year) {
-    my $unknown = 0;
-
-    for countRecordsByMonth($year.Int) -> $tally {
+    for countRecordsByMonth($year) -> $tally {
         if ($tally[0]) {
-            sprintf("%10s: %s", monthName($tally[0]), $tally[1]).say;
-            next;
+            printf("%10s | %s\n", monthName($tally[0]), $tally[1]);
         }
-
-        $unknown = $tally[1];
     }
-
-    say sprintf("%10s: %s", 'Unknown', $unknown);
 }
 
 #| Start a database CLI session.

@@ -24,14 +24,18 @@ sub countRecords() is export {
 
 # Tally of records by month.
 sub countRecordsByMonth(Int $year) is export {
-    my $dbh = openDatabase();
-    my $sth = $dbh.execute('SELECT substr(json_extract(tags, "$.XMP.CreateDate"), 0, 5) as year,
-    substr(json_extract(tags, "$.XMP.CreateDate"), 6, 2) as month,
+    my $query = q:to/SQL/;
+    SELECT substr(json_extract(tags, '$.CreateDate'), 0, 5) as year,
+    IFNULL(substr(json_extract(tags, '$.CreateDate'), 6, 2), 'undated') as month,
     count(*) AS tally
     FROM archive
     WHERE year=?
     GROUP BY month
-    ORDER BY month', $year.Str);
+    ORDER BY month
+    SQL
+
+    my $dbh = openDatabase();
+    my $sth = $dbh.execute($query, $year.Str);
 
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
@@ -65,12 +69,16 @@ sub countRecordsByTag(Str $query, Bool $debug = False) is export {
 
 # Tally of records by year.
 sub countRecordsByYear() is export {
-    my $dbh = openDatabase();
-    my $sth = $dbh.execute('SELECT substr(json_extract(tags, "$.XMP.CreateDate"), 0, 5)
+    my $query = q:to/SQL/;
+    SELECT IFNULL(substr(json_extract(tags, '$.CreateDate'), 0, 5), 'undated')
     AS year, count(*) AS tally
     FROM archive
     GROUP BY year
-    ORDER BY year');
+    ORDER BY year
+    SQL
+
+    my $dbh = openDatabase();
+    my $sth = $dbh.execute($query);
 
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
