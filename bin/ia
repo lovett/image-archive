@@ -66,16 +66,17 @@ multi sub MAIN('count') {
 #| The number of files per year.
 multi sub MAIN('count:years') {
     for countRecordsByYear() -> $tally {
-        printf("%7s | %s\n", $tally[0], $tally[1]);
+        my $year = $tally[0];
+        $year = 'Undated' if $year == 0;
+        printf("%7s | %s\n", $year, $tally[1]);
     }
 }
 
 #| The number of files in a given year per month.
 multi sub MAIN('count', Int $year) {
     for countRecordsByMonth($year) -> $tally {
-        if ($tally[0]) {
-            printf("%10s | %s\n", monthName($tally[0]), $tally[1]);
-        }
+        my $month = $tally[0] == 0 ?? 'Unknown' !! monthName($tally[0]);
+        printf("%10s | %s\n", $month, $tally[1]);
     }
 }
 

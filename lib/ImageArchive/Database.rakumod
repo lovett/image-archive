@@ -26,12 +26,15 @@ sub countRecords() is export {
 sub countRecordsByMonth(Int $year) is export {
     my $query = q:to/SQL/;
     SELECT substr(json_extract(tags, '$.CreateDate'), 0, 5) as year,
-    IFNULL(substr(json_extract(tags, '$.CreateDate'), 6, 2), 'undated') as month,
+    CASE length(substr(json_extract(tags, '$.CreateDate'), 6, 2))
+         WHEN 0 THEN 0
+         ELSE CAST(substr(json_extract(tags, '$.CreateDate'), 6, 2) as NUMBER)
+    END as month,
     count(*) AS tally
     FROM archive
     WHERE year=?
     GROUP BY month
-    ORDER BY month
+    ORDER BY month > 0 DESC, month ASC
     SQL
 
     my $dbh = openDatabase();
@@ -70,11 +73,11 @@ sub countRecordsByTag(Str $query, Bool $debug = False) is export {
 # Tally of records by year.
 sub countRecordsByYear() is export {
     my $query = q:to/SQL/;
-    SELECT IFNULL(substr(json_extract(tags, '$.CreateDate'), 0, 5), 'undated')
+    SELECT IFNULL(CAST(substr(json_extract(tags, '$.CreateDate'), 0, 5) as number), 0)
     AS year, count(*) AS tally
     FROM archive
     GROUP BY year
-    ORDER BY year
+    ORDER BY year > 0 DESC, year ASC
     SQL
 
     my $dbh = openDatabase();
