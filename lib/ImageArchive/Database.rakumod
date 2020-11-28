@@ -121,12 +121,13 @@ sub indexFile(IO $file) is export {
     my $uuid = readRawTag($file, 'id');
     my $proc = run <exiftool
     -x Composite:all
+    -x EXIF:CreateDate
     -x EXIF:StripByteCounts
     -x EXIF:StripOffsets
-    -x Exif:ThumbnailImage
-    -x Exif:PreviewImageStart
-    -x Exif:PreviewImageLength
-    -x ExifTool:all
+    -x EXIF:ThumbnailImage
+    -x EXIF:PreviewImageStart
+    -x EXIF:PreviewImageLength
+    -x EXIFTool:all
     -x File:Directory
     -x File:FilePermissions
     -x ICC_Profile:all
