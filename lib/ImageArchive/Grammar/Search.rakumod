@@ -23,7 +23,7 @@ class SearchActions is export {
     has $!order;
 
     method tag ($/) {
-        if <order sourcefile>.grep: $/<name> {
+        if $/<name> ~~ any <order sourcefile> {
             $!tag = $/<name>;
             return;
         }
