@@ -18,6 +18,18 @@ sub addWorkspaceShortcut(IO::Path $dir) returns Nil is export {
     return Nil;
 }
 
+# Add a textfile to a workspace for capturing notes and progress.
+sub addWorkspaceLog(IO::Path $dir) returns Nil {
+    my $log = $dir.add('notes.txt');
+
+    unless $log.f {
+        spurt $log, "Notes for {$dir.basename}\n"
+    }
+
+    return Nil;
+}
+
+
 # Create shortcuts for all existing workspaces.
 sub addWorkspaceShortcuts() returns Nil is export {
     my $root = getPath('root');
@@ -70,6 +82,8 @@ sub createWorkspace(IO::Path $file) is export {
     $workspace.mkdir unless $workspace ~~ :d;
 
     addWorkspaceShortcut($workspace);
+
+    addWorkspaceLog($workspace);
 
     return $workspace;
 }
