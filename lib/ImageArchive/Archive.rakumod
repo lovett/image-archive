@@ -6,6 +6,32 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
+# Remove a tag value from all files.
+sub archiveUntagValue(Str $alias, Str $value, Bool $dryRun = False) returns Nil is export {
+
+    my $counter = 0;
+    for hyper findByTag("{$alias}:{$value}") -> $result {
+        my $path = findFile($result<path>);
+        untagValue($path, $alias, $value, $dryRun);
+
+        unless ($dryRun) {
+            indexFile($path);
+        }
+
+        $counter++;
+    }
+
+    my $message = "Untagged " ~ pluralize($counter, 'file', 'files');
+
+    if ($dryRun) {
+        wouldHaveDone($message);
+        return;
+    }
+
+    say $message;
+    return;
+}
+
 # Tally of all walkable files.
 sub countFiles() is export {
     my $root = getPath('root');

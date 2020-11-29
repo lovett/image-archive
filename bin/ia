@@ -277,9 +277,14 @@ multi sub MAIN('untag:keyword', Str $file where *.IO.f, Str $keyword, Bool :$dry
     untagKeyword($file.IO, $keyword, $dryrun);
 }
 
-#| Remove a value from a tag.
-multi sub MAIN('untag:value', Str $file where *.IO.f, Str $alias, Str $value, Bool :$dryrun = False, ) {
-    untagAlias($file.IO, $alias, $value, $dryrun);
+#| Remove a tag value from one file.
+multi sub MAIN('untag:value', Str $file where *.IO.f, Str $alias, Str $value, Bool :$dryrun = False) {
+    untagValue($file.IO, $alias, $value, $dryrun);
+}
+
+#| Remove a tag value from all files.
+multi sub MAIN('untag:value', 'allfiles', Str $alias, Str $value, Bool :$dryrun = False) {
+    archiveUntagValue($alias, $value, $dryrun);
 }
 
 #| Open files in an external application.

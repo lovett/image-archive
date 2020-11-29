@@ -276,8 +276,8 @@ multi sub untagAlias(IO $file, Str $alias, Bool $dryRun = False) is export {
 
 }
 
-# Remove a value from a tag.
-multi sub untagAlias(IO $file, Str $alias, Str $value, Bool $dryRun = False) is export {
+# Remove a tag value form one file.
+sub untagValue(IO $file, Str $alias, Str $value, Bool $dryRun = False) is export {
     testAliases($alias.list);
 
     my %aliases = readConfig('aliases');
