@@ -98,20 +98,6 @@ multi sub MAIN('deport', Str $path, Bool :$dryrun) {
     }
 }
 
-#| Display a file's tags.
-multi sub MAIN('dump', Str $file where *.IO.f, *@aliases) {
-    my %prompts = readConfig('prompts');
-    unless @aliases.elems > 0 {
-        @aliases = ['alias'].append: %prompts.keys;
-    }
-
-    my %tags = readRawTags($file.IO, @aliases, '-f');
-
-    for %tags.kv -> $alias, $value {
-        say "{$alias}: {$value}";
-    }
-}
-
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     importFile($file.IO, $dryrun);
@@ -236,6 +222,11 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
     writeShellCompletion(SCRIPT_VERSION);
 
     addWorkspaceShortcuts();
+}
+
+#| Display a file's tags.
+multi sub MAIN('show', Str $file where *.IO.f) {
+    say readTags($file.IO);
 }
 
 #| Annotate a file with metadata.

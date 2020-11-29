@@ -65,6 +65,19 @@ sub readRawTag(IO $file, $tag) is export {
     return chomp($out);
 }
 
+# Extract all tags from a file.
+sub readTags(IO::Path $file) is export {
+    my $proc = run <exiftool -G -x ICC_Profile:all -x MPF:all>, $file.Str, :out, :err;
+    my $err = $proc.err.slurp(:close);
+    my $out = $proc.out.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+
+    return chomp($out);
+}
+
 # Extract multiple tags from a file.
 sub readRawTags(IO $file, @tags, Str $flags = '') is export {
     my %aliases = readConfig('aliases');
