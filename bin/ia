@@ -72,7 +72,7 @@ multi sub MAIN('count:years') {
     }
 }
 
-#| The number of files in a given year per month.
+#| The number of files per month in a given year.
 multi sub MAIN('count', Int $year) {
     for countRecordsByMonth($year) -> $tally {
         my $month = $tally[0] == 0 ?? 'Unknown' !! monthName($tally[0]);
@@ -103,7 +103,7 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     importFile($file.IO, $dryrun);
 }
 
-#| Replace an archive file with a new version.
+#| Replace an archive file with a workspace file.
 multi sub MAIN('promote', Str $path, Bool :$dryrun) {
     my $target = findFile($path);
 
@@ -136,7 +136,7 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     tagFile($file.IO, %tags, $dryrun);
 }
 
-#| Find images in the archive by their tags.
+#| Find images in the archive by tag.
 multi sub MAIN('search', Bool :$debug = False, *@terms) {
 
     my $query = @terms.join(' ');
@@ -267,27 +267,27 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
     }
 }
 
-#| Remove a tag completely.
+#| Remove a tag by alias.
 multi sub MAIN('untag:alias', Str $file where *.IO.f, Str $alias, Bool :$dryrun = False, ) {
     untagAlias($file.IO, $alias, $dryrun);
 }
 
-#| Remove tags via keyword.
+#| Remove tags by keyword.
 multi sub MAIN('untag:keyword', Str $file where *.IO.f, Str $keyword, Bool :$dryrun = False) {
     untagKeyword($file.IO, $keyword, $dryrun);
 }
 
-#| Remove a tag value from one file.
+#| Remove a tag by value in one file.
 multi sub MAIN('untag:value', Str $file where *.IO.f, Str $alias, Str $value, Bool :$dryrun = False) {
     untagValue($file.IO, $alias, $value, $dryrun);
 }
 
-#| Remove a tag value from all files.
+#| Remove a tag by value in all files.
 multi sub MAIN('untag:value', 'allfiles', Str $alias, Str $value, Bool :$dryrun = False) {
     archiveUntagValue($alias, $value, $dryrun);
 }
 
-#| Open files in an external application.
+#| Display files in an external application.
 multi sub MAIN('view', Bool :$debug = False, *@paths) {
     my @targets = findByStashIndex(@paths.join(' '), $debug);
 
