@@ -178,7 +178,7 @@ sub openDatabase() is export {
 }
 
 # Locate archive paths by index from a previous search.
-sub findByStashIndex(Str $query, Bool $debug = False) is export {
+sub findByStashIndex(Str $query, @tags=(), Bool $debug = False) is export {
     my $stashKey = 'searchresult';
 
     my $parserActions = RangeActions.new;
@@ -192,9 +192,13 @@ sub findByStashIndex(Str $query, Bool $debug = False) is export {
         return;
     }
 
+    my @columns = "SourceFile".Array.append(@tags);
+
+    my $selectSql = @columns.map({ "json_extract(a.tags, '\$.{$_}')" }).join(', ');
+
     my $stashQuery = qq:to/SQL/;
     SELECT * FROM (
-        SELECT json_extract(a.tags, '\$.SourceFile') as path, row_number()
+        SELECT {$selectSql}, row_number()
         OVER (ORDER BY s.id) as rownum
         FROM archive a, stash s
         WHERE a.id=s.archive_id
@@ -208,7 +212,7 @@ sub findByStashIndex(Str $query, Bool $debug = False) is export {
 
     return gather {
         for $sth.allrows() -> $row {
-            take $row[0];
+            take $row;
         }
 
         if ($debug) {

@@ -19,7 +19,7 @@ sub getAverageColor(IO::Path $file) is export {
 sub extractRgbTriple($string) is export {
     my regex separator { <[\s,]>+ }
     my regex float { <[\d.]>+ }
-    $string ~~ / '(' \s* $<r> = (<float>) <separator>  $<g> = (<float>) <separator>  $<b> = (<float>)/;
+    $string ~~ / srgba?\( \s* $<r> = (<float>) <separator>  $<g> = (<float>) <separator>  $<b> = (<float>)/;
 
     return (~$<r>, ~$<g>, ~$<b>).map({ .Int });
 }
