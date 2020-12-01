@@ -100,7 +100,7 @@ multi sub MAIN('dbshell') {
 }
 
 #| Move a file out of the archive.
-multi sub MAIN('deport', Str $file, Bool :$dryrun) {
+multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
     my $target = findFile($file);
 
     deportFile($target, $*CWD.IO, $dryrun);
@@ -108,6 +108,21 @@ multi sub MAIN('deport', Str $file, Bool :$dryrun) {
     my $workspace = findWorkspace($target);
     if ($workspace ~~ :d) {
         deportWorkspace($workspace, $*CWD.IO, $dryrun);
+    }
+}
+
+#| Move files out of the archive by search index.
+multi sub MAIN('deport', *@index, Bool :$dryrun) {
+    my @records = findByStashIndex(@index.join(' '));
+
+    for @records -> $record {
+        my $file = findFile($record[0]);
+        deportFile($file, $*CWD.IO, $dryrun);
+
+        my $workspace = findWorkspace($file);
+        if ($workspace ~~ :d) {
+            deportWorkspace($workspace, $*CWD.IO, $dryrun);
+        }
     }
 }
 
