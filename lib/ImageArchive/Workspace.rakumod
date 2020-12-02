@@ -107,7 +107,7 @@ sub deportWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is
 
 # The path to the symlink providing quick access to a workspace.
 sub getShortcut(IO::Path $dir) is export {
-    my $shortcutRoot = getPath('root').add('_workspaces');
+    my $shortcutRoot = getPath('workspaces');
     my $flatPath = relativePath($dir).subst('/', '-', :g);
     my $shortcut = $shortcutRoot.add($flatPath);
 
@@ -151,20 +151,27 @@ sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
     chmod($newMaster, 0o400);
 }
 
-# Run a command to display the workspace.
-sub openWorkspace(IO::Path $file, Str $command) is export {
-    my $workspace = createWorkspace($file);
+# See if a file exists within a workspace directory.
+sub testPathExistsInWorkspace(IO::Path $file) is export {
+    return if $file.parent.basename.ends-with('workspace');
+    die ImageArchive::Exception::PathNotFoundInWorkspace.new;
+}
 
-    my $proc = run qqw{$command $workspace}, :err;
+# Run a command to display the workspace shortcut root.
+sub viewWorkspaceShortcuts() is export {
+    my $viewCommand = readConfig('view_workspace');
+
+    unless ($viewCommand) {
+        return
+    }
+
+    my $shortcutRoot = getPath('workspaces');
+
+    my $proc = run qqw{$viewCommand $shortcutRoot}, :err;
     my $err = $proc.err.slurp(:close);
 
     if ($proc.exitcode !== 0) {
         die ImageArchive::Exception::BadExit.new(:err($err));
     }
-}
 
-# See if a file exists within a workspace directory.
-sub testPathExistsInWorkspace(IO::Path $file) is export {
-    return if $file.parent.basename.ends-with('workspace');
-    die ImageArchive::Exception::PathNotFoundInWorkspace.new;
 }

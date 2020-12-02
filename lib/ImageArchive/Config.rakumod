@@ -54,6 +54,10 @@ sub getPath(Str $keyword) is export is cached {
             $root ~= '/' unless $root.ends-with('/');
             return $root.IO;
         }
+
+        when 'workspaces' {
+            return getPath('root').add('_workspaces');
+        }
     }
 }
 

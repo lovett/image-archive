@@ -374,15 +374,9 @@ multi sub MAIN('view', *@index) {
 multi sub MAIN('workon', Str $file where *.IO.f) {
     my $target = findFile($file);
 
-    my $version = copyToWorkspace($target.IO);
+    copyToWorkspace($target.IO);
 
-    say sprintf('%s %s', colored('Workspace:', 'magenta'), $version.parent.Str);
-
-    my $viewCommand = readConfig('view_workspace');
-
-    if ($viewCommand) {
-        openWorkspace($target, $viewCommand);
-    }
+    viewWorkspaceShortcuts();
 }
 
 # Set up an editing workspace by search index.
@@ -392,8 +386,9 @@ multi sub MAIN('workon', *@index) {
     for @records -> $record {
         my $path = findFile($record[0]);
         my $version = copyToWorkspace($path.IO);
-        say sprintf('%s %s', colored('Workspace:', 'magenta'), $version.parent.Str);
     }
+
+    viewWorkspaceShortcuts();
 }
 
 #| Display the application version.
