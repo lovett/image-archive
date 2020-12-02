@@ -171,10 +171,26 @@ multi sub MAIN('reindex', *@indexes) {
     }
 }
 
-#| Do-over for question-and-answer tagging.
+#| Redo question-and-answer tagging.
 multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     my %tags = askQuestions();
     tagFile($file.IO, %tags, $dryrun);
+
+    if (isArchiveFile($file.IO)) {
+        indexFile($file.IO);
+    }
+}
+
+#| Redo question-and-answer tagging by search index.
+multi sub MAIN('reprompt', *@indexes, Bool :$dryrun = False) {
+    my @records = findByStashIndex(@indexes.join(' '));
+
+    for @records -> $record {
+        my $path = findFile($record[0]);
+        my %tags = askQuestions();
+        tagFile($path, %tags, $dryrun);
+        indexFile($path);
+    }
 }
 
 #| Find images in the archive by tag.

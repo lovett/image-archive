@@ -213,6 +213,15 @@ sub importFile(IO $file, Bool $dryRun? = False) is export {
     say "Imported as {$newPath}";
 }
 
+sub isArchiveFile(IO $path) returns Bool is export {
+    my $target = $path.IO;
+    return False unless ($target ~~ :f);
+
+    my $root = getPath('root');
+
+    return $target.absolute.starts-with($root);
+}
+
 # See if a file exists within the archive root.
 sub testPathExistsInArchive(IO $file) is export {
     my $root = getPath('root');
