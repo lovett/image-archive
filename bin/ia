@@ -371,7 +371,7 @@ multi sub MAIN('view', *@index) {
 }
 
 #| Set up an editing workspace.
-multi sub MAIN('workon', Str $file) {
+multi sub MAIN('workon', Str $file where *.IO.f) {
     my $target = findFile($file);
 
     my $version = copyToWorkspace($target.IO);
@@ -382,6 +382,17 @@ multi sub MAIN('workon', Str $file) {
 
     if ($viewCommand) {
         openWorkspace($target, $viewCommand);
+    }
+}
+
+# Set up an editing workspace by search index.
+multi sub MAIN('workon', *@index) {
+    my @records = findByStashIndex(@index.join(' '));
+
+    for @records -> $record {
+        my $path = findFile($record[0]);
+        my $version = copyToWorkspace($path.IO);
+        say sprintf('%s %s', colored('Workspace:', 'magenta'), $version.parent.Str);
     }
 }
 
