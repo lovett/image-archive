@@ -321,16 +321,39 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
 
     tagFile($file.IO, %tags, $dryrun);
 
-    unless ($dryrun) {
-        confirm('Tags written. Import to archive?');
-        importFile($file.IO, $dryrun);
+    if ($dryrun) {
+        return;
     }
+
+    if (isArchiveFile($file.IO)) {
+        indexFile($file.IO);
+        return;
+    }
+
+    confirm('Tags written. Import to archive?');
+    importFile($file.IO, $dryrun);
 
     CATCH {
         when ImageArchive::Exception::MissingContext {
             note colored($_.message, 'red');
             suggestContextKeywords($_.offenders);
             exit 1;
+        }
+    }
+}
+
+#| Annotate a file with metadata by search index.
+multi sub MAIN('tag', $index, Bool :$dryrun = False, *@keywords) {
+    my @records = findByStashIndex($index);
+
+    my %tags = keywordsToTags(@keywords);
+
+    for @records -> $record {
+        my $path = findFile($record[0]);
+        tagFile($path, %tags, $dryrun);
+
+        unless ($dryrun) {
+            indexFile($path);
         }
     }
 }
