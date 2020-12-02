@@ -4,7 +4,7 @@ grammar Range is export {
     }
 
     token separator {
-        <[ \s , ]>
+        ','
     }
 
     rule range {

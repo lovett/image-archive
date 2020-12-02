@@ -38,8 +38,8 @@ multi sub MAIN('color', Str $file where *.IO.f) {
 }
 
 #| The average color of files by search index.
-multi sub MAIN('color', *@index) {
-    my @records = findByStashIndex(@index.join(' '), 'AverageRGB'.List);
+multi sub MAIN('color', Str $index) {
+    my @records = findByStashIndex($index, 'AverageRGB'.List);
 
     for @records -> $record {
         printf(
@@ -112,8 +112,8 @@ multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
 }
 
 #| Move files out of the archive by search index.
-multi sub MAIN('deport', *@index, Bool :$dryrun) {
-    my @records = findByStashIndex(@index.join(' '));
+multi sub MAIN('deport', Str $index, Bool :$dryrun) {
+    my @records = findByStashIndex($index);
 
     for @records -> $record {
         my $file = findFile($record[0]);
@@ -159,8 +159,8 @@ multi sub MAIN('reindex') {
 }
 
 #| Re-add imported files to the database by search index.
-multi sub MAIN('reindex', *@indexes) {
-    my @records = findByStashIndex(@indexes.join(' '));
+multi sub MAIN('reindex', Str $index) {
+    my @records = findByStashIndex($index);
 
     for @records -> $record {
         my $path = findFile($record[0]);
@@ -182,8 +182,8 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
 }
 
 #| Redo question-and-answer tagging by search index.
-multi sub MAIN('reprompt', *@indexes, Bool :$dryrun = False) {
-    my @records = findByStashIndex(@indexes.join(' '));
+multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
+    my @records = findByStashIndex($index);
 
     for @records -> $record {
         my $path = findFile($record[0]);
@@ -287,8 +287,8 @@ multi sub MAIN('show', Str $file where *.IO.f) {
 }
 
 #| Display a file's tags by search index.
-multi sub MAIN('show', *@indexes) {
-    my @records = findByStashIndex(@indexes.join(' '));
+multi sub MAIN('show', $indexes) {
+    my @records = findByStashIndex($indexes);
 
     for @records -> $record {
         my $file = findFile($record[0]);
@@ -385,8 +385,8 @@ multi sub MAIN('view', Str $file where *.IO.f) {
 }
 
 # Display files by search index.
-multi sub MAIN('view', *@index) {
-    my @records = findByStashIndex(@index.join(' '));
+multi sub MAIN('view', $index) {
+    my @records = findByStashIndex($index);
 
     my @targets = @records.map({ $_[0] });
 
@@ -403,8 +403,8 @@ multi sub MAIN('workon', Str $file where *.IO.f) {
 }
 
 # Set up an editing workspace by search index.
-multi sub MAIN('workon', *@index) {
-    my @records = findByStashIndex(@index.join(' '));
+multi sub MAIN('workon', $index) {
+    my @records = findByStashIndex($index);
 
     for @records -> $record {
         my $path = findFile($record[0]);
