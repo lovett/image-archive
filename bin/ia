@@ -355,16 +355,19 @@ multi sub MAIN('untag:value', 'allfiles', Str $alias, Str $value, Bool :$dryrun 
     archiveUntagValue($alias, $value, $dryrun);
 }
 
-#| Display files in an external application.
-multi sub MAIN('view', Bool :$debug = False, *@files) {
-    my @targets = findByStashIndex(@files.join(' '), $debug);
+#| Display a file.
+multi sub MAIN('view', Str $file where *.IO.f) {
+    my @targets = findFile($file);
+    viewFiles(@targets);
+}
 
-    unless (@targets.first) {
-        @targets = @files;
-    }
+# Display files by search index.
+multi sub MAIN('view', *@index) {
+    my @records = findByStashIndex(@index.join(' '));
 
-    my @paths = @targets.map({ findFile $_ });
-    viewFiles(@paths);
+    my @targets = @records.map({ $_[0] });
+
+    viewFiles(@targets);
 }
 
 #| Set up an editing workspace.
