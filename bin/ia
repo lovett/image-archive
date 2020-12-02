@@ -286,6 +286,17 @@ multi sub MAIN('show', Str $file where *.IO.f) {
     say readTags($file.IO);
 }
 
+#| Display a file's tags by search index.
+multi sub MAIN('show', *@indexes) {
+    my @records = findByStashIndex(@indexes.join(' '));
+
+    for @records -> $record {
+        my $file = findFile($record[0]);
+        say readTags($file);
+    }
+}
+
+
 #| Annotate a file with metadata.
 multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
     testKeywords(@keywords);
