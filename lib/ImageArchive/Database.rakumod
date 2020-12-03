@@ -119,6 +119,32 @@ sub deindexFile(IO::Path $file) is export {
     $sth.execute($uuid);
 }
 
+sub dumpStash() is export {
+    my $stashKey = 'searchresult';
+
+    my $stashQuery = qq:to/SQL/;
+    SELECT * FROM (
+        SELECT json_extract(a.tags, '\$.SourceFile') as path,
+        IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
+        CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid,
+        row_number()
+        OVER (ORDER BY s.id) as rownum
+        FROM archive a, stash s
+        WHERE a.id=s.archive_id
+        AND s.key='{$stashKey}'
+    )
+    SQL
+
+    my $dbh = openDatabase();
+    my $sth = $dbh.execute($stashQuery);
+
+    return gather {
+        for $sth.allrows(:array-of-hash) -> $row {
+            take $row;
+        }
+    }
+}
+
 # Store a file's tags in a database.
 sub indexFile(IO $file) is export {
     my $uuid = readRawTag($file, 'id');
