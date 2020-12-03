@@ -37,7 +37,7 @@ multi sub MAIN('color', Str $file where *.IO.f) {
     printf("rgb(%s)\n", @rgb.join(','));
 }
 
-#| The average color of files by search index.
+#| The average color of files using search indexes.
 multi sub MAIN('color', Str $index) {
     my @records = findByStashIndex($index, 'AverageRGB'.List);
 
@@ -55,7 +55,7 @@ multi sub MAIN('completion') {
     writeShellCompletion(SCRIPT_VERSION);
 }
 
-#| The number of files in the archive.
+#| The number of files overall.
 multi sub MAIN('count') {
     my $fileCount = countFiles();
     my $recordCount = countRecords();
@@ -99,7 +99,7 @@ multi sub MAIN('dbshell') {
     run 'sqlite3', $dbPath;
 }
 
-#| Move a file out of the archive.
+#| Taka a file out of the archive.
 multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
     my $target = findFile($file);
 
@@ -111,7 +111,7 @@ multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
     }
 }
 
-#| Move files out of the archive by search index.
+#| Take a file out of the archive using search indexes.
 multi sub MAIN('deport', Str $index, Bool :$dryrun) {
     my @records = findByStashIndex($index);
 
@@ -145,7 +145,7 @@ multi sub MAIN('promote', Str $file, Bool :$dryrun) {
     }
 }
 
-#| Re-add archive files to the database.
+#| Re-add imported files to the database.
 multi sub MAIN('reindex') {
     my $root = getPath('root');
 
@@ -158,7 +158,7 @@ multi sub MAIN('reindex') {
     }
 }
 
-#| Re-add imported files to the database by search index.
+#| Re-add imported files to the database using search index.
 multi sub MAIN('reindex', Str $index) {
     my @records = findByStashIndex($index);
 
@@ -181,7 +181,7 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     }
 }
 
-#| Redo question-and-answer tagging by search index.
+#| Redo question-and-answer tagging using search indexes.
 multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
     my @records = findByStashIndex($index);
 
@@ -193,7 +193,7 @@ multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
     }
 }
 
-#| Find images in the archive by tag.
+#| Find files by tag.
 multi sub MAIN('search', Bool :$debug = False, *@terms) {
 
     my $query = @terms.join(' ');
@@ -228,7 +228,7 @@ multi sub MAIN('search') is hidden-from-USAGE {
     die ImageArchive::Exception::NoSearchQuery.new;
 }
 
-#| Find images in the archive by color similarity.
+#| Find files by color similarity.
 multi sub MAIN('search:color', Str $file where *.IO.f) {
     my @rgb = getAverageColor($file.IO);
 
@@ -250,7 +250,7 @@ multi sub MAIN('search:color', Str $file where *.IO.f) {
     }
 }
 
-#| Files in the archive that are not in the database.
+#| Find file that are not in the database.
 multi sub MAIN('search:unindexed') {
     my $counter = 0;
 
@@ -268,7 +268,7 @@ multi sub MAIN('search:unindexed') {
     }
 }
 
-#| Establish the application's configuration and database.
+#| Establish the application configuration and database.
 multi sub MAIN('setup', Str $directory where *.IO.d) {
     writeApplicationConfig($directory.IO);
 
@@ -286,7 +286,7 @@ multi sub MAIN('show', Str $file where *.IO.f) {
     say readTags($file.IO);
 }
 
-#| Display a file's tags by search index.
+#| Display tags using search indexes.
 multi sub MAIN('show', $indexes) {
     my @records = findByStashIndex($indexes);
 
@@ -297,7 +297,7 @@ multi sub MAIN('show', $indexes) {
 }
 
 
-#| Annotate a file with metadata.
+#| Add tags to a file.
 multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords) {
     testKeywords(@keywords);
 
@@ -342,8 +342,8 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
     }
 }
 
-#| Annotate a file with metadata by search index.
-multi sub MAIN('tag', $index, Bool :$dryrun = False, *@keywords) {
+#| Add tags using search indexes.
+multi sub MAIN('tag', Str $index, Bool :$dryrun = False, *@keywords) {
     my @records = findByStashIndex($index);
 
     my %tags = keywordsToTags(@keywords);
@@ -358,9 +358,27 @@ multi sub MAIN('tag', $index, Bool :$dryrun = False, *@keywords) {
     }
 }
 
-#| Remove a tag by alias.
+#| Remove tags by alias.
 multi sub MAIN('untag:alias', Str $file where *.IO.f, Str $alias, Bool :$dryrun = False, ) {
     untagAlias($file.IO, $alias, $dryrun);
+
+    if (isArchiveFile($file.IO)) {
+        indexFile($file.IO);
+    }
+}
+
+#| Remove tags by alias using search indexes.
+multi sub MAIN('untag:alias', Str $index, Str $alias, Bool :$dryrun = False) {
+    my @records = findByStashIndex($index);
+
+    for @records -> $record {
+        my $path = findFile($record[0]);
+        untagAlias($path, $alias, $dryrun);
+
+        if (isArchiveFile($path)) {
+            indexFile($path);
+        }
+    }
 }
 
 #| Remove tags by keyword.
@@ -368,9 +386,37 @@ multi sub MAIN('untag:keyword', Str $file where *.IO.f, Str $keyword, Bool :$dry
     untagKeyword($file.IO, $keyword, $dryrun);
 }
 
-#| Remove a tag by value in one file.
+#| Remove tags by keyword using search indexes.
+multi sub MAIN('untag:keyword', Str $index, Str $keyword, Bool :$dryrun = False) {
+    my @records = findByStashIndex($index);
+
+    for @records -> $record {
+        my $path = findFile($record[0]);
+        untagKeyword($path, $keyword, $dryrun);
+
+        if (isArchiveFile($path)) {
+            indexFile($path);
+        }
+    }
+}
+
+#| Remove a tag by value.
 multi sub MAIN('untag:value', Str $file where *.IO.f, Str $alias, Str $value, Bool :$dryrun = False) {
     untagValue($file.IO, $alias, $value, $dryrun);
+}
+
+#| Remove a tag by value using search indexes.
+multi sub MAIN('untag:value', Str $index, Str $alias, Str $value, Bool :$dryrun = False) {
+    my @records = findByStashIndex($index);
+
+    for @records -> $record {
+        my $path = findFile($record[0]);
+        untagValue($path, $alias, $value, $dryrun);
+
+        if (isArchiveFile($path)) {
+            indexFile($path);
+        }
+    }
 }
 
 #| Remove a tag by value in all files.
