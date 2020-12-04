@@ -479,7 +479,7 @@ multi sub MAIN('workon', $index) {
 
     for @records -> $record {
         my $path = findFile($record[0]);
-        my $version = copyToWorkspace($path.IO);
+        copyToWorkspace($path.IO);
     }
 
     viewWorkspaceShortcuts();

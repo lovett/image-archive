@@ -42,9 +42,12 @@ sub addWorkspaceShortcuts() returns Nil is export {
 }
 
 # Create an editable version of a file in the archive.
-sub copyToWorkspace(IO::Path $source) is export {
+sub copyToWorkspace(IO::Path $source) returns Nil is export {
     my $workspace = createWorkspace($source);
-    my $destination = $workspace.add($source.basename);
+
+    my $sourceHash = hashFile($source);
+
+    my $workspaceFile;
 
     for lazy 0...99 -> $counter {
         my $candidate = sprintf(
@@ -53,14 +56,24 @@ sub copyToWorkspace(IO::Path $source) is export {
             $source.extension
         );
 
-        $destination = $workspace.add($candidate);
+        $workspaceFile = $workspace.add($candidate);
 
-        last unless $destination ~~ :f;
+        if ($workspaceFile ~~ :f) {
+            my $workspaceFileHash = hashFile($workspaceFile);
+            if ($workspaceFileHash eq $sourceHash) {
+                $workspaceFile = Nil;
+                last;
+            }
+        }
+
+        last unless $workspaceFile ~~ :f;
     }
 
-    $source.copy($destination);
+    if ($workspaceFile) {
+        $source.copy($workspaceFile);
+    }
 
-    return $destination;
+    return Nil;
 }
 
 # Delete the workspace quick-access symlink.

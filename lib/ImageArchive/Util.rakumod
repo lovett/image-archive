@@ -36,6 +36,22 @@ sub generateUuid() is export {
     die ImageArchive::Exception::UUID.new();
 }
 
+# Get the hash of a file path using external utilities.
+sub hashFile(IO $path) returns Str is export {
+    my @executables = <md5 md5sum>;
+
+    for @executables -> $exe {
+        my $proc = run $exe, $path, :out, :err;
+        my $out = $proc.out.slurp(:close);
+
+        if ($proc.exitcode == 0) {
+            return $out.split(' ').first;
+        }
+    }
+
+    return '';
+}
+
 # Cnvert a numeric month to its name.
 sub monthName($month) is export {
     my $d = Date::Names.new: :lang('en');
