@@ -396,6 +396,11 @@ multi sub MAIN('untag:alias', Str $index, Str $alias, Bool :$dryrun = False) {
     }
 }
 
+#| Remove tags by alias in all files.
+multi sub MAIN('untag:alias', 'allfiles', Str $alias, Bool :$dryrun = False) {
+    archiveUntagAlias($alias, $dryrun);
+}
+
 #| Remove tags by keyword.
 multi sub MAIN('untag:keyword', Str $file where *.IO.f, Str $keyword, Bool :$dryrun = False) {
     untagKeyword($file.IO, $keyword, $dryrun);
@@ -413,6 +418,11 @@ multi sub MAIN('untag:keyword', Str $index, Str $keyword, Bool :$dryrun = False)
             indexFile($path);
         }
     }
+}
+
+#| Remove a tag by value in all files.
+multi sub MAIN('untag:keyword', 'allfiles', Str $keyword, Bool :$dryrun = False) {
+    archiveUntagKeyword($keyword, $dryrun);
 }
 
 #| Remove a tag by value.

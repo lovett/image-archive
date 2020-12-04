@@ -6,6 +6,57 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
+# Remove a tag completely regardless of its value from all files.
+multi sub archiveUntagAlias(Str $alias, Bool $dryRun = False) is export {
+    my $counter = 0;
+
+    for hyper findByTag("{$alias}:any") -> $result {
+        my $path = findFile($result<path>);
+        untagAlias($path, $alias, $dryRun);
+
+        unless ($dryRun) {
+            indexFile($path);
+        }
+
+        $counter++;
+    }
+
+    my $message = "Untagged " ~ pluralize($counter, 'file', 'files');
+
+    if ($dryRun) {
+        wouldHaveDone($message);
+        return;
+    }
+
+    say $message;
+    return;
+}
+
+# Remove the tags associated with a keyword from all files.
+sub archiveUntagKeyword(Str $keyword, Bool $dryRun? = False) is export {
+    my $counter = 0;
+    for hyper findByTag("alias:{$keyword}") -> $result {
+        my $path = findFile($result<path>);
+        untagKeyword($path, $keyword);
+
+        unless ($dryRun) {
+            indexFile($path);
+        }
+
+        $counter++;
+    }
+
+    my $message = "Untagged " ~ pluralize($counter, 'file', 'files');
+
+    if ($dryRun) {
+        wouldHaveDone($message);
+        return;
+    }
+
+    say $message;
+    return;
+}
+
 # Remove a tag value from all files.
 sub archiveUntagValue(Str $alias, Str $value, Bool $dryRun = False) returns Nil is export {
 

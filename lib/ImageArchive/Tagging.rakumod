@@ -265,7 +265,7 @@ sub untagKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
     commitTags($file, @commands, $dryRun);
 }
 
-# Remove a tag completely regargless of its value.
+# Remove a tag completely regardless of its value.
 multi sub untagAlias(IO $file, Str $alias, Bool $dryRun = False) is export {
     testAliases($alias.list);
 
