@@ -19,13 +19,14 @@ our %commands = %(
     'search:color' => <file>,
     'setup' => <directory>,
     'show' => <file>,
+    'show:search' => Nil,
     'tag' => <file keyword>,
     'untag' => <file keyword>,
     'untag:alias' => <alias file>,
     'untag:keyword' => <file>,
     'untag:value' => <alias file>,
-    'workon' => <archivefile>,
-    'view' => <archivefile>
+    'view' => <archivefile>,
+    'workon' => <archivefile>
 );
 
 sub commandFilter($argumentKind) {
