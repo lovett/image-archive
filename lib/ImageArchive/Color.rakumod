@@ -4,7 +4,7 @@ use ImageArchive::Exception;
 
 #| Get the average color of a file as an sRGB triple.
 sub getAverageColor(IO::Path $file) is export {
-    my $proc = run <convert -scale 1!x1!>, "{$file.Str}[0]", 'txt:-', :out, :err;
+    my $proc = run <convert -scale 1!x1! -depth 8>, "{$file.Str}[0]", 'txt:-', :out, :err;
     my $err = $proc.err.slurp(:close);
     my $out = $proc.out.slurp(:close);
 
