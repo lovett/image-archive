@@ -459,7 +459,7 @@ multi sub MAIN('view', Str $file where *.IO.f) {
 multi sub MAIN('view', $index) {
     my @records = findByStashIndex($index);
 
-    my @targets = @records.map({ $_[0] });
+    my @targets = @records.map({ findFile($_[0]) });
 
     viewFiles(@targets);
 }
