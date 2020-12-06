@@ -1,0 +1,5 @@
+#+TITLE: Workspace history for @@WORKSPACE@@
+#+STARTUP: content
+
+* History
+** [@@DATE@@] Workspace started.

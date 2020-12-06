@@ -22,6 +22,7 @@
     "colordelta.sqlite3extension",
     "config.ini",
     "exiftool.config",
+    "history.org",
     "schema-sqlite.sql"
   ],
   "depends" : [

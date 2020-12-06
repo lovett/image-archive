@@ -20,10 +20,13 @@ sub addWorkspaceShortcut(IO::Path $dir) returns Nil is export {
 
 # Add a textfile to a workspace for capturing notes and progress.
 sub addWorkspaceLog(IO::Path $dir) returns Nil {
-    my $log = $dir.add('notes.txt');
+    my $log = $dir.add('history.org');
 
     unless $log.f {
-        spurt $log, "Notes for {$dir.basename}\n"
+        my $template = %?RESOURCES<history.org>.IO.slurp;
+        $template = $template.subst('@@WORKSPACE@@', relativePath($dir));
+        $template = $template.subst('@@DATE@@', Date.today.yyyy-mm-dd);
+        spurt $log, $template;
     }
 
     return Nil;
