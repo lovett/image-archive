@@ -71,6 +71,7 @@ sub copyToWorkspace(IO::Path $source) returns Nil is export {
 
     if ($workspaceFile) {
         $source.copy($workspaceFile);
+        $workspaceFile.chmod(0o644);
     }
 
     return Nil;
@@ -161,7 +162,7 @@ sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
     rename($file, $newMaster);
     indexFile($newMaster);
     generateAlts($newMaster);
-    chmod($newMaster, 0o400);
+    $newMaster.chmod(0o400);
 }
 
 # See if a file exists within a workspace directory.

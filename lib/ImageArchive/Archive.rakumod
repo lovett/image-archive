@@ -140,7 +140,7 @@ sub deportFile(IO::Path $file, IO $destinationDir, Bool $dryRun? = False) is exp
 
     deindexFile($file);
     move($file, $destinationPath);
-    $destinationPath.IO.chmod(0o600);
+    $destinationPath.IO.chmod(0o644);
     deleteEmptyFolders($file.parent);
     deleteAlts($file);
 }
