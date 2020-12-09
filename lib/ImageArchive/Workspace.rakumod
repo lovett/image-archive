@@ -7,17 +7,6 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
-# Symlink a workspace into a top-level folder for quick access.
-sub addWorkspaceShortcut(IO::Path $dir) returns Nil is export {
-    my $shortcut = getShortcut($dir);
-
-    unless $shortcut.l {
-        symlink($dir, $shortcut);
-    }
-
-    return Nil;
-}
-
 # Add a textfile to a workspace for capturing notes and progress.
 sub addWorkspaceLog(IO::Path $dir) returns Nil {
     my $log = $dir.add('history.org');
@@ -32,17 +21,6 @@ sub addWorkspaceLog(IO::Path $dir) returns Nil {
     return Nil;
 }
 
-
-# Create shortcuts for all existing workspaces.
-sub addWorkspaceShortcuts() returns Nil is export {
-    my $root = getPath('root');
-
-    my $supply = walkArchive($root, / \.workspace $ /);
-
-    $supply.tap(&addWorkspaceShortcut);
-
-    return Nil;
-}
 
 # Create an editable version of a file in the archive.
 sub copyToWorkspace(IO::Path $source) returns Nil is export {
@@ -80,12 +58,6 @@ sub copyToWorkspace(IO::Path $source) returns Nil is export {
     return Nil;
 }
 
-# Delete the workspace quick-access symlink.
-sub removeShortcut(IO::Path $dir) is export {
-    my $shortcut = getShortcut($dir);
-    unlink($shortcut);
-}
-
 # Locate the editing workspace for a given file.
 sub findWorkspace(IO::Path $file) is export {
     my $workspace = $file.extension('workspace');
@@ -97,8 +69,6 @@ sub createWorkspace(IO::Path $file) is export {
     my $workspace = findWorkspace($file);
 
     $workspace.mkdir unless $workspace ~~ :d;
-
-    addWorkspaceShortcut($workspace);
 
     addWorkspaceLog($workspace);
 
@@ -119,18 +89,6 @@ sub deportWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is
     }
 
     rename($dir, $destinationPath);
-    removeShortcut($dir);
-}
-
-# The path to the symlink providing quick access to a workspace.
-sub getShortcut(IO::Path $dir) is export {
-    my $shortcutRoot = getPath('workspaces');
-    my $flatPath = relativePath($dir).subst('/', '-', :g);
-    my $shortcut = $shortcutRoot.add($flatPath);
-
-    $shortcutRoot.mkdir unless $shortcutRoot ~~ :d;
-
-    return $shortcut;
 }
 
 # Locate the file associated with the workspace.
@@ -172,23 +130,4 @@ sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
 sub testPathExistsInWorkspace(IO::Path $file) is export {
     return if $file.parent.basename.ends-with('workspace');
     die ImageArchive::Exception::PathNotFoundInWorkspace.new;
-}
-
-# Run a command to display the workspace shortcut root.
-sub viewWorkspaceShortcuts() is export {
-    my $viewCommand = readConfig('view_workspace');
-
-    unless ($viewCommand) {
-        return
-    }
-
-    my $shortcutRoot = getPath('workspaces');
-
-    my $proc = run qqw{$viewCommand $shortcutRoot}, :err;
-    my $err = $proc.err.slurp(:close);
-
-    if ($proc.exitcode !== 0) {
-        die ImageArchive::Exception::BadExit.new(:err($err));
-    }
-
 }

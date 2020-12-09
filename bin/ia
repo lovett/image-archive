@@ -277,8 +277,6 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
     createDatabase();
 
     writeShellCompletion(SCRIPT_VERSION);
-
-    addWorkspaceShortcuts();
 }
 
 #| Display a file's tags.
@@ -470,7 +468,7 @@ multi sub MAIN('workon', Str $file where *.IO.f) {
 
     copyToWorkspace($target.IO);
 
-    viewWorkspaceShortcuts();
+    say findWorkspace($target.IO).Str;
 }
 
 # Set up an editing workspace by search index.
@@ -480,9 +478,8 @@ multi sub MAIN('workon', $index) {
     for @records -> $record {
         my $path = findFile($record[0]);
         copyToWorkspace($path.IO);
+        say findWorkspace($path.IO).Str;
     }
-
-    viewWorkspaceShortcuts();
 }
 
 #| Display the application version.
