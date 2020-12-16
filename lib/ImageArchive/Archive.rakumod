@@ -307,6 +307,10 @@ multi sub walkArchive(IO::Path $origin, Regex $matcher) returns Supply is export
 
 # Display files in an external application.
 sub viewFiles(@paths) is export {
+    unless (@paths) {
+        die ImageArchive::Exception::PathNotFoundInArchive.new;
+    }
+
     my $command = readConfig('view_file');
 
     unless ($command) {
