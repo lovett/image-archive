@@ -337,19 +337,16 @@ sub findByTag(Str $query, Bool $debug = False) is export {
     SQL
 
     given $parsedQuery.made<order> {
-        when 'series' {
-            $ftsQuery ~= q:to/SQL/;
-            ORDER BY json_extract(archive.tags, '$.SeriesName'),
-            CAST(IFNULL(json_extract(archive.tags, '$.SeriesIdentifier'), 0) AS INT)
-            SQL
-        }
-
         when 'filename' {
             $ftsQuery ~= 'ORDER BY json_extract(archive.tags, "$.FileName")';
         }
 
         default {
-            $ftsQuery ~= 'ORDER BY json_extract(archive.tags, "$.SourceFile")';
+            $ftsQuery ~= q:to/SQL/;
+            ORDER BY json_extract(archive.tags, '$.SeriesName'),
+            CAST(IFNULL(json_extract(archive.tags, '$.SeriesIdentifier'), 0) AS INT),
+            json_extract(archive.tags, "$.SourceFile")
+            SQL
         }
     }
 
