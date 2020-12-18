@@ -126,6 +126,11 @@ multi sub MAIN('deport', Str $index, Bool :$dryrun) {
     }
 }
 
+#| Edit an archive file's changelog.
+multi sub MAIN('history', Str $workspace where *.IO.d) {
+    editWorkspaceLog($workspace.IO);
+}
+
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     importFile($file.IO, $dryrun);
@@ -468,7 +473,7 @@ multi sub MAIN('workon', Str $file where *.IO.f) {
 
     copyToWorkspace($target.IO);
 
-    say findWorkspace($target.IO).Str;
+    editWorkspaceLog($target);
 }
 
 # Set up an editing workspace by search index.
@@ -478,7 +483,8 @@ multi sub MAIN('workon', $index) {
     for @records -> $record {
         my $path = findFile($record[0]);
         copyToWorkspace($path.IO);
-        say findWorkspace($path.IO).Str;
+        editWorkspaceLog($path.IO);
+
     }
 }
 

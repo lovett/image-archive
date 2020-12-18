@@ -11,6 +11,7 @@ our %commands = %(
     'count' => Nil,
     'dbshell' => Nil,
     'deport' => <archivefile>,
+    'history' => <archivefile>,
     'import' => <file>,
     'promote' => <archivefile>,
     'reindex' => Nil,

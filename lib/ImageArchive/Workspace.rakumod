@@ -7,7 +7,7 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
-# Add a textfile to a workspace for capturing notes and progress.
+# Add a text file to a workspace for capturing notes and progress.
 sub addWorkspaceLog(IO::Path $dir) returns Nil {
     my $log = $dir.add('history.org');
 
@@ -58,11 +58,26 @@ sub copyToWorkspace(IO::Path $source) returns Nil is export {
     return Nil;
 }
 
+# Open history.org in an editor.
+sub editWorkspaceLog(IO::Path $file) is export {
+    my $workspace = findWorkspace($file);
+    my $log = $workspace.add("history.org");
+
+    testPathExistsInWorkspace($log);
+
+    unless %*ENV<EDITOR> {
+        die "Could not get preferred editor from environment.";
+    }
+
+    shell "{%*ENV<EDITOR>} {$log}";
+}
+
 # Locate the editing workspace for a given file.
 sub findWorkspace(IO::Path $file) is export {
     my $workspace = $file.extension('workspace');
     return $workspace;
 }
+
 
 # Create the editing workspace for a given file.
 sub createWorkspace(IO::Path $file) is export {

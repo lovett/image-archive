@@ -97,7 +97,7 @@ class ImageArchive::Exception::PathNotFoundInArchive is Exception is export {
 # A file is not within a workspace.
 class ImageArchive::Exception::PathNotFoundInWorkspace is Exception is export {
     method message {
-        "File is not within a workspace.";
+        "File not found in workspace.";
     }
 }
 
