@@ -39,7 +39,7 @@ sub closeWorkspace(IO::Path $workspace, Bool $dryRun? = False) returns Nil is ex
 
 # Create an editable version of a file in the archive.
 sub copyToWorkspace(IO::Path $source) returns Nil is export {
-    my $workspace = createWorkspace($source);
+    my $workspace = openWorkspace($source);
 
     my $sourceHash = hashFile($source);
 
@@ -94,7 +94,7 @@ sub findWorkspace(IO::Path $file) is export {
 }
 
 # Create the editing workspace for a given file.
-sub createWorkspace(IO::Path $file) is export {
+sub openWorkspace(IO::Path $file) is export {
     my $workspace = findWorkspace($file);
     my $archive = $workspace.extension('archive');
 
