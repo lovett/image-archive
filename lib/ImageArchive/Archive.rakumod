@@ -286,6 +286,7 @@ multi sub walkArchive(IO::Path $origin) returns Supply is export {
         next when .basename eq '_cache';
         next when .basename.starts-with: '.';
         next when .ends-with: '_original';
+        next when .extension eq 'archive';
         next when .extension eq 'bak';
         next when .extension eq 'db';
         next when .extension eq 'ini';

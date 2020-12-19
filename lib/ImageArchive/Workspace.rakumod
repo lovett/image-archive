@@ -7,6 +7,8 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
+enum WorkspaceState is export <Closed Opened>;
+
 # Add a text file to a workspace for capturing notes and progress.
 sub addWorkspaceLog(IO::Path $dir) returns Nil {
     my $log = $dir.add('history.org');
@@ -78,7 +80,6 @@ sub findWorkspace(IO::Path $file) is export {
     return $workspace;
 }
 
-
 # Create the editing workspace for a given file.
 sub createWorkspace(IO::Path $file) is export {
     my $workspace = findWorkspace($file);
@@ -116,6 +117,21 @@ sub findWorkspaceMaster(IO::Path $workspace) {
     }
 
     die ImageArchive::Exception::PathNotFoundInArchive.new;
+}
+
+# List the workspaces in the archive
+sub walkWorkspaces(IO::Path $origin, WorkspaceState $state) is export {
+    my $extension = 'workspace';
+
+    if ($state eq Closed) {
+        $extension = 'archive';
+    }
+
+    supply for ($origin.dir.sort) {
+        next when :f;
+        when .extension eq $extension { .emit }
+        when :d { .emit for walkWorkspaces($_, $state) }
+    }
 }
 
 # Move a file out of the workspace.

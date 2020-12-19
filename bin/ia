@@ -488,6 +488,26 @@ multi sub MAIN('workon', $index) {
     }
 }
 
+#| List workspaces.
+multi sub MAIN('workspaces', Str $year?, Bool :$archived) {
+    my $origin = getPath('root');
+    if ($year) {
+        $origin = findFile($year);
+    }
+
+    my $state = ($archived) ?? Closed !! Opened;
+
+    my $counter = 0;
+    for walkWorkspaces($origin, $state) -> $path {
+        $counter++;
+        say $path.Str;
+    }
+
+    if ($counter == 0) {
+        say "None found.";
+    }
+}
+
 #| Display the application version.
 multi sub MAIN(Bool :$version) {
     say SCRIPT_VERSION if $version;

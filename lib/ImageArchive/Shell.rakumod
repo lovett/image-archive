@@ -27,7 +27,8 @@ our %commands = %(
     'untag:keyword' => <file>,
     'untag:value' => <alias file>,
     'view' => <archivefile>,
-    'workon' => <archivefile>
+    'workon' => <archivefile>,
+    'workspaces' => Nil,
 );
 
 sub commandFilter($argumentKind) {
@@ -188,6 +189,7 @@ sub writeFishCompletion(@keywords, @aliases, $scriptVersion) {
     {$prefix} --long-option=dryrun
     {$prefix} --long-option=help
     {$prefix} --long-option=version
+    {$prefix} --long-option=archived
 
     # Command completion
     {$prefix} -n '__fish_ia_command' -a "{ %commands.keys.sort }"
