@@ -87,6 +87,13 @@ class ImageArchive::Exception::NoSearchQuery is Exception is export {
     }
 }
 
+# A path expected to be a workspace is not.
+class ImageArchive::Exception::NotAWorkspace is Exception is export {
+    method message {
+        "Path is not a workspace.";
+    }
+}
+
 # A file thought to be in the archive does not exist.
 class ImageArchive::Exception::PathNotFoundInArchive is Exception is export {
     method message {

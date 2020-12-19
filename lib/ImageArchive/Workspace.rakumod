@@ -23,6 +23,19 @@ sub addWorkspaceLog(IO::Path $dir) returns Nil {
     return Nil;
 }
 
+# Convert an opened workspace to a closed workspace
+sub closeWorkspace(IO::Path $workspace, Bool $dryRun? = False) returns Nil is export {
+    testPathIsWorkspace($workspace);
+
+    my $archive = $workspace.extension('archive');
+
+    if ($dryRun) {
+        wouldHaveDone("Rename {$workspace} to {$archive}");
+        return;
+    }
+
+    rename($workspace, $archive);
+}
 
 # Create an editable version of a file in the archive.
 sub copyToWorkspace(IO::Path $source) returns Nil is export {
@@ -83,6 +96,11 @@ sub findWorkspace(IO::Path $file) is export {
 # Create the editing workspace for a given file.
 sub createWorkspace(IO::Path $file) is export {
     my $workspace = findWorkspace($file);
+    my $archive = $workspace.extension('archive');
+
+    if ($archive ~~ :d) {
+        rename($archive, $workspace);
+    }
 
     $workspace.mkdir unless $workspace ~~ :d;
 
@@ -161,4 +179,10 @@ sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
 sub testPathExistsInWorkspace(IO::Path $file) is export {
     return if $file.parent.basename.ends-with('workspace');
     die ImageArchive::Exception::PathNotFoundInWorkspace.new;
+}
+
+# See if a path refers to a workspace diretory.
+sub testPathIsWorkspace(IO::Path $path) is export {
+    return if $path.extension eq 'workspace';
+    die ImageArchive::Exception::NotAWorkspace.new;
 }

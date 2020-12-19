@@ -142,6 +142,9 @@ multi sub MAIN('promote', Str $file, Bool :$dryrun) {
 
     workspaceExport($target, $dryrun);
 
+    my $workspace = $target.parent;
+    closeWorkspace($workspace, $dryrun);
+
     CATCH {
         when ImageArchive::Exception::PathNotFoundInWorkspace {
             note colored($_.message, 'red');
