@@ -266,23 +266,16 @@ sub untagKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
 }
 
 # Remove a tag completely regardless of its value.
-multi sub untagAlias(IO $file, Str $alias, Bool $dryRun = False) is export {
+multi sub untagAlias(IO $file, Str $alias, Str $value?, Bool $dryRun = False) is export {
     testAliases($alias.list);
 
     my %aliases = readConfig('aliases');
     my $formalTag = %aliases{$alias};
 
-    commitTags($file, "-{$formalTag}=".list, $dryRun);
+    my $argument = "-{$formalTag}=";
+    if ($value) {
+        $argument = "-{$formalTag}-={$value}"
+    }
 
-}
-
-# Remove a tag value form one file.
-sub untagValue(IO $file, Str $alias, Str $value, Bool $dryRun = False) is export {
-    testAliases($alias.list);
-
-    my %aliases = readConfig('aliases');
-
-    my $formalTag = %aliases{$alias};
-
-    commitTags($file, "-{$formalTag}-={$value}".list, $dryRun);
+    commitTags($file, $argument.list, $dryRun);
 }

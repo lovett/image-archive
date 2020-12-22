@@ -14,7 +14,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2020.11.13";
+our Str constant SCRIPT_VERSION = "2020.12.22";
 
 proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
@@ -379,22 +379,22 @@ multi sub MAIN('tag', Str $index, Bool :$dryrun = False, *@keywords) {
     }
 }
 
-#| Remove tags by alias.
-multi sub MAIN('untag:alias', Str $file where *.IO.f, Str $alias, Bool :$dryrun = False, ) {
-    untagAlias($file.IO, $alias, $dryrun);
+#| Remove tags by alias or value.
+multi sub MAIN('untag:alias', Str $file where *.IO.f, Str $alias, Str $value?, Bool :$dryrun = False, ) {
+    untagAlias($file.IO, $alias, $value, $dryrun);
 
     if (isArchiveFile($file.IO)) {
         indexFile($file.IO);
     }
 }
 
-#| Remove tags by alias using search indexes.
-multi sub MAIN('untag:alias', Str $index, Str $alias, Bool :$dryrun = False) {
+#| Remove tags by alias or value using search indexes.
+multi sub MAIN('untag:alias', Str $index, Str $alias, Str $value?, Bool :$dryrun = False) {
     my @records = findByStashIndex($index);
 
     for @records -> $record {
         my $path = findFile($record[0]);
-        untagAlias($path, $alias, $dryrun);
+        untagAlias($path, $alias, $value, $dryrun);
 
         if (isArchiveFile($path)) {
             indexFile($path);
@@ -402,9 +402,9 @@ multi sub MAIN('untag:alias', Str $index, Str $alias, Bool :$dryrun = False) {
     }
 }
 
-#| Remove tags by alias in all files.
-multi sub MAIN('untag:alias', 'allfiles', Str $alias, Bool :$dryrun = False) {
-    archiveUntagAlias($alias, $dryrun);
+#| Remove tags by alias or value in all files.
+multi sub MAIN('untag:alias', 'allfiles', Str $alias, Str $value?, Bool :$dryrun = False) {
+    archiveUntagAlias($alias, $value, $dryrun);
 }
 
 #| Remove tags by keyword.
@@ -429,30 +429,6 @@ multi sub MAIN('untag:keyword', Str $index, Str $keyword, Bool :$dryrun = False)
 #| Remove a tag by value in all files.
 multi sub MAIN('untag:keyword', 'allfiles', Str $keyword, Bool :$dryrun = False) {
     archiveUntagKeyword($keyword, $dryrun);
-}
-
-#| Remove a tag by value.
-multi sub MAIN('untag:value', Str $file where *.IO.f, Str $alias, Str $value, Bool :$dryrun = False) {
-    untagValue($file.IO, $alias, $value, $dryrun);
-}
-
-#| Remove a tag by value using search indexes.
-multi sub MAIN('untag:value', Str $index, Str $alias, Str $value, Bool :$dryrun = False) {
-    my @records = findByStashIndex($index);
-
-    for @records -> $record {
-        my $path = findFile($record[0]);
-        untagValue($path, $alias, $value, $dryrun);
-
-        if (isArchiveFile($path)) {
-            indexFile($path);
-        }
-    }
-}
-
-#| Remove a tag by value in all files.
-multi sub MAIN('untag:value', 'allfiles', Str $alias, Str $value, Bool :$dryrun = False) {
-    archiveUntagValue($alias, $value, $dryrun);
 }
 
 #| Display a file.
