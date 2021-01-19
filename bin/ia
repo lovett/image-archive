@@ -14,7 +14,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2020.12.22";
+our Str constant SCRIPT_VERSION = "2021.01.18";
 
 proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
@@ -289,16 +289,20 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
 
 #| Display a file's tags.
 multi sub MAIN('show', Str $file where *.IO.f) {
-    say readTags($file.IO);
+    my %aliases = readConfig('aliases');
+
+    say readTags($file.IO, %aliases.values);
 }
 
 #| Display tags using search indexes.
 multi sub MAIN('show', $indexes) {
     my @records = findByStashIndex($indexes);
 
+    my %aliases = readConfig('aliases');
+
     for @records -> $record {
         my $file = findFile($record[0]);
-        say readTags($file);
+        say readTags($file, %aliases.values);
     }
 }
 

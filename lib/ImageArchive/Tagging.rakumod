@@ -65,9 +65,11 @@ sub readRawTag(IO $file, $tag) is export {
     return chomp($out);
 }
 
-# Extract all tags from a file.
-sub readTags(IO::Path $file) is export {
-    my $proc = run <exiftool -G -x ICC_Profile:all -x MPF:all>, $file.Str, :out, :err;
+# Extract tags from a file in a human-readable format.
+sub readTags(IO::Path $file, @tags) is export {
+    my @tagArguments = @tags.map({ '-' ~ $_});
+
+    my $proc = run <exiftool -G -l>, @tagArguments, $file.Str, :out, :err;
     my $err = $proc.err.slurp(:close);
     my $out = $proc.out.slurp(:close);
 
