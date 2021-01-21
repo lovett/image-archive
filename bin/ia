@@ -14,7 +14,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.01.18";
+our Str constant SCRIPT_VERSION = "2021.01.19";
 
 proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
@@ -435,18 +435,32 @@ multi sub MAIN('untag:keyword', 'allfiles', Str $keyword, Bool :$dryrun = False)
     archiveUntagKeyword($keyword, $dryrun);
 }
 
-#| Display a file.
+#| Display a file using an alternate.
 multi sub MAIN('view', Str $file where *.IO.f) {
+    my @altSizes = readConfig('alt_sizes').split(' ');
+    my $path = relativePath($file);
+    my @targets = findAlternate($path, @altSizes.first);
+    viewFiles(@targets);
+}
+
+#| Display one or more files by searchin index using altnerates.
+multi sub MAIN('view', $index) {
+    my @records = findByStashIndex($index);
+    my @altSizes = readConfig('alt_sizes').split(' ');
+    my @targets = @records.map({ findAlternate($_[0], @altSizes.first) });
+    viewFiles(@targets);
+}
+
+#| Display an original file.
+multi sub MAIN('view:original', Str $file where *.IO.f) {
     my @targets = findFile($file);
     viewFiles(@targets);
 }
 
-# Display files by search index.
-multi sub MAIN('view', $index) {
+#| Display one or more originals by search index.
+multi sub MAIN('view:original', $index) {
     my @records = findByStashIndex($index);
-
     my @targets = @records.map({ findFile($_[0]) });
-
     viewFiles(@targets);
 }
 
@@ -459,7 +473,7 @@ multi sub MAIN('workon', Str $file where *.IO.f) {
     editWorkspaceLog($target);
 }
 
-# Set up an editing workspace by search index.
+#| Set up an editing workspace by search index.
 multi sub MAIN('workon', $index) {
     my @records = findByStashIndex($index);
 

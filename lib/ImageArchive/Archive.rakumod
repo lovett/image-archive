@@ -132,6 +132,20 @@ sub findFile(Str $path) is export {
     return $target;
 }
 
+# Resolve a path to an alternate.
+sub findAlternate(Str $path, Str $size) is export {
+    my $thumbnailExtension = readConfig('alt_format');
+    my $cacheRoot = getPath('cache');
+
+    my $target = $cacheRoot.add("$size/$path").extension($thumbnailExtension).IO;
+
+    unless ($target ~~ :f) {
+        generateAlts(findFile($path));
+    }
+
+    return $target;
+}
+
 # Locate files that are not in the database.
 sub findUnindexed() returns Supply is export {
     my $archiveRoot = getPath('root');
