@@ -464,6 +464,20 @@ multi sub MAIN('view:original', $index) {
     viewFiles(@targets);
 }
 
+#| Set up an editing workspace for the last imported file.
+multi sub MAIN('workon', 'lastimport') {
+    my @targets = findByNewestImport();
+
+    unless @targets {
+        die 'Nothing found.';
+    }
+
+    my $target = findFile(@targets.first<path>);
+
+    copyToWorkspace($target);
+    editWorkspaceLog($target);
+}
+
 #| Set up an editing workspace.
 multi sub MAIN('workon', Str $file where *.IO.f) {
     my $target = findFile($file);

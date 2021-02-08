@@ -203,6 +203,26 @@ sub openDatabase() is export {
     return $dbh;
 }
 
+# Locate archive paths by most-recently-imported..
+sub findByNewestImport(Int $limit = 1) is export {
+    my $query = qq:to/SQL/;
+    SELECT json_extract(a.tags, '\$.SourceFile') as path
+    FROM archive a
+    ORDER BY a.rowid DESC
+    LIMIT ?
+    SQL
+
+    my $dbh = openDatabase();
+    my $sth = $dbh.execute($query, $limit);
+
+    my $root = getPath('root');
+    return gather {
+        for $sth.allrows(:array-of-hash) -> $row {
+            take $row;
+        }
+    }
+}
+
 # Locate archive paths by index from a previous search.
 sub findByStashIndex(Str $query, @tags=(), Bool $debug = False) is export {
     my $stashKey = 'searchresult';
