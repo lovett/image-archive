@@ -21,5 +21,6 @@ sub extractRgbTriple($string) is export {
     my regex float { <[\d.]>+ }
     $string ~~ / srgba?\( \s* $<r> = (<float>) <separator>  $<g> = (<float>) <separator>  $<b> = (<float>)/;
 
+    return (0,0,0) unless $/;
     return (~$<r>, ~$<g>, ~$<b>).map({ .Int });
 }

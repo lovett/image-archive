@@ -14,7 +14,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.02.07";
+our Str constant SCRIPT_VERSION = "2021.02.08";
 
 proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
