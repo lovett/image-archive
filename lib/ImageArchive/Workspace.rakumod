@@ -13,10 +13,20 @@ enum WorkspaceState is export <Closed Opened>;
 sub addWorkspaceLog(IO::Path $dir) returns Nil {
     my $log = $dir.add('history.org');
 
+
     unless $log.f {
+        my $dayNames = <Sun Mon Tue Wed Thu Fri Sat Sun>;
         my $template = %?RESOURCES<history.org>.IO.slurp;
         $template = $template.subst('@@WORKSPACE@@', relativePath($dir));
-        $template = $template.subst('@@DATE@@', Date.today.yyyy-mm-dd);
+
+        $template = $template.subst(
+            '@@DATE@@',
+            Date.today(
+                formatter => {
+                    sprintf("%04d-%02d-%02d %s", .year, .month, .day, $dayNames[.day-of-week]);
+                }
+            )
+        );
         spurt $log, $template;
     }
 
