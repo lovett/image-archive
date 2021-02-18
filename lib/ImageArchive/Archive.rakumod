@@ -219,7 +219,7 @@ multi sub generateAlts(Bool $dryRun? = False) returns Nil is export {
 }
 
 # Move a file to a subfolder under the archive root.
-sub importFile(IO $file, Bool $dryRun? = False) is export {
+sub importFile(IO $file, Bool $dryRun? = False) returns IO::Path is export {
     my $root = getPath('root');
 
     my $tagValue = readRawTag($file.IO, 'datecreated') || 'undated';
@@ -240,16 +240,20 @@ sub importFile(IO $file, Bool $dryRun? = False) is export {
 
     my $newPath = $destination.add($file.basename);
 
+    if ($newPath eq $file) {
+        return Nil;
+    }
+
     if ($dryRun) {
         wouldHaveDone("Move {$file} to {$newPath}");
-        return;
+        return Nil;
     }
 
     move($file, $newPath);
     $newPath.IO.chmod(0o400);
     indexFile($newPath);
     generateAlts($newPath);
-    say "Imported as {$newPath}";
+    return $newPath;
 }
 
 sub isArchiveFile(IO $path) returns Bool is export {

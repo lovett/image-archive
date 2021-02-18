@@ -133,7 +133,8 @@ multi sub MAIN('history', Str $workspace where *.IO.d) {
 
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
-    importFile($file.IO, $dryrun);
+    my $importedFile = importFile($file.IO, $dryrun);
+    say "Imported as {$importedFile}";
 }
 
 #| Replace an archive file with a workspace file.
@@ -185,7 +186,12 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     tagFile($file.IO, %tags, $dryrun);
 
     if (isArchiveFile($file.IO)) {
-        indexFile($file.IO);
+        my $importedFile = importFile($file.IO);
+        if ($importedFile) {
+            say "Relocated to {$importedFile}";
+        } else {
+            indexFile($file.IO);
+        }
     }
 }
 
@@ -197,7 +203,13 @@ multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
         my $path = findFile($record[0]);
         my %tags = askQuestions();
         tagFile($path, %tags, $dryrun);
-        indexFile($path);
+
+        my $importedFile = importFile($path);
+        if ($importedFile) {
+            say "Relocated to {$importedFile}";
+        } else {
+            indexFile($path);
+        }
     }
 }
 
@@ -356,7 +368,8 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
     }
 
     confirm('Tags written. Import to archive?');
-    importFile($file.IO, $dryrun);
+    my $importedFile = importFile($file.IO, $dryrun);
+    say "Imported as {$importedFile}";
 
     CATCH {
         when ImageArchive::Exception::MissingContext {
