@@ -137,27 +137,20 @@ multi sub MAIN('deport', Str $index, Bool :$dryrun) {
     }
 }
 
-#| View an archive file's workspace history.
+#| Display a file's history log.
 multi sub MAIN('history', Str $file where *.IO.f) {
-    my $workspace = findWorkspace($file.IO);
+    my $target = findFile($file);
+    .say for catWorkspaceLog($target);
+}
 
-    unless ($workspace ~~ :d) {
-        die "No workspace found for this file."
+#| Display history logs using search indexes.
+multi sub MAIN('history', Str $index) {
+    my @records = findByStashIndex($index);
+
+    for @records -> $record {
+        my $target = findFile($record[0]);
+        .say for catWorkspaceLog($target);
     }
-
-    my $log = findWorkspaceLog($workspace);
-
-    unless ($log ~~ :f) {
-        die "No log found.";
-    }
-
-    for $log.lines -> $line {
-        next unless $line.trim;
-        next if $line.starts-with('#');
-        say $line.subst(/\*+\s/, "");
-        print "\n" if $line.starts-with('*');
-    }
-    say "";
 }
 
 #| Bring a file into the archive.

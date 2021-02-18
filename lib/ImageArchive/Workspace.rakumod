@@ -32,6 +32,22 @@ sub addWorkspaceLog(IO::Path $dir) returns Nil {
     return Nil;
 }
 
+# Print the contents of a workspace log to stdout.
+sub catWorkspaceLog(IO::Path $file) returns Supply is export {
+    my $workspace = findWorkspace($file);
+
+    my $log = findWorkspaceLog($workspace);
+
+    return unless ($log ~~ :f);
+
+    supply for $log.lines -> $line {
+        next unless $line.trim;
+        next if $line.starts-with('#');
+        $line.subst(/\*+\s/, "").emit;
+        "\n".emit if $line.starts-with('*');
+    }
+}
+
 # Convert an opened workspace to a closed workspace
 sub closeWorkspace(IO::Path $workspace, Bool $dryRun? = False) returns Nil is export {
     testPathIsWorkspace($workspace);
