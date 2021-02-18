@@ -265,6 +265,24 @@ sub isArchiveFile(IO $path) returns Bool is export {
     return $target.absolute.starts-with($root);
 }
 
+# Delete empty directories down-treefrom the starting point.
+sub pruneEmptyDirsDownward(IO::Path $origin) is export {
+    for walkArchiveDirs($origin) -> $dir {
+        rmdir($dir) unless ($dir.dir);
+    }
+}
+
+# Delete empty directories up-tree from the starting point.
+sub pruneEmptyDirsUpward(IO::Path $origin) is export {
+    my $root = getPath('root');
+
+    rmdir($origin) unless ($origin.dir);
+
+    if ($origin.starts-with($root)) {
+        pruneEmptyDirsUpward($origin.parent);
+    }
+}
+
 # See if a file exists within the archive root.
 sub testPathExistsInArchive(IO $file) is export {
     my $root = getPath('root');
@@ -297,6 +315,17 @@ multi sub walkArchive(IO::Path $origin, Regex $matcher) returns Supply is export
         when :d { .emit for walkArchive($_, $matcher) }
     }
 }
+
+# List the directories in the archive.
+sub walkArchiveDirs(IO::Path $origin) returns Supply is export {
+    supply for ($origin.dir) {
+        when :d {
+            .emit for walkArchiveDirs($_);
+            .emit;
+        }
+    }
+}
+
 
 # Display files in an external application.
 sub viewFiles(@paths) is export {

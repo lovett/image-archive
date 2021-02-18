@@ -14,7 +14,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.02.08";
+our Str constant SCRIPT_VERSION = "2021.02.18";
 
 proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
@@ -29,6 +29,12 @@ proto MAIN(|) {
 #| Generate alternate image sizes.
 multi sub MAIN('alts', Bool :$dryrun) {
     generateAlts($dryrun);
+}
+
+#| Remove empty subdirectories in the archive.
+multi sub MAIN('cleanup') {
+    my $root = getPath('root');
+    pruneEmptyDirsDownward($root);
 }
 
 #| The average color of a file.
@@ -101,6 +107,7 @@ multi sub MAIN('dbshell') {
 
 #| Taka a file out of the archive.
 multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
+    my $root = getPath('root');
     my $target = findFile($file);
 
     deportFile($target, $*CWD.IO, $dryrun);
@@ -109,6 +116,8 @@ multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
     if ($workspace ~~ :d) {
         deportWorkspace($workspace, $*CWD.IO, $dryrun);
     }
+
+    pruneEmptyDirsUpward($target.parent);
 }
 
 #| Take a file out of the archive using search indexes.
@@ -123,6 +132,8 @@ multi sub MAIN('deport', Str $index, Bool :$dryrun) {
         if ($workspace ~~ :d) {
             deportWorkspace($workspace, $*CWD.IO, $dryrun);
         }
+
+        pruneEmptyDirsUpward($file.parent);
     }
 }
 
@@ -189,6 +200,7 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
         my $importedFile = importFile($file.IO);
         if ($importedFile) {
             say "Relocated to {$importedFile}";
+            pruneEmptyDirsUpward($file.parent);
         } else {
             indexFile($file.IO);
         }
@@ -207,6 +219,7 @@ multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
         my $importedFile = importFile($path);
         if ($importedFile) {
             say "Relocated to {$importedFile}";
+            pruneEmptyDirsUpward($path.parent);
         } else {
             indexFile($path);
         }

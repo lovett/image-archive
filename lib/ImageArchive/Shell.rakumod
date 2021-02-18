@@ -6,6 +6,7 @@ use ImageArchive::Exception;
 # A mapping between commands and the kinds of arguments they accept.
 our %commands = %(
     'alts' => Nil,
+    'cleanup' => Nil,
     'completion' => Nil,
     'color' => <file>,
     'count' => Nil,
