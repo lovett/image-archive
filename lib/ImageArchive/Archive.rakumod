@@ -104,7 +104,7 @@ sub deportFile(IO::Path $file, IO $destinationDir, Bool $dryRun? = False) is exp
     my $destinationPath = $destinationDir.add($file.basename);
 
     if ($destinationPath ~~ :f) {
-        die ImageArchive::Exception::DeportConflict.new(:path($destinationPath));
+        die ImageArchive::Exception::PathConflict.new(:path($destinationPath));
     }
 
     if ($dryRun) {

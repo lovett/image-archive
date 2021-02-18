@@ -16,15 +16,15 @@ use ImageArchive::Workspace;
 
 our Str constant SCRIPT_VERSION = "2021.02.18";
 
-proto MAIN(|) {
-    # Suppress backtrace. Taken from zef's CLI.pm6.
-    CATCH {
-        default {
-            try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
-        }
-    }
-    {*}
-}
+# proto MAIN(|) {
+#     # Suppress backtrace. Taken from zef's CLI.pm6.
+#     CATCH {
+#         default {
+#             try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
+#         }
+#     }
+#     {*}
+# }
 
 #| Generate alternate image sizes.
 multi sub MAIN('alts', Bool :$dryrun) {
@@ -114,7 +114,7 @@ multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
 
     my $workspace = findWorkspace($target);
     if ($workspace ~~ :d) {
-        deportWorkspace($workspace, $*CWD.IO, $dryrun);
+        moveWorkspace($workspace, $*CWD.IO, $dryrun);
     }
 
     pruneEmptyDirsUpward($target.parent);
@@ -130,7 +130,7 @@ multi sub MAIN('deport', Str $index, Bool :$dryrun) {
 
         my $workspace = findWorkspace($file);
         if ($workspace ~~ :d) {
-            deportWorkspace($workspace, $*CWD.IO, $dryrun);
+            moveWorkspace($workspace, $*CWD.IO, $dryrun);
         }
 
         pruneEmptyDirsUpward($file.parent);
@@ -196,11 +196,19 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     my %tags = askQuestions();
     tagFile($file.IO, %tags, $dryrun);
 
+    return if $dryrun;
+
     if (isArchiveFile($file.IO)) {
         my $importedFile = importFile($file.IO);
         if ($importedFile) {
             say "Relocated to {$importedFile}";
-            pruneEmptyDirsUpward($file.parent);
+
+            my $workspace = findWorkspace($file.IO);
+            if ($workspace ~~ :d) {
+                moveWorkspace($workspace, $importedFile.parent);
+
+            }
+            pruneEmptyDirsUpward($file.IO.parent);
         } else {
             indexFile($file.IO);
         }
@@ -216,10 +224,17 @@ multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
         my %tags = askQuestions();
         tagFile($path, %tags, $dryrun);
 
+        return if $dryrun;
+
         my $importedFile = importFile($path);
         if ($importedFile) {
             say "Relocated to {$importedFile}";
-            pruneEmptyDirsUpward($path.parent);
+
+            my $workspace = findWorkspace($path);
+            if ($workspace ~~ :d) {
+                moveWorkspace($workspace, $importedFile.parent);
+            }
+           pruneEmptyDirsUpward($path.parent);
         } else {
             indexFile($path);
         }

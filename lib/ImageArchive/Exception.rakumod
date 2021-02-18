@@ -53,8 +53,8 @@ class ImageArchive::Exception::FileExists is Exception is export {
     }
 }
 
-# A path slated for deport clases with an existing path.
-class ImageArchive::Exception::DeportConflict is Exception is export {
+# A path slated clashes with an existing path.
+class ImageArchive::Exception::PathConflict is Exception is export {
     has IO::Path $.path;
     method message {
         "{$!path} already exists";

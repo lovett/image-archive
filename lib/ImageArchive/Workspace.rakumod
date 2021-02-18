@@ -11,8 +11,7 @@ enum WorkspaceState is export <Closed Opened>;
 
 # Add a text file to a workspace for capturing notes and progress.
 sub addWorkspaceLog(IO::Path $dir) returns Nil {
-    my $log = $dir.add('history.org');
-
+    my $log = findWorkspaceLog($dir);
 
     unless $log.f {
         my $dayNames = <Sun Mon Tue Wed Thu Fri Sat Sun>;
@@ -86,7 +85,7 @@ sub copyToWorkspace(IO::Path $source) returns Nil is export {
 # Open history.org in an editor.
 sub editWorkspaceLog(IO::Path $file) is export {
     my $workspace = findWorkspace($file);
-    my $log = $workspace.add("history.org");
+    my $log = findWorkspaceLog($workspace);
 
     testPathExistsInWorkspace($log);
 
@@ -95,6 +94,11 @@ sub editWorkspaceLog(IO::Path $file) is export {
     }
 
     shell "{%*ENV<EDITOR>} {$log}";
+}
+
+# The history file within a given workspace.
+sub findWorkspaceLog(IO::Path $workspace) returns IO::Path is export {
+    return $workspace.add("history.org");
 }
 
 # Locate the editing workspace for a given file.
@@ -119,12 +123,12 @@ sub openWorkspace(IO::Path $file) is export {
     return $workspace;
 }
 
-# Remove a workspace from the archive.
-sub deportWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is export {
+# Transfer a workspace to a new location within or outside the archive.
+sub moveWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is export {
     my $destinationPath = $destinationDir.add($dir.basename);
 
     if ($destinationPath.IO ~~ :d) {
-        die ImageArchive::Exception::DeportConflict.new(:path($destinationPath));
+        die ImageArchive::Exception::PathConflict.new(:path($destinationPath));
     }
 
     if ($dryRun) {
@@ -133,6 +137,22 @@ sub deportWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is
     }
 
     rename($dir, $destinationPath);
+
+    my $log = findWorkspaceLog($destinationPath);
+
+    if ($log) {
+        my $originalRelativePath = relativePath($dir);
+        my $destinationRelativePath = relativePath($destinationPath);
+
+        my $tmp = open $log ~ '.tmp', :w;
+
+        for $log.lines -> $line {
+            $tmp.say: $line.subst($originalRelativePath, $destinationRelativePath);
+        }
+
+        $tmp.close;
+        rename($tmp, $log);
+    }
 }
 
 # Locate the file associated with the workspace.
