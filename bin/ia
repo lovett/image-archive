@@ -16,15 +16,15 @@ use ImageArchive::Workspace;
 
 our Str constant SCRIPT_VERSION = "2021.02.18";
 
-# proto MAIN(|) {
-#     # Suppress backtrace. Taken from zef's CLI.pm6.
-#     CATCH {
-#         default {
-#             try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
-#         }
-#     }
-#     {*}
-# }
+proto MAIN(|) {
+    # Suppress backtrace. Taken from zef's CLI.pm6.
+    CATCH {
+        default {
+            try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
+        }
+    }
+    {*}
+}
 
 #| Generate alternate image sizes.
 multi sub MAIN('alts', Bool :$dryrun) {
@@ -137,9 +137,27 @@ multi sub MAIN('deport', Str $index, Bool :$dryrun) {
     }
 }
 
-#| Edit an archive file's changelog.
-multi sub MAIN('history', Str $workspace where *.IO.d) {
-    editWorkspaceLog($workspace.IO);
+#| View an archive file's workspace history.
+multi sub MAIN('history', Str $file where *.IO.f) {
+    my $workspace = findWorkspace($file.IO);
+
+    unless ($workspace ~~ :d) {
+        die "No workspace found for this file."
+    }
+
+    my $log = findWorkspaceLog($workspace);
+
+    unless ($log ~~ :f) {
+        die "No log found.";
+    }
+
+    for $log.lines -> $line {
+        next unless $line.trim;
+        next if $line.starts-with('#');
+        say $line.subst(/\*+\s/, "");
+        print "\n" if $line.starts-with('*');
+    }
+    say "";
 }
 
 #| Bring a file into the archive.
@@ -206,7 +224,6 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
             my $workspace = findWorkspace($file.IO);
             if ($workspace ~~ :d) {
                 moveWorkspace($workspace, $importedFile.parent);
-
             }
             pruneEmptyDirsUpward($file.IO.parent);
         } else {
