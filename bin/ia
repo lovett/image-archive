@@ -252,7 +252,7 @@ multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
 }
 
 #| Find recently-imported files.
-multi sub MAIN('search', 'recent', Int $limit = 10) {
+multi sub MAIN('search:recent', Int $limit = 10) {
     my $counter = 0;
     for findNewest($limit, 'searchresult') -> $result {
         my $index = sprintf("%3d", ++$counter);
@@ -561,7 +561,7 @@ multi sub MAIN('view:original', $index) {
 }
 
 #| Set up an editing workspace for the last imported file.
-multi sub MAIN('workon', 'lastimport') {
+multi sub MAIN('workon:lastimport') {
     my @targets = findByNewestImport();
 
     unless @targets {
