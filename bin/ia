@@ -16,15 +16,15 @@ use ImageArchive::Workspace;
 
 our Str constant SCRIPT_VERSION = "2021.02.18";
 
-proto MAIN(|) {
-    # Suppress backtrace. Taken from zef's CLI.pm6.
-    CATCH {
-        default {
-            try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
-        }
-    }
-    {*}
-}
+# proto MAIN(|) {
+#     # Suppress backtrace. Taken from zef's CLI.pm6.
+#     CATCH {
+#         default {
+#             try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
+#         }
+#     }
+#     {*}
+# }
 
 #| Generate alternate image sizes.
 multi sub MAIN('alts', Bool :$dryrun) {
@@ -250,6 +250,27 @@ multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
         }
     }
 }
+
+#| Find recently-imported files.
+multi sub MAIN('search', 'recent', Int $limit = 10) {
+    my $counter = 0;
+    for findNewest($limit, 'searchresult') -> $result {
+        my $index = sprintf("%3d", ++$counter);
+        my $series = sprintf('%s-%03d', $result<series>, $result<seriesid>);
+
+        printf(
+            "%s | %15s | %s\n",
+            colored($index, 'white on_blue'),
+            $series,
+            $result<path>
+        );
+    }
+
+    unless ($counter) {
+        note 'No matches.';
+    }
+}
+
 
 #| Find files by tag.
 multi sub MAIN('search', Bool :$debug = False, *@terms) {

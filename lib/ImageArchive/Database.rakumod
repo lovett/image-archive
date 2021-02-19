@@ -335,6 +335,39 @@ sub findBySimilarColor(@rgb, Str $key) is export {
     }
 }
 
+sub findNewest(Int $limit, Str $key) is export {
+    my $dbh = openDatabase();
+
+    clearStashByKey($key);
+
+    my $sth = $dbh.prepare(q:to/SQL/);
+    INSERT INTO stash (key, archive_id)
+    SELECT ?, a.rowid
+    FROM archive a
+    ORDER BY a.id DESC LIMIT ?
+    SQL
+
+    $sth.execute($key, $limit.Str);
+
+    my $stashQuery = qq:to/SQL/;
+    SELECT json_extract(a.tags, '\$.SourceFile') as path,
+    IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
+    CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid
+    FROM archive a, stash s
+    WHERE a.id=s.archive_id AND s.key='{$key}'
+    ORDER BY s.rowid
+    SQL
+
+    $sth = $dbh.execute($stashQuery);
+
+    my $root = getPath('root');
+    return gather {
+        for $sth.allrows(:array-of-hash) -> $row {
+            take $row;
+        }
+    }
+}
+
 # Locate archive paths by fulltext search
 sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
     my $parserActions = SearchActions.new(
