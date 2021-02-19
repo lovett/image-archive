@@ -257,7 +257,7 @@ multi sub MAIN('search', Bool :$debug = False, *@terms) {
     my $query = @terms.join(' ');
 
     my $counter = 0;
-    for findByTag($query, $debug) -> $result {
+    for findByTag($query, 'searchresult', $debug) -> $result {
         my $index = sprintf("%3d", ++$counter);
         my $series = sprintf('%s-%03d', $result<series>, $result<seriesid>);
 
@@ -506,6 +506,30 @@ multi sub MAIN('view', $index) {
 multi sub MAIN('view:original', Str $file where *.IO.f) {
     my @targets = findFile($file);
     viewFiles(@targets);
+}
+
+#| Navigate to an archive file.
+multi sub MAIN('visit', Str $file where *.IO.f) {
+    unless (isArchiveFile($file.IO)) {
+        die ImageArchive::Exception::PathNotFoundInArchive.new;
+    }
+
+    viewFiles($file.IO.parent);
+}
+
+#| Navigate to an archive file by search index.
+multi sub MAIN('visit', $index) {
+    my @records = findByStashIndex($index, 'searchresult');
+    my @targets = @records.map({ findFile($_[0]).parent });
+    viewFiles(@targets);
+}
+
+#| Navigate to a workspace by index.
+multi sub MAIN('visit:workspace', Str $index) {
+    my @records = findByStashIndex($index, 'workspace');
+    my @targets = @records.map({ findFile($_[0] ) });
+    my @workspaces = @targets.map({ findWorkspace($_) });
+    viewFiles(@workspaces);
 }
 
 #| Display one or more originals by search index.
