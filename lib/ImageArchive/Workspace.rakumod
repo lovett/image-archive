@@ -172,7 +172,7 @@ sub moveWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is e
 }
 
 # Locate the file associated with the workspace.
-sub findWorkspaceMaster(IO::Path $workspace) {
+sub findWorkspaceMaster(IO::Path $workspace) is export {
 
     my $workspaceBasename = $workspace.extension('').basename;
 
@@ -193,7 +193,12 @@ sub walkWorkspaces(IO::Path $origin, WorkspaceState $state) is export {
 
     supply for ($origin.dir.sort) {
         next when :f;
-        when .extension eq $extension { .emit }
+        when .extension eq $extension {
+            my $master = findWorkspaceMaster($_);
+            my $relativeMaster = relativePath($master);
+            stashWorkspace($relativeMaster);
+            .emit;
+        }
         when :d { .emit for walkWorkspaces($_, $state) }
     }
 }

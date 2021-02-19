@@ -45,7 +45,7 @@ multi sub MAIN('color', Str $file where *.IO.f) {
 
 #| The average color of files using search indexes.
 multi sub MAIN('color', Str $index) {
-    my @records = findByStashIndex($index, 'AverageRGB'.List);
+    my @records = findByStashIndex($index, 'searchresult', 'AverageRGB'.List);
 
     for @records -> $record {
         printf(
@@ -122,7 +122,7 @@ multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
 
 #| Take a file out of the archive using search indexes.
 multi sub MAIN('deport', Str $index, Bool :$dryrun) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
 
     for @records -> $record {
         my $file = findFile($record[0]);
@@ -145,7 +145,7 @@ multi sub MAIN('history', Str $file where *.IO.f) {
 
 #| Display history logs using search indexes.
 multi sub MAIN('history', Str $index) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
 
     for @records -> $record {
         my $target = findFile($record[0]);
@@ -191,7 +191,7 @@ multi sub MAIN('reindex') {
 
 #| Re-add imported files to the database using search index.
 multi sub MAIN('reindex', Str $index) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
 
     for @records -> $record {
         my $path = findFile($record[0]);
@@ -227,7 +227,7 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
 
 #| Redo question-and-answer tagging using search indexes.
 multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
 
     for @records -> $record {
         my $path = findFile($record[0]);
@@ -291,7 +291,7 @@ multi sub MAIN('search:color', Str $file where *.IO.f) {
     my @rgb = getAverageColor($file.IO);
 
     my $counter = 0;
-    for findBySimilarColor(@rgb) -> $result {
+    for findBySimilarColor(@rgb, 'searchresult') -> $result {
         my $index = sprintf("%3d", ++$counter);
         my $score = sprintf("%2.2f", $result<score>);
 
@@ -346,7 +346,7 @@ multi sub MAIN('show', Str $file where *.IO.f) {
 
 #| Display tags using search indexes.
 multi sub MAIN('show', $indexes) {
-    my @records = findByStashIndex($indexes);
+    my @records = findByStashIndex($indexes, 'searchresult');
 
     my %aliases = readConfig('aliases');
 
@@ -359,7 +359,7 @@ multi sub MAIN('show', $indexes) {
 #| Redisplay the results of the previous search.
 multi sub MAIN('show:search') {
     my $counter = 0;
-    for dumpStash() -> $result {
+    for dumpStash('searchresult') -> $result {
         my $index = sprintf("%3d", ++$counter);
         my $series = sprintf('%s-%03d', $result<series>, $result<seriesid>);
 
@@ -420,7 +420,7 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
 
 #| Add tags using search indexes.
 multi sub MAIN('tag', Str $index, Bool :$dryrun = False, *@keywords) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
 
     my %tags = keywordsToTags(@keywords);
 
@@ -445,7 +445,7 @@ multi sub MAIN('untag:alias', Str $file where *.IO.f, Str $alias, Str $value?, B
 
 #| Remove tags by alias or value using search indexes.
 multi sub MAIN('untag:alias', Str $index, Str $alias, Str $value?, Bool :$dryrun = False) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
 
     for @records -> $record {
         my $path = findFile($record[0]);
@@ -469,7 +469,7 @@ multi sub MAIN('untag:keyword', Str $file where *.IO.f, Str $keyword, Bool :$dry
 
 #| Remove tags by keyword using search indexes.
 multi sub MAIN('untag:keyword', Str $index, Str $keyword, Bool :$dryrun = False) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
 
     for @records -> $record {
         my $path = findFile($record[0]);
@@ -496,7 +496,7 @@ multi sub MAIN('view', Str $file where *.IO.f) {
 
 #| Display one or more files by searchin index using altnerates.
 multi sub MAIN('view', $index) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
     my @altSizes = readConfig('alt_sizes').split(' ');
     my @targets = @records.map({ findAlternate($_[0], @altSizes.first) });
     viewFiles(@targets);
@@ -510,7 +510,7 @@ multi sub MAIN('view:original', Str $file where *.IO.f) {
 
 #| Display one or more originals by search index.
 multi sub MAIN('view:original', $index) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
     my @targets = @records.map({ findFile($_[0]) });
     viewFiles(@targets);
 }
@@ -540,13 +540,22 @@ multi sub MAIN('workon', Str $file where *.IO.f) {
 
 #| Set up an editing workspace by search index.
 multi sub MAIN('workon', $index) {
-    my @records = findByStashIndex($index);
+    my @records = findByStashIndex($index, 'searchresult');
 
     for @records -> $record {
         my $path = findFile($record[0]);
         copyToWorkspace($path.IO);
         editWorkspaceLog($path.IO);
+    }
+}
 
+#| Return to an editing workspace by workspace index.
+multi sub MAIN('workon:workspace', $index) {
+    my @records = findByStashIndex($index, 'workspace');
+
+    for @records -> $record {
+        my $workspace = findFile($record[0]);
+        editWorkspaceLog($workspace);
     }
 }
 
@@ -560,9 +569,17 @@ multi sub MAIN('workspaces', Str $year?, Bool :$archived) {
     my $state = ($archived) ?? Closed !! Opened;
 
     my $counter = 0;
+
+    clearStashByKey('workspace');
+
     for walkWorkspaces($origin, $state) -> $path {
-        $counter++;
-        say $path.Str;
+
+        my $index = sprintf("%5d", ++$counter);
+        printf(
+            "%s | %s\n",
+            colored($index, 'white on_blue'),
+            $path.Str
+        );
     }
 
     if ($counter == 0) {

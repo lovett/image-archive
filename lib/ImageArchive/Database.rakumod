@@ -10,6 +10,17 @@ use ImageArchive::Util;
 use ImageArchive::Grammar::Range;
 use ImageArchive::Grammar::Search;
 
+# Drop stash rows by key
+sub clearStashByKey(Str $key) is export {
+    my $dbh = openDatabase();
+
+    my $sth = $dbh.prepare(q:to/STATEMENT/);
+    DELETE FROM stash WHERE key=?
+    STATEMENT
+
+    $sth.execute($key);
+}
+
 # Tally of all records.
 sub countRecords() is export {
     my $dbh = openDatabase();
@@ -119,9 +130,7 @@ sub deindexFile(IO::Path $file) is export {
     $sth.execute($uuid);
 }
 
-sub dumpStash() is export {
-    my $stashKey = 'searchresult';
-
+sub dumpStash(Str $key) is export {
     my $stashQuery = qq:to/SQL/;
     SELECT * FROM (
         SELECT json_extract(a.tags, '\$.SourceFile') as path,
@@ -131,7 +140,7 @@ sub dumpStash() is export {
         OVER (ORDER BY s.id) as rownum
         FROM archive a, stash s
         WHERE a.id=s.archive_id
-        AND s.key='{$stashKey}'
+        AND s.key='{$key}'
     )
     SQL
 
@@ -224,9 +233,7 @@ sub findByNewestImport(Int $limit = 1) is export {
 }
 
 # Locate archive paths by index from a previous search.
-sub findByStashIndex(Str $query, @tags=(), Bool $debug = False) is export {
-    my $stashKey = 'searchresult';
-
+sub findByStashIndex(Str $query, Str $key, @tags=(), Bool $debug = False) is export {
     my $parserActions = RangeActions.new;
 
     my $parsedQuery = Range.parse(
@@ -246,9 +253,9 @@ sub findByStashIndex(Str $query, @tags=(), Bool $debug = False) is export {
     SELECT * FROM (
         SELECT {$selectSql}, row_number()
         OVER (ORDER BY s.id) as rownum
-        FROM archive a, stash s
-        WHERE a.id=s.archive_id
-        AND s.key='{$stashKey}'
+        FROM stash s, archive a
+        WHERE s.archive_id=a.id
+        AND s.key='{$key}'
     ) WHERE {$parsedQuery.made}
     SQL
 
@@ -277,10 +284,7 @@ sub findByStashIndex(Str $query, @tags=(), Bool $debug = False) is export {
 # loading is already enabled. Once that happens a standard DBIish
 # connection is used for followup queries that do not need the
 # extension.
-sub findBySimilarColor(@rgb) is export {
-
-    my $stashKey = 'searchresult';
-
+sub findBySimilarColor(@rgb, Str $key) is export {
     my $dbPath = getPath('database');
 
     my $proc = run 'sqlite3', $dbPath, :in, :err;
@@ -292,10 +296,10 @@ sub findBySimilarColor(@rgb) is export {
     $proc.in.say: qq:to/SQL/;
     .load {$extension} sqlite3_colordelta_init
 
-    DELETE FROM stash WHERE key='{$stashKey}';
+    DELETE FROM stash WHERE key='{$key}';
 
     INSERT INTO stash (key, score, archive_id)
-    SELECT '{$stashKey}',
+    SELECT '{$key}',
       colordelta('{@rgb.join(',')}', json_extract(tags, '\$.AverageRGB'))
         AS delta,
       archive.id
@@ -317,7 +321,7 @@ sub findBySimilarColor(@rgb) is export {
     my $stashQuery = qq:to/SQL/;
     SELECT json_extract(a.tags, '\$.SourceFile') as path, s.score
     FROM archive a, stash s
-    WHERE a.id=s.archive_id AND s.key='{$stashKey}'
+    WHERE a.id=s.archive_id AND s.key='{$key}'
     ORDER BY s.rowid
     SQL
 
@@ -332,9 +336,7 @@ sub findBySimilarColor(@rgb) is export {
 }
 
 # Locate archive paths by fulltext search
-sub findByTag(Str $query, Bool $debug = False) is export {
-    my $stashKey = 'searchresult';
-
+sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
     my $parserActions = SearchActions.new(
         filters => readConfig('filters')
     );
@@ -346,11 +348,11 @@ sub findByTag(Str $query, Bool $debug = False) is export {
 
     my $dbh = openDatabase();
 
-    $dbh.execute("DELETE FROM stash WHERE key='{$stashKey}'");
+    clearStashByKey($key);
 
     my $ftsQuery = qq:to/SQL/;
     INSERT INTO stash (key, archive_id)
-    SELECT '{$stashKey}', archive_fts.rowid
+    SELECT '{$key}', archive_fts.rowid
     FROM archive_fts
     JOIN archive ON archive_fts.rowid=archive.id
     WHERE {$parsedQuery.made<ftsClause>}
@@ -377,7 +379,7 @@ sub findByTag(Str $query, Bool $debug = False) is export {
     IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
     CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, stash s
-    WHERE a.id=s.archive_id AND s.key='{$stashKey}'
+    WHERE a.id=s.archive_id AND s.key='{$key}'
     ORDER BY s.rowid
     SQL
 
@@ -395,4 +397,17 @@ sub findByTag(Str $query, Bool $debug = False) is export {
             debug($stashQuery, 'stash query');
         }
     }
+}
+
+sub stashWorkspace(Str $relativePath) is export {
+    my $dbh = openDatabase();
+
+    state $sth = $dbh.prepare(qq:to/STATEMENT/);
+    INSERT INTO stash (key, archive_id)
+    SELECT 'workspace', a.id
+    FROM archive a
+    WHERE json_extract(a.tags, '\$.SourceFile') = ?
+    STATEMENT
+
+    $sth.execute($relativePath);
 }

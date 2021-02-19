@@ -29,6 +29,7 @@ our %commands = %(
     'untag:value' => <alias file>,
     'view' => <archivefile>,
     'workon' => <archivefile>,
+    'workon:workspace' => Nil,
     'workspaces' => Nil,
 );
 
