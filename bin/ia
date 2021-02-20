@@ -507,7 +507,7 @@ multi sub MAIN('untag:keyword', 'allfiles', Str $keyword, Bool :$dryrun = False)
     archiveUntagKeyword($keyword, $dryrun);
 }
 
-#| Display a file using an alternate.
+#| Display a file alternate.
 multi sub MAIN('view', Str $file where *.IO.f) {
     my @altSizes = readConfig('alt_sizes').split(' ');
     my $path = relativePath($file);
@@ -515,7 +515,7 @@ multi sub MAIN('view', Str $file where *.IO.f) {
     viewFiles(@targets);
 }
 
-#| Display one or more files by searchin index using altnerates.
+#| Display a file alternate using search indexes.
 multi sub MAIN('view', $index) {
     my @records = findByStashIndex($index, 'searchresult');
     my @altSizes = readConfig('alt_sizes').split(' ');
@@ -529,6 +529,13 @@ multi sub MAIN('view:original', Str $file where *.IO.f) {
     viewFiles(@targets);
 }
 
+#| Display an original file using search indexes.
+multi sub MAIN('view:original', $index) {
+    my @records = findByStashIndex($index, 'searchresult');
+    my @targets = @records.map({ findFile($_[0]) });
+    viewFiles(@targets);
+}
+
 #| Navigate to an archive file.
 multi sub MAIN('visit', Str $file where *.IO.f) {
     unless (isArchiveFile($file.IO)) {
@@ -538,26 +545,19 @@ multi sub MAIN('visit', Str $file where *.IO.f) {
     viewFiles($file.IO.parent);
 }
 
-#| Navigate to an archive file by search index.
+#| Navigate to an archive file using search indexes.
 multi sub MAIN('visit', $index) {
     my @records = findByStashIndex($index, 'searchresult');
     my @targets = @records.map({ findFile($_[0]).parent });
     viewFiles(@targets);
 }
 
-#| Navigate to a workspace by index.
+#| Navigate to a workspace by its index.
 multi sub MAIN('visit:workspace', Str $index) {
     my @records = findByStashIndex($index, 'workspace');
     my @targets = @records.map({ findFile($_[0] ) });
     my @workspaces = @targets.map({ findWorkspace($_) });
     viewFiles(@workspaces);
-}
-
-#| Display one or more originals by search index.
-multi sub MAIN('view:original', $index) {
-    my @records = findByStashIndex($index, 'searchresult');
-    my @targets = @records.map({ findFile($_[0]) });
-    viewFiles(@targets);
 }
 
 #| Set up an editing workspace for the last imported file.
@@ -583,7 +583,7 @@ multi sub MAIN('workon', Str $file where *.IO.f) {
     editWorkspaceLog($target);
 }
 
-#| Set up an editing workspace by search index.
+#| Set up an editing workspace using search indexes.
 multi sub MAIN('workon', $index) {
     my @records = findByStashIndex($index, 'searchresult');
 
@@ -594,7 +594,7 @@ multi sub MAIN('workon', $index) {
     }
 }
 
-#| Return to an editing workspace by workspace index.
+#| Return to an editing workspace by its index.
 multi sub MAIN('workon:workspace', $index) {
     my @records = findByStashIndex($index, 'workspace');
 
