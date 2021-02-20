@@ -14,17 +14,17 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.02.18";
+our Str constant SCRIPT_VERSION = "2021.02.20";
 
-# proto MAIN(|) {
-#     # Suppress backtrace. Taken from zef's CLI.pm6.
-#     CATCH {
-#         default {
-#             try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
-#         }
-#     }
-#     {*}
-# }
+proto MAIN(|) {
+    # Suppress backtrace. Taken from zef's CLI.pm6.
+    CATCH {
+        default {
+            try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! note colored(.message, 'red'); &*EXIT(1)
+        }
+    }
+    {*}
+}
 
 #| Generate alternate image sizes.
 multi sub MAIN('alts', Bool :$dryrun) {
@@ -542,22 +542,48 @@ multi sub MAIN('visit', Str $file where *.IO.f) {
         die ImageArchive::Exception::PathNotFoundInArchive.new;
     }
 
-    viewFiles($file.IO.parent);
+    viewDirectories($file.IO.parent);
 }
 
-#| Navigate to an archive file using search indexes.
+#| Navigate to an archive file by search index.
 multi sub MAIN('visit', $index) {
     my @records = findByStashIndex($index, 'searchresult');
     my @targets = @records.map({ findFile($_[0]).parent });
-    viewFiles(@targets);
+    viewDirectories(@targets);
 }
 
-#| Navigate to a workspace by its index.
+#| Navigate to a file's workspace.
+multi sub MAIN('visit:workspace', Str $file where *.IO.f) {
+    unless (isArchiveFile($file.IO)) {
+        die ImageArchive::Exception::PathNotFoundInArchive.new;
+    }
+
+    my $target = findFile($file);
+    my $workspace = findWorkspace($target);
+
+    viewDirectories($workspace.list);
+
+    CATCH {
+        when ImageArchive::Exception::PathNotFoundInArchive {
+            note colored("No workspace found.", 'red');
+            exit 1;
+        }
+    }
+}
+
+#| Navigate to a file's workspace by search index.
 multi sub MAIN('visit:workspace', Str $index) {
-    my @records = findByStashIndex($index, 'workspace');
+    my @records = findByStashIndex($index, 'searchresult');
     my @targets = @records.map({ findFile($_[0] ) });
     my @workspaces = @targets.map({ findWorkspace($_) });
-    viewFiles(@workspaces);
+    viewDirectories(@workspaces);
+
+    CATCH {
+        when ImageArchive::Exception::PathNotFoundInArchive {
+            note colored("No workspace found.", 'red');
+            exit 1;
+        }
+    }
 }
 
 #| Set up an editing workspace for the last imported file.
@@ -591,44 +617,6 @@ multi sub MAIN('workon', $index) {
         my $path = findFile($record[0]);
         copyToWorkspace($path.IO);
         editWorkspaceLog($path.IO);
-    }
-}
-
-#| Return to an editing workspace by its index.
-multi sub MAIN('workon:workspace', $index) {
-    my @records = findByStashIndex($index, 'workspace');
-
-    for @records -> $record {
-        my $workspace = findFile($record[0]);
-        editWorkspaceLog($workspace);
-    }
-}
-
-#| List workspaces.
-multi sub MAIN('workspaces', Str $year?, Bool :$archived) {
-    my $origin = getPath('root');
-    if ($year) {
-        $origin = findFile($year);
-    }
-
-    my $state = ($archived) ?? Closed !! Opened;
-
-    my $counter = 0;
-
-    clearStashByKey('workspace');
-
-    for walkWorkspaces($origin, $state) -> $path {
-
-        my $index = sprintf("%5d", ++$counter);
-        printf(
-            "%s | %s\n",
-            colored($index, 'white on_blue'),
-            $path.Str
-        );
-    }
-
-    if ($counter == 0) {
-        say "None found.";
     }
 }
 
