@@ -10,6 +10,7 @@ our %commands = %(
     'completion' => Nil,
     'color' => <file>,
     'count' => Nil,
+    'count:years' => Nil
     'dbshell' => Nil,
     'deport' => <archivefile>,
     'history' => <archivefile>,
@@ -32,9 +33,7 @@ our %commands = %(
     'visit' => <file>,
     'visit:workspace' => Nil,
     'workon' => <archivefile>,
-    'workon:lastimport' => Nil,
-    'workon:workspace' => Nil,
-    'workspaces' => Nil,
+    'workon:lastimport' => Nil
 );
 
 sub commandFilter($argumentKind) {
