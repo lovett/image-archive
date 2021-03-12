@@ -14,7 +14,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.02.20";
+our Str constant SCRIPT_VERSION = "2021.03.12";
 
 proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
@@ -66,18 +66,21 @@ multi sub MAIN('count') {
     my $fileCount = countFiles();
     my $recordCount = countRecords();
 
-    say pluralize($fileCount, 'file', 'files');
-
-    if ($recordCount ne $fileCount) {
-        say pluralize($recordCount, 'database record', 'database records');
+    if ($recordCount eq $fileCount) {
+        say pluralize($fileCount, 'file', 'files');
+    } else {
+        my $fileCountWithLabel = pluralize($fileCount, 'file', 'files');
+        my $recordCountWithLabel = pluralize($recordCount, 'database record', 'database records');
 
         say qq:to/END/;
+        ⚠️  Found {$fileCountWithLabel} but {$recordCountWithLabel}.
 
-        {colored('Fix', 'cyan underline')}
-          {$*PROGRAM-NAME} reindex
+        This can be fixed by reindexing the archive:
+          {$*PROGRAM-NAME.IO.basename} reindex
 
-        {colored('View', 'cyan underline')}
-          {$*PROGRAM-NAME} search:unindexed
+        To list the missing files:
+          {$*PROGRAM-NAME.IO.basename} search:unindexed
+
         END
     }
 }
