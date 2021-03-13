@@ -14,7 +14,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.03.12";
+our Str constant SCRIPT_VERSION = "2021.03.13";
 
 proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
@@ -159,6 +159,7 @@ multi sub MAIN('history', Str $index) {
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     my $importedFile = importFile($file.IO, $dryrun);
+    indexFile($importedFile);
     say "Imported as {$importedFile}";
 }
 
@@ -208,6 +209,7 @@ multi sub MAIN('reindex', Str $index) {
 #| Redo question-and-answer tagging.
 multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
     my %tags = askQuestions();
+
     tagFile($file.IO, %tags, $dryrun);
 
     return if $dryrun;
@@ -222,9 +224,8 @@ multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
                 moveWorkspace($workspace, $importedFile.parent);
             }
             pruneEmptyDirsUpward($file.IO.parent);
-        } else {
-            indexFile($file.IO);
         }
+        indexFile($file.IO);
     }
 }
 
@@ -248,9 +249,8 @@ multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
                 moveWorkspace($workspace, $importedFile.parent);
             }
            pruneEmptyDirsUpward($path.parent);
-        } else {
-            indexFile($path);
         }
+        indexFile($path);
     }
 }
 
@@ -430,6 +430,8 @@ multi sub MAIN('tag', Str $file where *.IO.f, Bool :$dryrun = False, *@keywords)
 
     confirm('Tags written. Import to archive?');
     my $importedFile = importFile($file.IO, $dryrun);
+    indexFile($importedFile);
+
     say "Imported as {$importedFile}";
 
     CATCH {

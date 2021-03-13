@@ -226,6 +226,12 @@ sub importFile(IO $file, Bool $dryRun? = False) returns IO::Path is export {
 
     my $destination = $root.add($tagValue.subst(":", "/", :g));
 
+    my $newPath = $destination.add($file.basename);
+
+    if (relativePath($newPath) eq relativePath($file)) {
+        return Nil;
+    }
+
     unless ($destination ~~ :d || $dryRun) {
         $destination.mkdir();
     }
@@ -238,12 +244,6 @@ sub importFile(IO $file, Bool $dryRun? = False) returns IO::Path is export {
         }
     }
 
-    my $newPath = $destination.add($file.basename);
-
-    if ($newPath eq $file) {
-        return Nil;
-    }
-
     if ($dryRun) {
         wouldHaveDone("Move {$file} to {$newPath}");
         return Nil;
@@ -251,7 +251,6 @@ sub importFile(IO $file, Bool $dryRun? = False) returns IO::Path is export {
 
     move($file, $newPath);
     $newPath.IO.chmod(0o400);
-    indexFile($newPath);
     generateAlts($newPath);
     return $newPath;
 }
