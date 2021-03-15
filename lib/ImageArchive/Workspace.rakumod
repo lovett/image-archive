@@ -105,11 +105,13 @@ sub editWorkspaceLog(IO::Path $file) is export {
 
     testPathExistsInWorkspace($log);
 
-    unless %*ENV<EDITOR> {
-        die "Could not get preferred editor from environment.";
+    if %*ENV<EDITOR> {
+        shell "{%*ENV<EDITOR>} {$log}";
+        return;
     }
 
-    shell "{%*ENV<EDITOR>} {$log}";
+    say "The workspace history file could not be auto-opened for editing.";
+    say $log.Str;
 }
 
 # The history file within a given workspace.
