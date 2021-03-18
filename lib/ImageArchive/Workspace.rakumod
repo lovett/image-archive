@@ -196,26 +196,6 @@ sub searchLogs(IO::Path $root, Regex $matcher) returns Supply is export {
     }
 }
 
-# List the workspaces in the archive
-sub walkWorkspaces(IO::Path $origin, WorkspaceState $state) is export {
-    my $extension = 'workspace';
-
-    if ($state eq Closed) {
-        $extension = 'archive';
-    }
-
-    supply for ($origin.dir.sort) {
-        next when :f;
-        when .extension eq $extension {
-            my $master = findWorkspaceMaster($_);
-            my $relativeMaster = relativePath($master);
-            stashWorkspace($relativeMaster);
-            .emit;
-        }
-        when :d { .emit for walkWorkspaces($_, $state) }
-    }
-}
-
 # Move a file out of the workspace.
 sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
     testPathExistsInWorkspace($file.IO);
