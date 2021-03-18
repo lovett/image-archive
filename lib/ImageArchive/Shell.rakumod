@@ -25,6 +25,7 @@ our %commands = %(
     'show' => <file>,
     'show:search' => Nil,
     'tag' => <file keyword>,
+    'todo' => Nil,
     'untag' => <file keyword>,
     'untag:alias' => <alias file>,
     'untag:keyword' => <file>,

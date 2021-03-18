@@ -8,13 +8,14 @@ use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
+use ImageArchive::Formatters;
 use ImageArchive::Shell;
 use ImageArchive::Hints;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.03.14";
+our Str constant SCRIPT_VERSION = "2021.03.18";
 
 proto MAIN(|) {
     # Suppress backtrace. Taken from zef's CLI.pm6.
@@ -458,6 +459,19 @@ multi sub MAIN('tag', Str $index, Bool :$dryrun = False, *@keywords) {
         }
     }
 }
+
+#| List out TODO lines in workspace history files.
+multi sub MAIN('todo') {
+    my $root = getPath('root');
+    searchLogsFormatter($root, /TODO/);
+}
+
+#| List out TODO lines in workspace history files.
+multi sub MAIN('todo', Str $directory) {
+    my $root = findDirectory($directory);
+    searchLogsFormatter($root, /TODO/);
+}
+
 
 #| Remove tags by alias or value.
 multi sub MAIN('untag:alias', Str $file where *.IO.f, Str $alias, Str $value?, Bool :$dryrun = False, ) {

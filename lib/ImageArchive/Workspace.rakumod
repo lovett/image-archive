@@ -185,6 +185,17 @@ sub findWorkspaceMaster(IO::Path $workspace) is export {
     die ImageArchive::Exception::PathNotFoundInArchive.new;
 }
 
+# Locate lines in log files matching a regex.
+sub searchLogs(IO::Path $root, Regex $matcher) returns Supply is export {
+    supply {
+        for walkArchive($root, /history\.org/) -> $path {
+            for $path.lines.grep($matcher) -> $line {
+                emit(($path, $line));
+            }
+        }
+    }
+}
+
 # List the workspaces in the archive
 sub walkWorkspaces(IO::Path $origin, WorkspaceState $state) is export {
     my $extension = 'workspace';

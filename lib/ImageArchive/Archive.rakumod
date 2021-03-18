@@ -132,6 +132,19 @@ sub findFile(Str $path) is export {
     return $target;
 }
 
+# Resolve a path to an archive directory.
+sub findDirectory(Str $path) is export {
+    my $target = $path.IO;
+
+    unless ($target ~~ :d) {
+        $target = getPath('root').add($path);
+    }
+
+    testPathExistsInArchive($target);
+
+    return $target;
+}
+
 # Resolve a path to an alternate.
 sub findAlternate(Str $path, Str $size) is export {
     my $thumbnailExtension = readConfig('alt_format');
