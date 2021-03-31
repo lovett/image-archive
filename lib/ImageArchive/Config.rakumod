@@ -151,6 +151,10 @@ sub writeApplicationConfig(IO::Path $root) is export {
 
     return if $target ~~ :f;
 
+    unless ($target.IO.parent.d) {
+        mkdir($target.IO.parent);
+    }
+
     spurt $target, qq:to/END/;
     ; This is the application configuration for Image Archive (ia),
     ; defining global settings.
