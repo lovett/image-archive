@@ -57,18 +57,6 @@ sub archiveUntagKeyword(Str $keyword, Bool $dryRun? = False) is export {
     return;
 }
 
-# Tally of all walkable files.
-sub countFiles() is export {
-    my $root = getPath('root');
-
-    my $fileCount = 0;
-    for walkArchive($root) -> $path {
-        $fileCount++;
-    }
-
-    return $fileCount;
-}
-
 sub deleteAlts(IO::Path $file) is export {
     my $cacheRoot = getPath('cache');
 
@@ -275,13 +263,6 @@ sub isArchiveFile(IO $path) returns Bool is export {
     my $root = getPath('root');
 
     return $target.absolute.starts-with($root);
-}
-
-# Delete empty directories down-treefrom the starting point.
-sub pruneEmptyDirsDownward(IO::Path $origin) is export {
-    for walkArchiveDirs($origin) -> $dir {
-        rmdir($dir) unless ($dir.dir);
-    }
 }
 
 # Delete empty directories up-tree from the starting point.

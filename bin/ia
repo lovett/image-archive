@@ -33,8 +33,7 @@ multi sub MAIN('alts', Bool :$dryrun) {
 
 #| Remove empty subdirectories in the archive.
 multi sub MAIN('cleanup') {
-    my $root = getPath('root');
-    pruneEmptyDirsDownward($root);
+    pruneEmptyDirsDownward();
 }
 
 #| The average color of a file.
@@ -63,43 +62,17 @@ multi sub MAIN('completion') {
 
 #| The number of files overall.
 multi sub MAIN('count') {
-    my $fileCount = countFiles();
-    my $recordCount = countRecords();
-
-    if ($recordCount eq $fileCount) {
-        say pluralize($fileCount, 'file', 'files');
-    } else {
-        my $fileCountWithLabel = pluralize($fileCount, 'file', 'files');
-        my $recordCountWithLabel = pluralize($recordCount, 'database record', 'database records');
-
-        say qq:to/END/;
-        ⚠️  Found {$fileCountWithLabel} but {$recordCountWithLabel}.
-
-        This can be fixed by reindexing the archive:
-          {$*PROGRAM-NAME.IO.basename} reindex
-
-        To list the missing files:
-          {$*PROGRAM-NAME.IO.basename} search:unindexed
-
-        END
-    }
+    countFiles();
 }
 
 #| The number of files per year.
 multi sub MAIN('count:years') {
-    for countRecordsByYear() -> $tally {
-        my $year = $tally[0];
-        $year = 'Undated' if $year == 0;
-        printf("%7s | %s\n", $year, $tally[1]);
-    }
+    countYears();
 }
 
 #| The number of files per month in a given year.
 multi sub MAIN('count', Int $year) {
-    for countRecordsByMonth($year) -> $tally {
-        my $month = $tally[0] == 0 ?? 'Unknown' !! monthName($tally[0]);
-        printf("%10s | %s\n", $month, $tally[1]);
-    }
+    countMonths($year);
 }
 
 #| Start a database CLI session.
