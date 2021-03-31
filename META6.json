@@ -9,7 +9,7 @@
     "ImageArchive::Config": "lib/ImageArchive/Config.rakumod",
     "ImageArchive::Database": "lib/ImageArchive/Database.rakumod",
     "ImageArchive::Exception": "lib/ImageArchive/Exception.rakumod",
-    "ImageArchive::Formatters": "lib/ImageArchive/Formatters.rakumod",
+    "ImageArchive::Recipe": "lib/ImageArchive/Recipe.rakumod",
     "ImageArchive::Shell": "lib/ImageArchive/Shell.rakumod",
     "ImageArchive::Hints": "lib/ImageArchive/Hints.rakumod",
     "ImageArchive::Tagging": "lib/ImageArchive/Tagging.rakumod",

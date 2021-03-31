@@ -7,7 +7,7 @@ use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
-use ImageArchive::Formatters;
+use ImageArchive::Recipe;
 use ImageArchive::Shell;
 use ImageArchive::Hints;
 use ImageArchive::Tagging;
@@ -461,14 +461,12 @@ multi sub MAIN('tag', Str $index, Bool :$dryrun = False, *@keywords) {
 
 #| List out TODO lines in workspace history files.
 multi sub MAIN('todo') {
-    my $root = getPath('root');
-    searchLogsFormatter($root, /TODO/);
+    searchLogs(/TODO/);
 }
 
 #| List out TODO lines in workspace history files.
 multi sub MAIN('todo', Str $directory) {
-    my $root = findDirectory($directory);
-    searchLogsFormatter($root, /TODO/);
+    searchLogs(/TODO/, $directory);
 }
 
 
