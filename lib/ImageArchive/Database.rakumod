@@ -1,5 +1,21 @@
 unit module ImageArchive::Database;
 
+# Tell DBIish to pick up libsqlite from an alternate location.
+#
+# Normally this isn't necessary because the default location is
+# suitable. On macOS, a newer version may be available elsewhere if a
+# package manager like Macports is being used.
+#
+# The version of sqlite3 reported from the CLI client is not
+# necessarily the same as the version of the library thatDBIish sees.
+unless (%*ENV<DBIISH_SQLITE_LIB>) {
+    my @extraLibPaths = qw| /opt/local/lib |.grep: { .IO.d };
+
+    @extraLibPaths.grep({ .IO.dir(test => / libsqlite3 /) }).first: {
+        %*ENV<DBIISH_SQLITE_LIB> = "{$_}/sqlite3";
+    }
+}
+
 use DBIish;
 #use Grammar::Tracer;
 
@@ -208,6 +224,11 @@ sub openDatabase() is export {
         'SQLite',
         database => getPath('database')
     );
+
+    # Minimum version for FTS5.
+    if ($dbh.parent.version < v3.9.0) {
+        die "Sqlite version {$dbh.parent.version} is not supported. Need v3.9.0 or newer.";
+    }
 
     return $dbh;
 }
