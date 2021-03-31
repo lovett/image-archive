@@ -1,5 +1,9 @@
 # Install the application.
+#
+# DBIIsh is given special installation treatment to avoid a test suite
+# error as of v0.6.2.
 install:
+	zef install DBIish --force-test
 	zef uninstall ImageArchive || true
 	zef install .
 
