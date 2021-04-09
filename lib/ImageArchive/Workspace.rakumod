@@ -60,6 +60,7 @@ sub closeWorkspace(IO::Path $workspace, Bool $dryRun? = False) returns Nil is ex
     }
 
     rename($workspace, $archive);
+    return;
 }
 
 # Create an editable version of a file in the archive.
