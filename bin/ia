@@ -14,7 +14,7 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.04.10";
+our Str constant SCRIPT_VERSION = "2021.04.11";
 
 #| Generate alternate image sizes.
 multi sub MAIN('alts', Bool :$dryrun) {
@@ -131,9 +131,6 @@ multi sub MAIN('promote', Str $file, Bool :$dryrun) {
     my $target = findFile($file);
 
     workspaceExport($target, $dryrun);
-
-    my $workspace = $target.parent;
-    closeWorkspace($workspace, $dryrun);
 
     CATCH {
         when ImageArchive::Exception::PathNotFoundInWorkspace {

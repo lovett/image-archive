@@ -7,8 +7,6 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
-enum WorkspaceState is export <Closed Opened>;
-
 # Add a text file to a workspace for capturing notes and progress.
 sub addWorkspaceLog(IO::Path $dir) returns Nil {
     my $log = findWorkspaceLog($dir);
@@ -46,21 +44,6 @@ sub catWorkspaceLog(IO::Path $file) returns Supply is export {
         $line.subst(/\*+\s/, "").emit;
         "\n".emit if $line.starts-with('*');
     }
-}
-
-# Convert an opened workspace to a closed workspace
-sub closeWorkspace(IO::Path $workspace, Bool $dryRun? = False) returns Nil is export {
-    testPathIsWorkspace($workspace);
-
-    my $archive = $workspace.extension('archive');
-
-    if ($dryRun) {
-        wouldHaveDone("Rename {$workspace} to {$archive}");
-        return;
-    }
-
-    rename($workspace, $archive);
-    return;
 }
 
 # Create an editable version of a file in the archive.
