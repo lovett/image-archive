@@ -1,4 +1,4 @@
-unit module ImageArchive::Recipe;
+unit module ImageArchive::Activity;
 
 use ImageArchive::Archive;
 use ImageArchive::Config;
@@ -9,7 +9,8 @@ use ImageArchive::Workspace;
 use Terminal::ANSIColor;
 
 =begin pod
-This module is for multi-step operations invoked from the main script.
+This module is for multi-step operations that involve multiple other modules or do things that don't
+quite fit in another module. It helps keep the main script lean.
 =end pod
 
 # Tally of all walkable files.

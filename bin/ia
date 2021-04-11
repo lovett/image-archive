@@ -2,19 +2,19 @@
 
 use Terminal::ANSIColor;
 
+use ImageArchive::Activity;
 use ImageArchive::Archive;
 use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
-use ImageArchive::Recipe;
 use ImageArchive::Shell;
 use ImageArchive::Hints;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.04.08";
+our Str constant SCRIPT_VERSION = "2021.04.10";
 
 #| Generate alternate image sizes.
 multi sub MAIN('alts', Bool :$dryrun) {
