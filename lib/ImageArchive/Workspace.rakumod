@@ -47,7 +47,7 @@ sub catWorkspaceLog(IO::Path $file) returns Supply is export {
 }
 
 # Create an editable version of a file in the archive.
-sub copyToWorkspace(IO::Path $source) returns Nil is export {
+sub copyToWorkspace(IO::Path $source) returns IO::Path is export {
     my $workspace = openWorkspace($source);
 
     my $sourceHash = hashFile($source);
@@ -79,23 +79,7 @@ sub copyToWorkspace(IO::Path $source) returns Nil is export {
         $workspaceFile.chmod(0o644);
     }
 
-    return Nil;
-}
-
-# Open history.org in an editor.
-sub editWorkspaceLog(IO::Path $file) is export {
-    my $workspace = findWorkspace($file);
-    my $log = findWorkspaceLog($workspace);
-
-    testPathExistsInWorkspace($log);
-
-    if %*ENV<EDITOR> {
-        shell "{%*ENV<EDITOR>} {$log}";
-        return;
-    }
-
-    say "The workspace history file could not be auto-opened for editing.";
-    say $log.Str;
+    return $workspace;
 }
 
 # The history file within a given workspace.

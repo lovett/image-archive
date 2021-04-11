@@ -571,17 +571,16 @@ multi sub MAIN('workon:lastimport') {
 
     my $target = findFile(@targets.first<path>);
 
-    copyToWorkspace($target);
-    editWorkspaceLog($target);
+    my $workspace = copyToWorkspace($target);
+    viewDirectories($workspace.list);
 }
 
 #| Set up an editing workspace.
 multi sub MAIN('workon', Str $file where *.IO.f) {
     my $target = findFile($file);
 
-    copyToWorkspace($target.IO);
-
-    editWorkspaceLog($target);
+    my $workspace = copyToWorkspace($target.IO);
+    viewDirectories($workspace.list);
 }
 
 #| Set up an editing workspace using search indexes.
@@ -590,8 +589,8 @@ multi sub MAIN('workon', $index) {
 
     for @records -> $record {
         my $path = findFile($record[0]);
-        copyToWorkspace($path.IO);
-        editWorkspaceLog($path.IO);
+        my $workspace = copyToWorkspace($path.IO);
+        viewDirectories($workspace.list);
     }
 }
 
