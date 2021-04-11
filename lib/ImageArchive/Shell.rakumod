@@ -33,7 +33,6 @@ our %commands = %(
     'untag:value' => <alias file>,
     'view' => <archivefile>,
     'visit' => <file>,
-    'visit:workspace' => Nil,
     'workon' => <archivefile>,
     'workon:lastimport' => Nil
 );

@@ -525,40 +525,6 @@ multi sub MAIN('visit', $index) {
     viewDirectories(@targets);
 }
 
-#| Navigate to a file's workspace.
-multi sub MAIN('visit:workspace', Str $file where *.IO.f) {
-    unless (isArchiveFile($file.IO)) {
-        die ImageArchive::Exception::PathNotFoundInArchive.new;
-    }
-
-    my $target = findFile($file);
-    my $workspace = findWorkspace($target);
-
-    viewDirectories($workspace.list);
-
-    CATCH {
-        when ImageArchive::Exception::PathNotFoundInArchive {
-            note colored("No workspace found.", 'red');
-            exit 1;
-        }
-    }
-}
-
-#| Navigate to a file's workspace by search index.
-multi sub MAIN('visit:workspace', Str $index) {
-    my @records = findByStashIndex($index, 'searchresult');
-    my @targets = @records.map({ findFile($_[0] ) });
-    my @workspaces = @targets.map({ findWorkspace($_) });
-    viewDirectories(@workspaces);
-
-    CATCH {
-        when ImageArchive::Exception::PathNotFoundInArchive {
-            note colored("No workspace found.", 'red');
-            exit 1;
-        }
-    }
-}
-
 #| Set up an editing workspace for the last imported file.
 multi sub MAIN('workon:lastimport') {
     my @targets = findByNewestImport();
