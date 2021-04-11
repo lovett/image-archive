@@ -14,8 +14,6 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-our Str constant SCRIPT_VERSION = "2021.04.11";
-
 #| Generate alternate image sizes.
 multi sub MAIN('alts', Bool :$dryrun) {
     generateAlts($dryrun);
@@ -47,7 +45,7 @@ multi sub MAIN('color', Str $index) {
 
 #| Generate the shell completion file.
 multi sub MAIN('completion') {
-    writeShellCompletion(SCRIPT_VERSION);
+    writeShellCompletion();
 }
 
 #| The number of files overall.
@@ -317,7 +315,7 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
 
     createDatabase();
 
-    writeShellCompletion(SCRIPT_VERSION);
+    writeShellCompletion();
 }
 
 #| Display a file's tags.
@@ -596,7 +594,7 @@ multi sub MAIN('workon', $index) {
 
 #| Display the application version.
 multi sub MAIN(Bool :$version) {
-    say SCRIPT_VERSION if $version;
+    say applicationVersion() if $version;
 }
 
 sub USAGE() {

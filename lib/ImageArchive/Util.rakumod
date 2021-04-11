@@ -3,6 +3,12 @@ unit module ImageArchive::Util;
 use Date::Names;
 use Terminal::ANSIColor;
 
+# Extract version information from META6.json
+# Can't do this directly from the main script.
+sub applicationVersion() is export returns Str {
+    return $?DISTRIBUTION.meta<ver>.Str;
+}
+
 # Convert a comma-delimited list of values to a list.
 sub commaSplit(Str $value) is export {
     $value.split(/ \s* \, \s* /);
