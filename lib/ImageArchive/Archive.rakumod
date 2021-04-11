@@ -353,7 +353,7 @@ sub viewDirectories(@paths) is export {
         die ImageArchive::Exception::MissingConfig.new(:key('view_directory'));
     }
 
-    my $proc = run $command, @paths, :err;
+    my $proc = shell "$command {@paths}", :err;
     my $err = $proc.err.slurp(:close);
 
     if ($proc.exitcode !== 0) {
