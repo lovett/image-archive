@@ -24,11 +24,14 @@ sub suggestFilters() is export {
     my @filters = %filters.keys.sort;
 
     say "";
-    say colored('Filters', 'cyan underline') ~ "\n" ~ @filters.sort.join(", ");
+    say colored('Filters', 'cyan underline') ~ "\n" ~ @filters.join(", ");
 }
 
 sub explainSearchSynax() is export {
-    return q:to/END/;
+    my %filters = readConfig('filters');
+    my @filters = %filters.keys.sort;
+
+    return qq:to/END/;
 
     FILTERS
     Search terms are matched against the tag metdata stored in the
@@ -40,7 +43,10 @@ sub explainSearchSynax() is export {
 
     author:john smith
 
-    This matches "john smith" but only within the author tag.
+    A filter can have the same name as a tag, but it doesn't have to.
+
+    The following filters are currently defined:
+      {@filters.join("\n  ")}
 
     ORDERING
     Searches are orderd by file path by default, but can instead be
