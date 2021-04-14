@@ -94,3 +94,30 @@ sub pruneEmptyDirsDownward(Str $directory?) is export {
         rmdir($dir) unless ($dir.dir);
     }
 }
+
+#| Convert the arguments of a view command to file paths.
+sub resolveViewTarget($target, Str $flavor = 'alternate') is export {
+
+    given $flavor {
+        when 'original' {
+            if ($target.IO.f) {
+                return findFile($target);
+            }
+
+            my @records = findByStashIndex($target, 'searchresult');
+            return @records.map({ findFile($_[0]) });
+        }
+
+        when 'alternate' {
+            my @altSizes = readConfig('alt_sizes').split(' ');
+
+            if ($target.IO.f) {
+                my $path = relativePath($target);
+                return findAlternate($path, @altSizes.first);
+            }
+
+            my @records = findByStashIndex($target, 'searchresult');
+            return @records.map({ findAlternate($_[0], @altSizes.first) });
+        }
+    }
+}

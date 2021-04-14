@@ -480,32 +480,15 @@ multi sub MAIN('untag:keyword', 'allfiles', Str $keyword, Bool :$dryrun = False)
     archiveUntagKeyword($keyword, $dryrun);
 }
 
-#| Display a file alternate.
-multi sub MAIN('view', Str $file where *.IO.f) {
-    my @altSizes = readConfig('alt_sizes').split(' ');
-    my $path = relativePath($file);
-    my @targets = findAlternate($path, @altSizes.first);
+#| Display a file alternate by path or search index.
+multi sub MAIN('view', Str $target) {
+    my @targets = resolveViewTarget($target);
     viewFiles(@targets);
 }
 
-#| Display a file alternate using search indexes.
-multi sub MAIN('view', $index) {
-    my @records = findByStashIndex($index, 'searchresult');
-    my @altSizes = readConfig('alt_sizes').split(' ');
-    my @targets = @records.map({ findAlternate($_[0], @altSizes.first) });
-    viewFiles(@targets);
-}
-
-#| Display an original file.
-multi sub MAIN('view:original', Str $file where *.IO.f) {
-    my @targets = findFile($file);
-    viewFiles(@targets);
-}
-
-#| Display an original file using search indexes.
-multi sub MAIN('view:original', $index) {
-    my @records = findByStashIndex($index, 'searchresult');
-    my @targets = @records.map({ findFile($_[0]) });
+#| Display an original file by path or search index.
+multi sub MAIN('view:original', Str $target) {
+    my @targets = resolveViewTarget($target, 'original');
     viewFiles(@targets);
 }
 
