@@ -492,19 +492,9 @@ multi sub MAIN('view:original', Str $target) {
     viewFiles(@targets);
 }
 
-#| Navigate to an archive file.
-multi sub MAIN('visit', Str $file where *.IO.f) {
-    unless (isArchiveFile($file.IO)) {
-        die ImageArchive::Exception::PathNotFoundInArchive.new;
-    }
-
-    viewDirectories($file.IO.parent);
-}
-
-#| Navigate to an archive file by search index.
-multi sub MAIN('visit', $index) {
-    my @records = findByStashIndex($index, 'searchresult');
-    my @targets = @records.map({ findFile($_[0]).parent });
+#| Navigate to an archive file by path or search index.
+multi sub MAIN('visit', Str $target) {
+    my @targets = resolveViewTarget($target, 'parent');
     viewDirectories(@targets);
 }
 

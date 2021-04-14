@@ -119,5 +119,15 @@ sub resolveViewTarget($target, Str $flavor = 'alternate') is export {
             my @records = findByStashIndex($target, 'searchresult');
             return @records.map({ findAlternate($_[0], @altSizes.first) });
         }
+
+        when 'parent' {
+            if ($target.IO.f) {
+                return $target.IO.parent.List;
+            }
+
+            my @records = findByStashIndex($target, 'searchresult');
+            return @records.map({ findFile($_[0]).parent });
+        }
+
     }
 }
