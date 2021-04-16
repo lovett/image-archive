@@ -55,36 +55,10 @@ multi sub MAIN('dbshell') {
     openDatabaseSession();
 }
 
-#| Taka a file out of the archive.
-multi sub MAIN('deport', Str $file where *.IO.f, Bool :$dryrun) {
-    my $root = getPath('root');
-    my $target = findFile($file);
-
-    deportFile($target, $*CWD.IO, $dryrun);
-
-    my $workspace = findWorkspace($target);
-    if ($workspace ~~ :d) {
-        moveWorkspace($workspace, $*CWD.IO, $dryrun);
-    }
-
-    pruneEmptyDirsUpward($target.parent);
-}
-
-#| Take a file out of the archive using search indexes.
-multi sub MAIN('deport', Str $index, Bool :$dryrun) {
-    my @records = findByStashIndex($index, 'searchresult');
-
-    for @records -> $record {
-        my $file = findFile($record[0]);
-        deportFile($file, $*CWD.IO, $dryrun);
-
-        my $workspace = findWorkspace($file);
-        if ($workspace ~~ :d) {
-            moveWorkspace($workspace, $*CWD.IO, $dryrun);
-        }
-
-        pruneEmptyDirsUpward($file.parent);
-    }
+#| Take a file out of the archive.
+multi sub MAIN('deport', Str $target, Bool :$dryrun) {
+    my @targets = resolveFileTarget($target, 'original');
+    deportFiles(@targets, $*CWD.IO, $dryrun);
 }
 
 #| Display a file's history log.
@@ -468,19 +442,19 @@ multi sub MAIN('untag:keyword', 'allfiles', Str $keyword, Bool :$dryrun = False)
 
 #| Display a file alternate by path or search index.
 multi sub MAIN('view', Str $target) {
-    my @targets = resolveViewTarget($target);
+    my @targets = resolveFileTarget($target);
     viewFiles(@targets);
 }
 
 #| Display an original file by path or search index.
 multi sub MAIN('view:original', Str $target) {
-    my @targets = resolveViewTarget($target, 'original');
+    my @targets = resolveFileTarget($target, 'original');
     viewFiles(@targets);
 }
 
 #| Navigate to an archive file by path or search index.
 multi sub MAIN('visit', Str $target) {
-    my @targets = resolveViewTarget($target, 'parent');
+    my @targets = resolveFileTarget($target, 'parent');
     viewDirectories(@targets);
 }
 

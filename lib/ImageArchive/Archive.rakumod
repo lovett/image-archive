@@ -86,27 +86,6 @@ sub deleteEmptyFolders(IO::Path $leaf) {
     }
 }
 
-# Remove a file from the archive.
-sub deportFile(IO::Path $file, IO $destinationDir, Bool $dryRun? = False) is export {
-
-    my $destinationPath = $destinationDir.add($file.basename);
-
-    if ($destinationPath ~~ :f) {
-        die ImageArchive::Exception::PathConflict.new(:path($destinationPath));
-    }
-
-    if ($dryRun) {
-        wouldHaveDone("Move {relativePath($file)} to {$destinationPath}");
-        return;
-    }
-
-    deindexFile($file);
-    move($file, $destinationPath);
-    $destinationPath.IO.chmod(0o644);
-    deleteEmptyFolders($file.parent);
-    deleteAlts($file);
-}
-
 # Resolve a path to an archive file.
 sub findFile(Str $path) is export {
     my $target = $path.IO;

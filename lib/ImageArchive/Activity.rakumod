@@ -83,6 +83,39 @@ sub searchLogs(Regex $matcher, Str $directory?) is export {
     }
 }
 
+# Remove a file from the archive.
+sub deportFiles(@files, IO $destinationDir, Bool $dryRun? = False) is export {
+    return unless @files;
+
+    my $file = @files.pop;
+
+    my $destinationPath = $destinationDir.add($file.basename);
+
+    if ($destinationPath ~~ :f) {
+        die ImageArchive::Exception::PathConflict.new(:path($destinationPath));
+    }
+
+    if ($dryRun) {
+        wouldHaveDone("Move {relativePath($file)} to {$destinationPath}");
+        return;
+    }
+
+    deindexFile($file);
+    move($file, $destinationPath);
+    $destinationPath.IO.chmod(0o644);
+    deleteAlts($file);
+
+    my $workspace = findWorkspace($file);
+    if ($workspace ~~ :d) {
+        moveWorkspace($workspace, $destinationDir, $dryRun);
+    }
+
+    pruneEmptyDirsUpward($file.parent);
+
+    deportFiles(@files, $destinationDir, $dryRun);
+}
+
+
 #| Print a mapping of file paths to RGB triples.
 sub printColorTable(%fileMap) is export {
     for %fileMap.kv -> $path, @rgb {
@@ -127,7 +160,7 @@ sub resolveColorTarget($target) is export {
 }
 
 #| Convert the arguments of a view command to file paths.
-sub resolveViewTarget($target, Str $flavor = 'alternate') is export {
+sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
 
     given $flavor {
         when 'original' {
