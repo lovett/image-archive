@@ -24,23 +24,10 @@ multi sub MAIN('cleanup') {
     pruneEmptyDirsDownward();
 }
 
-#| The average color of a file.
-multi sub MAIN('color', Str $file where *.IO.f) {
-    my @rgb = getAverageColor($file.IO);
-    printf("rgb(%s)\n", @rgb.join(','));
-}
-
-#| The average color of files using search indexes.
-multi sub MAIN('color', Str $index) {
-    my @records = findByStashIndex($index, 'searchresult', 'AverageRGB'.List);
-
-    for @records -> $record {
-        printf(
-            "%-16s | %s\n",
-            "rgb({$record[1]})",
-            relativePath($record[0])
-        );
-    }
+#| Display the average color of a file by path or search index.
+multi sub MAIN('color', $target) {
+    my %targets = resolveColorTarget($target);
+    printColorTable(%targets);
 }
 
 #| Generate the shell completion file.

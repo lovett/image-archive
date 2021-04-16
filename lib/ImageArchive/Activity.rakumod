@@ -1,6 +1,7 @@
 unit module ImageArchive::Activity;
 
 use ImageArchive::Archive;
+use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
@@ -82,6 +83,17 @@ sub searchLogs(Regex $matcher, Str $directory?) is export {
     }
 }
 
+#| Print a mapping of file paths to RGB triples.
+sub printColorTable(%fileMap) is export {
+    for %fileMap.kv -> $path, @rgb {
+        printf(
+            "%3s, %3s, %3s | %s\n",
+            @rgb,
+            $path
+        );
+    }
+}
+
 #| Delete empty directories down-tree from the starting point.
 sub pruneEmptyDirsDownward(Str $directory?) is export {
     my IO::Path $root = getPath('root');
@@ -93,6 +105,25 @@ sub pruneEmptyDirsDownward(Str $directory?) is export {
     for walkArchiveDirs($root) -> $dir {
         rmdir($dir) unless ($dir.dir);
     }
+}
+
+#| Look up average color for one or more files.
+sub resolveColorTarget($target) is export {
+    my %targets;
+
+    if ($target.IO.f) {
+        my $path = relativePath($target);
+        %targets{$path} = getAverageColor($target.IO);
+    } else {
+        my @records = findByStashIndex($target, 'searchresult', 'AverageRGB'.List);
+
+        for @records {
+            my $path = relativePath($_[0]);
+            %targets{$path} = $_[1].split(',');
+        }
+    }
+
+    return %targets;
 }
 
 #| Convert the arguments of a view command to file paths.
