@@ -328,12 +328,7 @@ multi sub MAIN('tag', Str $index, Bool :$dryrun = False, *@keywords) {
 }
 
 #| List out TODO lines in workspace history files.
-multi sub MAIN('todo') {
-    searchLogs(/TODO/);
-}
-
-#| List out TODO lines in workspace history files.
-multi sub MAIN('todo', Str $directory) {
+multi sub MAIN('todo', Str $directory?) {
     searchLogs(/TODO/, $directory);
 }
 
