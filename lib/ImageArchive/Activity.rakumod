@@ -147,6 +147,27 @@ sub printHistory(@files) is export {
     printHistory(@files);
 }
 
+sub printSearchResults(@records) is export {
+    my $counter = 0;
+
+    for (@records) -> $result {
+        my $index = sprintf("%3d", ++$counter);
+        my $series = sprintf('%s-%03d', $result<series>, $result<seriesid>);
+
+        printf(
+            "%s | %15s | %s\n",
+            colored($index, 'white on_blue'),
+            $series,
+            $result<path>
+        );
+    }
+
+    unless ($counter) {
+        note 'No matches.';
+    }
+}
+
+
 #| Delete empty directories down-tree from the starting point.
 sub pruneEmptyDirsDownward(Str $directory?) is export {
     my IO::Path $root = getPath('root');
