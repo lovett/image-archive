@@ -34,7 +34,6 @@ our %commands = %(
     'view' => <archivefile>,
     'visit' => <file>,
     'workon' => <archivefile>,
-    'workon:lastimport' => Nil
 );
 
 sub commandFilter($argumentKind) {

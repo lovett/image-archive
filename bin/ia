@@ -337,7 +337,6 @@ multi sub MAIN('todo', Str $directory) {
     searchLogs(/TODO/, $directory);
 }
 
-
 #| Remove tags by alias or value.
 multi sub MAIN('untag:alias', Str $file where *.IO.f, Str $alias, Str $value?, Bool :$dryrun = False, ) {
     untagAlias($file.IO, $alias, $value, $dryrun);
@@ -408,37 +407,11 @@ multi sub MAIN('visit', Str $target) {
     viewDirectories(@targets);
 }
 
-#| Set up an editing workspace for the last imported file.
-multi sub MAIN('workon:lastimport') {
-    my @targets = findByNewestImport();
-
-    unless @targets {
-        die 'Nothing found.';
-    }
-
-    my $target = findFile(@targets.first<path>);
-
-    my $workspace = copyToWorkspace($target);
+#| Set up an editing workspace by path or search index.
+multi sub MAIN('workon', $target) {
+    my @targets = resolveFileTarget($target, 'original');
+    my $workspace = copyToWorkspace(@targets.first);
     viewDirectories($workspace.list);
-}
-
-#| Set up an editing workspace.
-multi sub MAIN('workon', Str $file where *.IO.f) {
-    my $target = findFile($file);
-
-    my $workspace = copyToWorkspace($target.IO);
-    viewDirectories($workspace.list);
-}
-
-#| Set up an editing workspace using search indexes.
-multi sub MAIN('workon', $index) {
-    my @records = findByStashIndex($index, 'searchresult');
-
-    for @records -> $record {
-        my $path = findFile($record[0]);
-        my $workspace = copyToWorkspace($path.IO);
-        viewDirectories($workspace.list);
-    }
 }
 
 #| Display the application version.

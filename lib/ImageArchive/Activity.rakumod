@@ -205,6 +205,12 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
 
     given $flavor {
         when 'original' {
+            if ($target eq 'lastimport') {
+                my $lastimport = findByNewestImport();
+                return $lastimport[0]<path>.IO;
+            }
+
+
             if ($target.IO.f) {
                 return findFile($target);
             }
