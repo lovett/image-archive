@@ -52,8 +52,7 @@ multi sub MAIN('count', Int $year) {
 
 #| Start a database CLI session.
 multi sub MAIN('dbshell') {
-    my $dbPath = getPath('database');
-    run 'sqlite3', $dbPath;
+    openDatabaseSession();
 }
 
 #| Taka a file out of the archive.

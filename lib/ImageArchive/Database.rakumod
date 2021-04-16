@@ -233,6 +233,13 @@ sub openDatabase() is export {
     return $dbh;
 }
 
+# Launch the SQLite CLI.
+sub openDatabaseSession() is export {
+    my $dbPath = getPath('database');
+    run 'sqlite3', $dbPath;
+}
+
+
 # Locate archive paths by most-recently-imported..
 sub findByNewestImport(Int $limit = 1) is export {
     my $query = qq:to/SQL/;
