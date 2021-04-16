@@ -127,6 +127,26 @@ sub printColorTable(%fileMap) is export {
     }
 }
 
+#| Print the contents of a workspace log.
+sub printHistory(@files) is export {
+    return unless @files;
+
+    my $file = @files.pop;
+    my $workspace = findWorkspace($file);
+    my $log = findWorkspaceLog($workspace);
+
+    if ($log ~~ :f) {
+        for $log.lines -> $line {
+            next unless $line.trim;
+            next if $line.starts-with('#');
+            $line.subst(/\*+\s/, "").say;
+            print "\n" if $line.starts-with('*');
+        }
+    }
+
+    printHistory(@files);
+}
+
 #| Delete empty directories down-tree from the starting point.
 sub pruneEmptyDirsDownward(Str $directory?) is export {
     my IO::Path $root = getPath('root');

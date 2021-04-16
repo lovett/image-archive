@@ -61,20 +61,10 @@ multi sub MAIN('deport', Str $target, Bool :$dryrun) {
     deportFiles(@targets, $*CWD.IO, $dryrun);
 }
 
-#| Display a file's history log.
-multi sub MAIN('history', Str $file where *.IO.f) {
-    my $target = findFile($file);
-    .say for catWorkspaceLog($target);
-}
-
-#| Display history logs using search indexes.
-multi sub MAIN('history', Str $index) {
-    my @records = findByStashIndex($index, 'searchresult');
-
-    for @records -> $record {
-        my $target = findFile($record[0]);
-        .say for catWorkspaceLog($target);
-    }
+#| Display a file's history log by path or search index.
+multi sub MAIN('history', Str $target) {
+    my @targets= resolveFileTarget($target, 'original');
+    printHistory(@targets);
 }
 
 #| Bring a file into the archive.
