@@ -244,7 +244,7 @@ sub transferTags(IO $donor, IO $recipient) is export {
 }
 
 # Remove the tags associated with a keyword.
-sub untagKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
+sub removeKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
     testKeywords($keyword.list);
 
     my %aliases = readConfig('aliases');
@@ -268,7 +268,7 @@ sub untagKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
 }
 
 # Remove a tag completely regardless of its value.
-multi sub untagAlias(IO $file, Str $alias, Str $value?, Bool $dryRun = False) is export {
+multi sub removeAlias(IO $file, Str $alias, Str $value?, Bool $dryRun = False) is export {
     testAliases($alias.list);
 
     my %aliases = readConfig('aliases');

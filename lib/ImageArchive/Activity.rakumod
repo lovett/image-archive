@@ -443,7 +443,7 @@ sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
 #| Remove tags by alias or value.
 sub untagByAlias(@targets, Str $alias, Str $value?, Bool $dryrun = False) is export {
     for @targets -> $target {
-        untagAlias($target, $alias, $value, $dryrun);
+        removeAlias($target, $alias, $value, $dryrun);
 
         if (isArchiveFile($target)) {
             indexFile($target);
@@ -454,7 +454,7 @@ sub untagByAlias(@targets, Str $alias, Str $value?, Bool $dryrun = False) is exp
 #| Remove tags by keyword.
 sub untagByKeyword(@targets, Str $keyword, Bool $dryrun = False) is export {
     for @targets -> $target {
-        untagKeyword($target, $keyword, $dryrun);
+        removeKeyword($target, $keyword, $dryrun);
 
         if (isArchiveFile($target)) {
             indexFile($target);

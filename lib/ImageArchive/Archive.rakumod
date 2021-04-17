@@ -7,12 +7,12 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 
 # Remove a tag completely regardless of its value from all files.
-multi sub archiveUntagAlias(Str $alias, Str $value?, Bool $dryRun = False) is export {
+multi sub removeAliasFromArchive(Str $alias, Str $value?, Bool $dryRun = False) is export {
     my $counter = 0;
 
     for hyper findByTag("{$alias}:any", 'searchresult') -> $result {
         my $path = findFile($result<path>);
-        untagAlias($path, $alias, $value, $dryRun);
+        removeAlias($path, $alias, $value, $dryRun);
 
         unless ($dryRun) {
             indexFile($path);
@@ -33,11 +33,11 @@ multi sub archiveUntagAlias(Str $alias, Str $value?, Bool $dryRun = False) is ex
 }
 
 # Remove the tags associated with a keyword from all files.
-sub archiveUntagKeyword(Str $keyword, Bool $dryRun? = False) is export {
+sub removeKeywordFromArchive(Str $keyword, Bool $dryRun? = False) is export {
     my $counter = 0;
     for hyper findByTag("alias:{$keyword}", 'searchresult') -> $result {
         my $path = findFile($result<path>);
-        untagKeyword($path, $keyword);
+        removeKeyword($path, $keyword);
 
         unless ($dryRun) {
             indexFile($path);

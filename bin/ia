@@ -141,7 +141,7 @@ multi sub MAIN('unindexed') {
 multi sub MAIN('untag:alias', Str $target, Str $alias, Str $value?, Bool :$dryrun = False, ) {
     given $target {
         when 'allfiles' {
-            archiveUntagAlias($alias, $value, $dryrun);
+            removeAliasFromArchive($alias, $value, $dryrun);
         }
 
         default {
@@ -155,7 +155,7 @@ multi sub MAIN('untag:alias', Str $target, Str $alias, Str $value?, Bool :$dryru
 multi sub MAIN('untag:keyword', Str $target, Str $keyword, Bool :$dryrun = False) {
     given $target {
         when 'allfiles' {
-            archiveUntagKeyword($keyword, $dryrun);
+            removeKeywordFromArchive($keyword, $dryrun);
         }
 
         default {
