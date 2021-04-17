@@ -152,24 +152,30 @@ multi sub MAIN('todo', Str $directory?) {
 
 #| Remove tags by alias or value.
 multi sub MAIN('untag:alias', Str $target, Str $alias, Str $value?, Bool :$dryrun = False, ) {
-    my @targets = resolveFileTarget($target, 'taggable');
-    untagByAlias(@targets, $alias, $value, $dryrun);
-}
+    given $target {
+        when 'allfiles' {
+            archiveUntagAlias($alias, $value, $dryrun);
+        }
 
-#| Remove tags by alias or value in all files.
-multi sub MAIN('untag:alias:allfiles', Str $alias, Str $value?, Bool :$dryrun = False) {
-    archiveUntagAlias($alias, $value, $dryrun);
+        default {
+            my @targets = resolveFileTarget($target, 'taggable');
+            untagByAlias(@targets, $alias, $value, $dryrun);
+        }
+    }
 }
 
 #| Remove tags by keyword.
 multi sub MAIN('untag:keyword', Str $target, Str $keyword, Bool :$dryrun = False) {
-    my @targets = resolveFileTarget($target, 'taggable');
-    untagByKeyword(@targets, $keyword, $dryrun);
-}
+    given $target {
+        when 'allfiles' {
+            archiveUntagKeyword($keyword, $dryrun);
+        }
 
-#| Remove a tag by value in all files.
-multi sub MAIN('untag:keyword:allfiles', Str $keyword, Bool :$dryrun = False) {
-    archiveUntagKeyword($keyword, $dryrun);
+        default {
+            my @targets = resolveFileTarget($target, 'taggable');
+            untagByKeyword(@targets, $keyword, $dryrun);
+        }
+    }
 }
 
 #| Display a file alternate by path or search index.
