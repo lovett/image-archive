@@ -297,6 +297,15 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
     }
 }
 
+#| Display a file's tags.
+sub showTags(@targets) is export {
+    my %aliases = readConfig('aliases');
+
+    for @targets -> $target {
+        say readTags($target, %aliases.values);
+    }
+}
+
 sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
     testKeywords(@keywords);
 
