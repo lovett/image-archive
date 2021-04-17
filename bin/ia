@@ -25,27 +25,12 @@ multi sub MAIN('completion') {
     writeShellCompletion();
 }
 
-#| The number of files overall.
-multi sub MAIN('count') {
-    countFiles();
-}
-
-#| The number of files per year.
-multi sub MAIN('count:years') {
-    countYears();
-}
-
-#| The number of files per month in a given year.
-multi sub MAIN('count', Int $year) {
-    countMonths($year);
-}
-
 #| Start a database CLI session.
 multi sub MAIN('dbshell') {
     openDatabaseSession();
 }
 
-#| Take a file out of the archive.
+#| Take a target out of the archive.
 multi sub MAIN('deport', Str $target, Bool :$dryrun) {
     my @targets = resolveFileTarget($target, 'original');
     deportFiles(@targets, $*CWD.IO, $dryrun);
@@ -181,6 +166,21 @@ multi sub MAIN('show', Str $target) {
 multi sub MAIN('show:search') {
     my @results = dumpStash('searchresult');
     printSearchResults(@results);
+}
+
+#| The number of files in the archive.
+multi sub MAIN('stats:count') {
+    countFiles();
+}
+
+#| The number of files per month in the given year.
+multi sub MAIN('stats:year', Int $year) {
+    countMonths($year);
+}
+
+#| The number of files per year.
+multi sub MAIN('stats:years') {
+    countYears();
 }
 
 #| Add tags to a file.

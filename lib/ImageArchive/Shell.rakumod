@@ -6,10 +6,8 @@ use ImageArchive::Util;
 
 # A mapping between commands and the kinds of arguments they accept.
 our %commands = %(
-    'completion' => Nil,
     'color' => <file>,
-    'count' => Nil,
-    'count:years' => Nil,
+    'completion' => Nil,
     'dbshell' => Nil,
     'deport' => <archivefile>,
     'fixup' => Nil,
@@ -24,6 +22,9 @@ our %commands = %(
     'setup' => <directory>,
     'show' => <file>,
     'show:search' => Nil,
+    'stats:count' => Nil,
+    'stats:year' => Nil,
+    'stats:years' => Nil,
     'tag' => <file keyword>,
     'todo' => Nil,
     'untag' => <file keyword>,
