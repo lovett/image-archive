@@ -4,6 +4,7 @@ use ImageArchive::Archive;
 use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
+use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
@@ -58,6 +59,24 @@ sub countYears() is export {
         my $year = $tally[0];
         $year = 'Undated' if $year == 0;
         printf("%7s | %s\n", $year, $tally[1]);
+    }
+}
+
+sub reindex(Str $target?) is export {
+    my @targets;
+
+    if ($target) {
+        @targets = resolveFileTarget($target, 'original');
+    } else {
+        my $root = getPath('root');
+        @targets =  walkArchive($root).List;
+    }
+
+    for @targets -> $target {
+        print "Reindexing {$target}...";
+        tagFile($target, {});
+        indexFile($target);
+        say "done.";
     }
 }
 

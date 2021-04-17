@@ -88,30 +88,9 @@ multi sub MAIN('promote', Str $file, Bool :$dryrun) {
     }
 }
 
-#| Re-add imported files to the database.
-multi sub MAIN('reindex') {
-    my $root = getPath('root');
-
-    for walkArchive($root) -> $path {
-        print "Reindexing {$path}...";
-        # Don't add any new tags, but do add auto-generated ones.
-        tagFile($path, {});
-        indexFile($path);
-        say "done.";
-    }
-}
-
 #| Re-add imported files to the database using search index.
-multi sub MAIN('reindex', Str $index) {
-    my @records = findByStashIndex($index, 'searchresult');
-
-    for @records -> $record {
-        my $path = findFile($record[0]);
-        print "Reindexing {$path}...";
-        tagFile($path, {});
-        indexFile($path);
-        say "done.";
-    }
+multi sub MAIN('reindex', Str $target?) {
+    reindex($target);
 }
 
 #| Redo question-and-answer tagging.
