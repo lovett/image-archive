@@ -196,21 +196,9 @@ multi sub MAIN(Bool :$version) {
 }
 
 sub USAGE() {
-    if @*ARGS.elems == 2 && @*ARGS.first eq '--help' {
-        my $command = @*ARGS[1];
-        my $shortSummary = $*USAGE.lines.grep( / ' ' $command ' ' / ).first;
-
-        if ($shortSummary) {
-            say "Usage:";
-            say $shortSummary;
-
-            if ($command eq 'search') {
-                say explainSearchSynax();
-            }
-            return;
-        }
-
-
+    if @*ARGS.first eq '--help' and @*ARGS.elems == 2 {
+        explainSyntax(@*ARGS[1]);
+        return;
     }
 
     say $*USAGE;

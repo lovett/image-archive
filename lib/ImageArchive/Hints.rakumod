@@ -27,7 +27,28 @@ sub suggestFilters() is export {
     say colored('Filters', 'cyan underline') ~ "\n" ~ @filters.join(", ");
 }
 
-sub explainSearchSynax() is export {
+sub explainSyntax(Str $command) is export {
+    my $shortSummary = $*USAGE.lines.grep( / ' ' $command ' ' / ).first;
+
+    unless ($shortSummary) {
+        die "Unknown command.";
+    }
+
+    say "Usage:";
+    say $shortSummary;
+
+    given $command {
+        when 'search' {
+            say explainSearchSyntax();
+        }
+
+        when / ^ untag / {
+            say explainAllfiles();
+        }
+    }
+}
+
+sub explainSearchSyntax() {
     my %filters = readConfig('filters');
     my @filters = %filters.keys.sort;
 
@@ -62,6 +83,18 @@ sub explainSearchSynax() is export {
     author:unknown
 
     This matches any file that does not have an author tag.
+
+    END
+}
+
+sub explainAllfiles() {
+
+    return qq:to/END/;
+
+    SPECIAL TERM: allfiles
+
+    To apply this command to all files within the archive,
+    specify "allfiles" as the target.
 
     END
 }
