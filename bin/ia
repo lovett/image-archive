@@ -79,24 +79,6 @@ multi sub MAIN('search') is hidden-from-USAGE {
     die ImageArchive::Exception::NoSearchQuery.new;
 }
 
-#| Find file that are not in the database.
-multi sub MAIN('search:unindexed') {
-    my $counter = 0;
-
-    for findUnindexed() -> $path {
-        my $index = sprintf("%3d", ++$counter);
-        printf(
-            "%s | %s\n",
-            colored($index, 'white on_red'),
-            relativePath($path),
-        );
-    }
-
-    unless $counter {
-        say "No unindexed files.";
-    }
-}
-
 #| Establish the application configuration and database.
 multi sub MAIN('setup', Str $directory where *.IO.d) {
     writeApplicationConfig($directory.IO);
@@ -148,6 +130,11 @@ multi sub MAIN('tag', Str $target, Bool :$dryrun, *@keywords) {
 #| List out TODO lines in workspace history files.
 multi sub MAIN('todo', Str $directory?) {
     searchLogs(/TODO/, $directory);
+}
+
+#| Find file that are not in the database.
+multi sub MAIN('unindexed') {
+    printUnindexed();
 }
 
 #| Remove tags by alias or value.

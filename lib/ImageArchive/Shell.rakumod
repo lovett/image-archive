@@ -27,6 +27,7 @@ our %commands = %(
     'stats:years' => Nil,
     'tag' => <file keyword>,
     'todo' => Nil,
+    'unindexed' => Nil,
     'untag' => <file keyword>,
     'untag:alias' => <alias file>,
     'untag:keyword' => <file>,

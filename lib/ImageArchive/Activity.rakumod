@@ -219,6 +219,52 @@ sub printSearchResults(@records, $flavor) is export {
     }
 }
 
+sub printUnindexed() is export {
+    my $counter = 0;
+
+    for findUnindexed() -> $path {
+        my $index = sprintf("%3d", ++$counter);
+        printf(
+            "%s | %s\n",
+            colored($index, 'white on_red'),
+            relativePath($path),
+        );
+    }
+
+    unless $counter {
+        say "No unindexed files.";
+    }
+}
+
+# Move a file out of the workspace.
+sub promoteVersion(IO::Path $file, Bool $dryRun? = False) is export {
+    testPathExistsInWorkspace($file);
+
+    my $master = findWorkspaceMaster($file.parent);
+    my $newMaster = $master.extension($file.extension);
+
+    if ($dryRun) {
+        wouldHaveDone("{$file} becomes {$newMaster}");
+        return;
+    }
+
+    transferTags($master, $file);
+    deleteAlts($master);
+    deindexFile($master);
+    unlink($master);
+
+    rename($file, $newMaster);
+    indexFile($newMaster);
+    generateAlts($newMaster);
+    $newMaster.chmod(0o400);
+
+    CATCH {
+        when ImageArchive::Exception::PathNotFoundInWorkspace {
+            note colored($_.message, 'red');
+            exit 1;
+        }
+    }
+}
 
 #| Delete empty directories down-tree from the starting point.
 sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
@@ -415,34 +461,4 @@ sub untagByKeyword(@targets, Str $keyword, Bool $dryrun = False) is export {
         }
     }
 
-}
-
-# Move a file out of the workspace.
-sub promoteVersion(IO::Path $file, Bool $dryRun? = False) is export {
-    testPathExistsInWorkspace($file);
-
-    my $master = findWorkspaceMaster($file.parent);
-    my $newMaster = $master.extension($file.extension);
-
-    if ($dryRun) {
-        wouldHaveDone("{$file} becomes {$newMaster}");
-        return;
-    }
-
-    transferTags($master, $file);
-    deleteAlts($master);
-    deindexFile($master);
-    unlink($master);
-
-    rename($file, $newMaster);
-    indexFile($newMaster);
-    generateAlts($newMaster);
-    $newMaster.chmod(0o400);
-
-    CATCH {
-        when ImageArchive::Exception::PathNotFoundInWorkspace {
-            note colored($_.message, 'red');
-            exit 1;
-        }
-    }
 }
