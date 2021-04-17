@@ -14,18 +14,8 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-#| Generate alternate image sizes.
-multi sub MAIN('alts', Bool :$dryrun) {
-    generateAlts($dryrun);
-}
-
-#| Remove empty subdirectories in the archive.
-multi sub MAIN('cleanup') {
-    pruneEmptyDirsDownward();
-}
-
-#| Display the average color of a file by path or search index.
-multi sub MAIN('color', $target) {
+#| Display a target's average RGB color.
+multi sub MAIN('color', Str $target) {
     my %targets = resolveColorTarget($target);
     printColorTable(%targets);
 }
@@ -59,6 +49,12 @@ multi sub MAIN('dbshell') {
 multi sub MAIN('deport', Str $target, Bool :$dryrun) {
     my @targets = resolveFileTarget($target, 'original');
     deportFiles(@targets, $*CWD.IO, $dryrun);
+}
+
+#| Perform cleanup chores on the archive.
+multi sub MAIN('fixup', Bool :$dryrun) {
+    pruneEmptyDirsDownward($dryrun);
+    generateAlts($dryrun);
 }
 
 #| Display a file's history log by path or search index.

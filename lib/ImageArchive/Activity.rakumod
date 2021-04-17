@@ -189,7 +189,7 @@ sub printSearchResults(@records) is export {
 
 
 #| Delete empty directories down-tree from the starting point.
-sub pruneEmptyDirsDownward(Str $directory?) is export {
+sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
     my IO::Path $root = getPath('root');
 
     if ($directory) {
@@ -197,6 +197,13 @@ sub pruneEmptyDirsDownward(Str $directory?) is export {
     }
 
     for walkArchiveDirs($root) -> $dir {
+        next unless ($dir.dir);
+
+        if ($dryRun) {
+            wouldHaveDone("Delete $dir") if $dryRun;
+            next;
+        }
+
         rmdir($dir) unless ($dir.dir);
     }
 }

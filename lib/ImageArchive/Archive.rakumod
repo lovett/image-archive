@@ -189,7 +189,7 @@ multi sub generateAlts(Bool $dryRun? = False) returns Nil is export {
         start {
             react {
                 whenever $channel -> $path {
-                    generateAlts($path);
+                    generateAlts($path, $dryRun);
                 }
             }
         }

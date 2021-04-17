@@ -6,14 +6,13 @@ use ImageArchive::Util;
 
 # A mapping between commands and the kinds of arguments they accept.
 our %commands = %(
-    'alts' => Nil,
-    'cleanup' => Nil,
     'completion' => Nil,
     'color' => <file>,
     'count' => Nil,
     'count:years' => Nil,
     'dbshell' => Nil,
     'deport' => <archivefile>,
+    'fixup' => Nil,
     'history' => <archivefile>,
     'import' => <file>,
     'promote' => <archivefile>,
