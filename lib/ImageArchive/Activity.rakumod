@@ -189,17 +189,27 @@ sub printHistory(@files) is export {
     printHistory(@files);
 }
 
-sub printSearchResults(@records) is export {
+sub printSearchResults(@records, $flavor) is export {
     my $counter = 0;
 
     for (@records) -> $result {
-        my $index = sprintf("%3d", ++$counter);
-        my $series = sprintf('%s-%03d', $result<series>, $result<seriesid>);
+        my $col1 = sprintf("%3d", ++$counter);
+
+        my $col2;
+        given $flavor {
+            when 'series' {
+                $col2 = sprintf('%s-%03d', $result<series>, $result<seriesid>);
+            }
+
+            when 'score' {
+                $col2 = sprintf("%2.2f", $result<score>);
+            }
+        }
 
         printf(
             "%s | %15s | %s\n",
-            colored($index, 'white on_blue'),
-            $series,
+            colored($col1, 'white on_blue'),
+            $col2,
             $result<path>
         );
     }

@@ -72,33 +72,11 @@ multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
 #| Locate files within the archive.
 multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
     my @results = search(@terms, $limit, $debug);
-    printSearchResults(@results);
+    printSearchResults(@results, 'series');
 }
 
 multi sub MAIN('search') is hidden-from-USAGE {
     die ImageArchive::Exception::NoSearchQuery.new;
-}
-
-#| Find files by color similarity.
-multi sub MAIN('search:color', Str $file where *.IO.f) {
-    my @rgb = getAverageColor($file.IO);
-
-    my $counter = 0;
-    for findBySimilarColor(@rgb, 'searchresult') -> $result {
-        my $index = sprintf("%3d", ++$counter);
-        my $score = sprintf("%2.2f", $result<score>);
-
-        printf(
-            "%s | %s | %s\n",
-            colored($index, 'white on_blue'),
-            $score,
-            $result<path>
-        );
-    }
-
-    unless ($counter) {
-        note 'No matches.';
-    }
 }
 
 #| Find file that are not in the database.
@@ -122,11 +100,8 @@ multi sub MAIN('search:unindexed') {
 #| Establish the application configuration and database.
 multi sub MAIN('setup', Str $directory where *.IO.d) {
     writeApplicationConfig($directory.IO);
-
     writeArchiveConfig();
-
     createDatabase();
-
     writeShellCompletion();
 }
 
@@ -139,7 +114,14 @@ multi sub MAIN('show', Str $target) {
 #| Redisplay the results of the previous search.
 multi sub MAIN('show:search') {
     my @results = dumpStash('searchresult');
-    printSearchResults(@results);
+    printSearchResults(@results, 'series');
+}
+
+#| Find files by color similarity.
+multi sub MAIN('similar:color', Str $file where *.IO.f) {
+    my @rgb = getAverageColor($file.IO);
+    my @results = findBySimilarColor(@rgb, 'searchresult');
+    printSearchResults(@results, 'score');
 }
 
 #| The number of files in the archive.
