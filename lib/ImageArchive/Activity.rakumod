@@ -4,6 +4,7 @@ use ImageArchive::Archive;
 use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
+use ImageArchive::Hints;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
@@ -293,5 +294,54 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
             return @records.map({ findFile($_[0]).parent });
         }
 
+    }
+}
+
+sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
+    testKeywords(@keywords);
+
+    my %tags = keywordsToTags(@keywords);
+
+    for @targets -> $target {
+        # If the file has id and alias tags, consider it previously tagged
+        # and skip context validation.
+        my $previouslyTagged = readRawTags($target, ['id', 'alias']).elems == 2;
+
+        unless ($previouslyTagged) {
+            my @contexts = activeContexts(@keywords);
+
+            testContexts(@contexts);
+
+            testContextCoverage(@contexts, @keywords);
+
+            %tags.append(askQuestions());
+        }
+
+        %tags<alias> = @keywords;
+
+        tagFile($target, %tags, $dryrun);
+
+        if ($dryrun) {
+            return;
+        }
+
+        if (isArchiveFile($target)) {
+            indexFile($target);
+            return;
+        }
+
+        confirm('Tags written. Import to archive?');
+        my $importedFile = importFile($target, $dryrun);
+        indexFile($importedFile);
+
+        say "Imported as {$importedFile}";
+    }
+
+    CATCH {
+        when ImageArchive::Exception::MissingContext {
+            note colored($_.message, 'red');
+            suggestContextKeywords($_.offenders);
+            exit 1;
+        }
     }
 }
