@@ -94,51 +94,9 @@ multi sub MAIN('reindex', Str $target?) {
 }
 
 #| Redo question-and-answer tagging.
-multi sub MAIN('reprompt', Str $file where *.IO.f, Bool :$dryrun = False) {
-    my %tags = askQuestions();
-
-    tagFile($file.IO, %tags, $dryrun);
-
-    return if $dryrun;
-
-    if (isArchiveFile($file.IO)) {
-        my $importedFile = importFile($file.IO);
-        if ($importedFile) {
-            say "Relocated to {$importedFile}";
-
-            my $workspace = findWorkspace($file.IO);
-            if ($workspace ~~ :d) {
-                moveWorkspace($workspace, $importedFile.parent);
-            }
-            pruneEmptyDirsUpward($file.IO.parent);
-        }
-        indexFile($file.IO);
-    }
-}
-
-#| Redo question-and-answer tagging using search indexes.
-multi sub MAIN('reprompt', Str $index, Bool :$dryrun = False) {
-    my @records = findByStashIndex($index, 'searchresult');
-
-    for @records -> $record {
-        my $path = findFile($record[0]);
-        my %tags = askQuestions();
-        tagFile($path, %tags, $dryrun);
-
-        return if $dryrun;
-
-        my $importedFile = importFile($path);
-        if ($importedFile) {
-            say "Relocated to {$importedFile}";
-
-            my $workspace = findWorkspace($path);
-            if ($workspace ~~ :d) {
-                moveWorkspace($workspace, $importedFile.parent);
-            }
-           pruneEmptyDirsUpward($path.parent);
-        }
-        indexFile($path);
-    }
+multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
+    my @targets = resolveFileTarget($target, 'taggable');
+    reprompt(@targets, $dryrun);
 }
 
 #| Find recently-imported files.

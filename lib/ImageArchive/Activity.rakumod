@@ -219,6 +219,30 @@ sub resolveColorTarget($target) is export {
     return %targets;
 }
 
+#| Redo question-and-answer tagging.
+sub reprompt(@targets, Bool $dryrun = False) is export {
+    for @targets -> $target {
+        my %tags = askQuestions();
+
+        tagFile($target, %tags, $dryrun);
+        next if $dryrun;
+
+        if (isArchiveFile($target)) {
+            my $importedFile = importFile($target);
+            if ($importedFile) {
+                say "Relocated to {$importedFile}";
+
+                my $workspace = findWorkspace($target);
+                if ($workspace ~~ :d) {
+                    moveWorkspace($workspace, $importedFile.parent);
+                }
+                pruneEmptyDirsUpward($target.parent);
+            }
+            indexFile($target);
+        }
+    }
+}
+
 #| Convert the arguments of a view command to file paths.
 sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
 
@@ -229,9 +253,19 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
                 return $lastimport[0]<path>.IO;
             }
 
-
             if ($target.IO.f) {
                 return findFile($target);
+            }
+
+            my @records = findByStashIndex($target, 'searchresult');
+            return @records.map({ findFile($_[0]) });
+        }
+
+        # Almost the same as original, but does not require target
+        # to be inside the archive.
+        when 'taggable' {
+            if ($target.IO.f) {
+                return $target.IO;
             }
 
             my @records = findByStashIndex($target, 'searchresult');
