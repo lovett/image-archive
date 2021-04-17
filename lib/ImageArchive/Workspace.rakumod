@@ -137,29 +137,6 @@ sub findWorkspaceMaster(IO::Path $workspace) is export {
     die ImageArchive::Exception::PathNotFoundInArchive.new;
 }
 
-# Move a file out of the workspace.
-sub workspaceExport(IO::Path $file, Bool $dryRun? = False) is export {
-    testPathExistsInWorkspace($file.IO);
-
-    my $master = findWorkspaceMaster($file.parent);
-    my $newMaster = $master.extension($file.extension);
-
-    if ($dryRun) {
-        wouldHaveDone("{$file} becomes {$newMaster}");
-        return;
-    }
-
-    transferTags($master, $file);
-    deleteAlts($master);
-    deindexFile($master);
-    unlink($master);
-
-    rename($file, $newMaster);
-    indexFile($newMaster);
-    generateAlts($newMaster);
-    $newMaster.chmod(0o400);
-}
-
 # See if a file exists within a workspace directory.
 sub testPathExistsInWorkspace(IO::Path $file) is export {
     return if $file.parent.basename.ends-with('workspace');

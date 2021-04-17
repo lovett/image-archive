@@ -63,6 +63,13 @@ sub countYears() is export {
     }
 }
 
+#| Bring a file into the archive.
+sub import(IO::Path $file, Bool $dryrun = False) is export {
+    my $importedFile = importFile($file.IO, $dryrun);
+    indexFile($importedFile);
+    say "Imported as {$importedFile}";
+}
+
 sub reindex(Str $target?) is export {
     my @targets;
 
@@ -78,6 +85,21 @@ sub reindex(Str $target?) is export {
         tagFile($target, {});
         indexFile($target);
         say "done.";
+    }
+}
+
+sub search(@terms, Int $limit = 10, Bool $debug = False) is export {
+    my $query = @terms.join(' ');
+
+    given $query {
+        when 'recent' {
+            return findNewest($limit, 'searchresult');
+        }
+
+        default {
+            return findByTag($query, 'searchresult', $debug);
+        }
+
     }
 }
 
@@ -199,8 +221,8 @@ sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
     for walkArchiveDirs($root) -> $dir {
         next unless ($dir.dir);
 
-        if ($dryRun) {
-            wouldHaveDone("Delete $dir") if $dryRun;
+        if ($dryrun) {
+            wouldHaveDone("Delete $dir");
             next;
         }
 
@@ -383,4 +405,34 @@ sub untagByKeyword(@targets, Str $keyword, Bool $dryrun = False) is export {
         }
     }
 
+}
+
+# Move a file out of the workspace.
+sub promoteVersion(IO::Path $file, Bool $dryRun? = False) is export {
+    testPathExistsInWorkspace($file);
+
+    my $master = findWorkspaceMaster($file.parent);
+    my $newMaster = $master.extension($file.extension);
+
+    if ($dryRun) {
+        wouldHaveDone("{$file} becomes {$newMaster}");
+        return;
+    }
+
+    transferTags($master, $file);
+    deleteAlts($master);
+    deindexFile($master);
+    unlink($master);
+
+    rename($file, $newMaster);
+    indexFile($newMaster);
+    generateAlts($newMaster);
+    $newMaster.chmod(0o400);
+
+    CATCH {
+        when ImageArchive::Exception::PathNotFoundInWorkspace {
+            note colored($_.message, 'red');
+            exit 1;
+        }
+    }
 }

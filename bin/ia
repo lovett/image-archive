@@ -38,11 +38,11 @@ multi sub MAIN('deport', Str $target, Bool :$dryrun) {
 
 #| Perform cleanup chores on the archive.
 multi sub MAIN('fixup', Bool :$dryrun) {
-    pruneEmptyDirsDownward($dryrun);
+    pruneEmptyDirsDownward('', $dryrun);
     generateAlts($dryrun);
 }
 
-#| Display a file's history log by path or search index.
+#| Display a target's edit history.
 multi sub MAIN('history', Str $target) {
     my @targets= resolveFileTarget($target, 'original');
     printHistory(@targets);
@@ -50,23 +50,12 @@ multi sub MAIN('history', Str $target) {
 
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
-    my $importedFile = importFile($file.IO, $dryrun);
-    indexFile($importedFile);
-    say "Imported as {$importedFile}";
+    import($file.IO, $dryrun);
 }
 
-#| Replace an archive file with a workspace file.
-multi sub MAIN('promote', Str $file, Bool :$dryrun) {
-    my $target = findFile($file);
-
-    workspaceExport($target, $dryrun);
-
-    CATCH {
-        when ImageArchive::Exception::PathNotFoundInWorkspace {
-            note colored($_.message, 'red');
-            exit 1;
-        }
-    }
+#| Replace an archive file with a workspace version.
+multi sub MAIN('promote', Str $version where *.IO.f, Bool :$dryrun) {
+    promoteVersion($version.IO, $dryrun);
 }
 
 #| Re-add imported files to the database using search index.
@@ -80,25 +69,10 @@ multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
     reprompt(@targets, $dryrun);
 }
 
-#| Find recently-imported files.
-multi sub MAIN('search:recent', Int $limit = 10) {
-    my @results = findNewest($limit, 'searchresult');
+#| Locate files within the archive.
+multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
+    my @results = search(@terms, $limit, $debug);
     printSearchResults(@results);
-}
-
-#| Find files by tag.
-multi sub MAIN('search', Bool :$debug = False, *@terms) {
-    my $query = @terms.join(' ');
-    my @results = findByTag($query, 'searchresult', $debug);
-    printSearchResults(@results);
-
-    CATCH {
-        when ImageArchive::Exception::BadFilter {
-            note colored($_.message, 'red');
-            suggestFilters();
-            exit 1;
-        }
-    }
 }
 
 multi sub MAIN('search') is hidden-from-USAGE {
