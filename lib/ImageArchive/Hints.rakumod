@@ -55,34 +55,38 @@ sub explainSearchSyntax() {
     return qq:to/END/;
 
     FILTERS
-    Search terms are matched against the tag metdata stored in the
-    database. By default, these matches are unrestricted and all tags
-    are considered (as well as tag names themselves).
+      Search terms are matched against the tag metdata stored in the
+      database. By default, these matches are unrestricted and all tags
+      are considered (as well as tag names themselves).
 
-    To narrow term matching to specific tags, prefix the term with one
-    of the filters defined in the config followed by a ":". For example:
+      To narrow term matching to specific tags, prefix the term with one
+      of the filters defined in the config followed by a ":". For example:
 
-    author:john smith
+        author:john smith
 
-    A filter can have the same name as a tag, but it doesn't have to.
+      A filter can have the same name as a tag, but it doesn't have to.
 
-    The following filters are currently defined:
-      {@filters.join("\n  ")}
+      Filters are defined in the configuration file. The following filters
+      are available:
+        {@filters.join("\n  ")}
 
     ORDERING
-    Searches are orderd by file path by default, but can instead be
-    ordered by filename or series name and number. The search order is
-    specified as a filter:
+      Searches are orderd by file path by default, but can instead be
+      ordered by filename or series name and number. The search order is
+      specified as a filter:
 
-    order:series
-    order:filename
+      order:series
+      order:filename
 
-    UNKNOWNS
-    To locate files that do not contain a tag, use the special term "unknown":
+    SPECIAL TERM: unknown
+      To locate files that do not contain a tag, use the special term "unknown":
 
-    author:unknown
+      author:unknown
+      This will match any file that does not have an author tag.
 
-    This matches any file that does not have an author tag.
+    SPECIAL TERM: recent
+      A search consisting of this term will bring back the most recently added
+      files. Use --limit to control how many files are shown.
 
     END
 }
@@ -92,9 +96,8 @@ sub explainAllfiles() {
     return qq:to/END/;
 
     SPECIAL TERM: allfiles
-
-    To apply this command to all files within the archive,
-    specify "allfiles" as the target.
+    To apply this command to all files within the archive, specify "allfiles"
+    as the target.
 
     END
 }
