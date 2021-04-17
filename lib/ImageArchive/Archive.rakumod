@@ -68,21 +68,7 @@ sub deleteAlts(IO::Path $file) is export {
         my $target = $cacheRoot.add("$size/$relativePath").extension($thumbnailExtension);
         next unless $target ~~ :f;
         $target.IO.unlink;
-        deleteEmptyFolders($target.parent);
-    }
-}
-
-sub deleteEmptyFolders(IO::Path $leaf) {
-    my $root = getPath('root');
-
-    my $dir = $leaf;
-    while ($dir.starts-with($root)) {
-        if (dir $dir) {
-            return;
-        }
-
-        rmdir($dir);
-        $dir = $dir.parent;
+        pruneEmptyDirsUpward($target.parent);
     }
 }
 
@@ -242,6 +228,26 @@ sub isArchiveFile(IO $path) returns Bool is export {
     my $root = getPath('root');
 
     return $target.absolute.starts-with($root);
+}
+
+#| Delete empty directories down-tree from the starting point.
+sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
+    my IO::Path $root = getPath('root');
+
+    if ($directory) {
+        $root = findDirectory($directory);
+    }
+
+    for walkArchiveDirs($root) -> $dir {
+        next unless ($dir.dir);
+
+        if ($dryrun) {
+            wouldHaveDone("Delete $dir");
+            next;
+        }
+
+        rmdir($dir) unless ($dir.dir);
+    }
 }
 
 # Delete empty directories up-tree from the starting point.

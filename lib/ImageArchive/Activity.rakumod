@@ -266,26 +266,6 @@ sub promoteVersion(IO::Path $file, Bool $dryRun? = False) is export {
     }
 }
 
-#| Delete empty directories down-tree from the starting point.
-sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
-    my IO::Path $root = getPath('root');
-
-    if ($directory) {
-        $root = findDirectory($directory);
-    }
-
-    for walkArchiveDirs($root) -> $dir {
-        next unless ($dir.dir);
-
-        if ($dryrun) {
-            wouldHaveDone("Delete $dir");
-            next;
-        }
-
-        rmdir($dir) unless ($dir.dir);
-    }
-}
-
 #| Look up average color for one or more files.
 sub resolveColorTarget($target) is export {
     my %targets;
