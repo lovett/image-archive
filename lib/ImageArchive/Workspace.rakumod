@@ -94,14 +94,14 @@ sub openWorkspace(IO::Path $file) is export {
 }
 
 # Transfer a workspace to a new location within or outside the archive.
-sub moveWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryRun? = False) is export {
+sub moveWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryrun? = False) is export {
     my $destinationPath = $destinationDir.add($dir.basename);
 
     if ($destinationPath.IO ~~ :d) {
         die ImageArchive::Exception::PathConflict.new(:path($destinationPath));
     }
 
-    if ($dryRun) {
+    if ($dryrun) {
         wouldHaveDone("Move {relativePath($dir)} to {$destinationPath}");
         return;
     }

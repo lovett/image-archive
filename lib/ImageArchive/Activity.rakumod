@@ -126,7 +126,7 @@ sub searchLogs(Regex $matcher, Str $directory?) is export {
 }
 
 # Remove a file from the archive.
-sub deportFiles(@files, IO $destinationDir, Bool $dryRun? = False) is export {
+sub deportFiles(@files, IO $destinationDir, Bool $dryrun? = False) is export {
     return unless @files;
 
     my $file = @files.pop;
@@ -137,7 +137,7 @@ sub deportFiles(@files, IO $destinationDir, Bool $dryRun? = False) is export {
         die ImageArchive::Exception::PathConflict.new(:path($destinationPath));
     }
 
-    if ($dryRun) {
+    if ($dryrun) {
         wouldHaveDone("Move {relativePath($file)} to {$destinationPath}");
         return;
     }
@@ -149,12 +149,12 @@ sub deportFiles(@files, IO $destinationDir, Bool $dryRun? = False) is export {
 
     my $workspace = findWorkspace($file);
     if ($workspace ~~ :d) {
-        moveWorkspace($workspace, $destinationDir, $dryRun);
+        moveWorkspace($workspace, $destinationDir, $dryrun);
     }
 
     pruneEmptyDirsUpward($file.parent);
 
-    deportFiles(@files, $destinationDir, $dryRun);
+    deportFiles(@files, $destinationDir, $dryrun);
 }
 
 
@@ -237,13 +237,13 @@ sub printUnindexed() is export {
 }
 
 # Move a file out of the workspace.
-sub promoteVersion(IO::Path $file, Bool $dryRun? = False) is export {
+sub promoteVersion(IO::Path $file, Bool $dryrun? = False) is export {
     testPathExistsInWorkspace($file);
 
     my $master = findWorkspaceMaster($file.parent);
     my $newMaster = $master.extension($file.extension);
 
-    if ($dryRun) {
+    if ($dryrun) {
         wouldHaveDone("{$file} becomes {$newMaster}");
         return;
     }

@@ -7,14 +7,14 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 
 # Remove a tag completely regardless of its value from all files.
-multi sub removeAliasFromArchive(Str $alias, Str $value?, Bool $dryRun = False) is export {
+multi sub removeAliasFromArchive(Str $alias, Str $value?, Bool $dryrun = False) is export {
     my $counter = 0;
 
     for hyper findByTag("{$alias}:any", 'searchresult') -> $result {
         my $path = findFile($result<path>);
-        removeAlias($path, $alias, $value, $dryRun);
+        removeAlias($path, $alias, $value, $dryrun);
 
-        unless ($dryRun) {
+        unless ($dryrun) {
             indexFile($path);
         }
 
@@ -23,7 +23,7 @@ multi sub removeAliasFromArchive(Str $alias, Str $value?, Bool $dryRun = False) 
 
     my $message = "Untagged " ~ pluralize($counter, 'file', 'files');
 
-    if ($dryRun) {
+    if ($dryrun) {
         wouldHaveDone($message);
         return;
     }
@@ -33,13 +33,13 @@ multi sub removeAliasFromArchive(Str $alias, Str $value?, Bool $dryRun = False) 
 }
 
 # Remove the tags associated with a keyword from all files.
-sub removeKeywordFromArchive(Str $keyword, Bool $dryRun? = False) is export {
+sub removeKeywordFromArchive(Str $keyword, Bool $dryrun? = False) is export {
     my $counter = 0;
     for hyper findByTag("alias:{$keyword}", 'searchresult') -> $result {
         my $path = findFile($result<path>);
         removeKeyword($path, $keyword);
 
-        unless ($dryRun) {
+        unless ($dryrun) {
             indexFile($path);
         }
 
@@ -48,7 +48,7 @@ sub removeKeywordFromArchive(Str $keyword, Bool $dryRun? = False) is export {
 
     my $message = "Untagged " ~ pluralize($counter, 'file', 'files');
 
-    if ($dryRun) {
+    if ($dryrun) {
         wouldHaveDone($message);
         return;
     }
@@ -124,7 +124,7 @@ sub findUnindexed() returns Supply is export {
 }
 
 # Resize an imported file to smaller sizes for faster access.
-multi sub generateAlts(IO::Path $file, Bool $dryRun? = False) returns Nil is export {
+multi sub generateAlts(IO::Path $file, Bool $dryrun? = False) returns Nil is export {
     testPathExistsInArchive($file);
 
     my $archiveRoot = getPath('root');
@@ -138,7 +138,7 @@ multi sub generateAlts(IO::Path $file, Bool $dryRun? = False) returns Nil is exp
         my $destination = $cacheRoot.add($size).add($source).extension($thumbnailExtension);
         next if $destination.f;
 
-        if ($dryRun) {
+        if ($dryrun) {
             wouldHaveDone("Create {$destination}");
             next;
         }
@@ -167,7 +167,7 @@ multi sub generateAlts(IO::Path $file, Bool $dryRun? = False) returns Nil is exp
 }
 
 # Resize all images in the archive to smaller sizes.
-multi sub generateAlts(Bool $dryRun? = False) returns Nil is export {
+multi sub generateAlts(Bool $dryrun? = False) returns Nil is export {
     my $root = getPath('root');
     my $channel = walkArchive($root).Channel;
 
@@ -175,7 +175,7 @@ multi sub generateAlts(Bool $dryRun? = False) returns Nil is export {
         start {
             react {
                 whenever $channel -> $path {
-                    generateAlts($path, $dryRun);
+                    generateAlts($path, $dryrun);
                 }
             }
         }
@@ -185,7 +185,7 @@ multi sub generateAlts(Bool $dryRun? = False) returns Nil is export {
 }
 
 # Move a file to a subfolder under the archive root.
-sub importFile(IO $file, Bool $dryRun? = False) returns IO::Path is export {
+sub importFile(IO $file, Bool $dryrun? = False) returns IO::Path is export {
     my $root = getPath('root');
 
     my $tagValue = readRawTag($file.IO, 'datecreated') || 'undated';
@@ -198,7 +198,7 @@ sub importFile(IO $file, Bool $dryRun? = False) returns IO::Path is export {
         return Nil;
     }
 
-    unless ($destination ~~ :d || $dryRun) {
+    unless ($destination ~~ :d || $dryrun) {
         $destination.mkdir();
     }
 
@@ -210,7 +210,7 @@ sub importFile(IO $file, Bool $dryRun? = False) returns IO::Path is export {
         }
     }
 
-    if ($dryRun) {
+    if ($dryrun) {
         wouldHaveDone("Move {$file} to {$newPath}");
         return Nil;
     }

@@ -22,10 +22,10 @@ sub askQuestions() is export {
 }
 
 # Write one or more tags to a file via exiftool.
-sub commitTags(IO $file, @commands, Bool $dryRun? = False) is export {
+sub commitTags(IO $file, @commands, Bool $dryrun? = False) is export {
     my $configPath = %?RESOURCES<exiftool.config>.IO.absolute;
 
-    if ($dryRun) {
+    if ($dryrun) {
         wouldHaveDone("exiftool -config {$configPath} -ignoreMinorErrors {@commands} {$file}");
         return;
     }
@@ -123,7 +123,7 @@ sub restoreOriginal(IO $file) is export {
 }
 
 # Add tags to a file.
-sub tagFile($file, %tags, Bool $dryRun? = False) is export {
+sub tagFile($file, %tags, Bool $dryrun? = False) is export {
     my %aliases = readConfig('aliases');
 
     my %existingTags = readRawTags($file, %aliases.keys);
@@ -163,7 +163,7 @@ sub tagFile($file, %tags, Bool $dryRun? = False) is export {
         }
     }
 
-    commitTags($file, @commands, $dryRun);
+    commitTags($file, @commands, $dryrun);
 }
 
 # Determine if the provided aliases are valid.
@@ -244,7 +244,7 @@ sub transferTags(IO $donor, IO $recipient) is export {
 }
 
 # Remove the tags associated with a keyword.
-sub removeKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
+sub removeKeyword(IO $file, $keyword, Bool $dryrun? = False) is export {
     testKeywords($keyword.list);
 
     my %aliases = readConfig('aliases');
@@ -264,11 +264,11 @@ sub removeKeyword(IO $file, $keyword, Bool $dryRun? = False) is export {
     my $formalTag = %aliases<alias>;
     @commands.push("-{$formalTag}-={$keyword}");
 
-    commitTags($file, @commands, $dryRun);
+    commitTags($file, @commands, $dryrun);
 }
 
 # Remove a tag completely regardless of its value.
-multi sub removeAlias(IO $file, Str $alias, Str $value?, Bool $dryRun = False) is export {
+multi sub removeAlias(IO $file, Str $alias, Str $value?, Bool $dryrun = False) is export {
     testAliases($alias.list);
 
     my %aliases = readConfig('aliases');
@@ -279,5 +279,5 @@ multi sub removeAlias(IO $file, Str $alias, Str $value?, Bool $dryRun = False) i
         $argument = "-{$formalTag}-={$value}"
     }
 
-    commitTags($file, $argument.list, $dryRun);
+    commitTags($file, $argument.list, $dryrun);
 }
