@@ -309,57 +309,91 @@ sub reprompt(@targets, Bool $dryrun = False) is export {
     }
 }
 
-#| Convert the arguments of a view command to file paths.
+#| Locate file paths within the archive.
 sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
+    my @paths;
 
     given $flavor {
         when 'original' {
-            if ($target eq 'lastimport') {
-                my $lastimport = findByNewestImport();
-                return $lastimport[0]<path>.IO;
+            when $target eq 'lastimport' {
+                my $path = findByNewestImport();
+                testPathExistsInArchive($path);
+                @paths.append: $path if $path;
+                succeed;
             }
 
-            if ($target.IO.f) {
-                return findFile($target);
+            when $target.IO ~~ :f {
+                testPathExistsInArchive($target.IO);
+                @paths.append: $target.IO;
+                succeed;
             }
 
-            my @records = findByStashIndex($target, 'searchresult');
-            return @records.map({ findFile($_[0]) });
+            for findByStashIndex($target, 'searchresult') -> $path {
+                next unless $path;
+                testPathExistsInArchive($path[0]);
+                @paths.append: $path[0];
+            }
         }
 
         # Almost the same as original, but does not require target
-        # to be inside the archive.
+        # to be inside the archive when provided as a path.
         when 'taggable' {
-            if ($target.IO.f) {
-                return $target.IO;
+            when $target.IO ~~ :f {
+                @paths.append: $target.IO;
+                succeed;
             }
 
-            my @records = findByStashIndex($target, 'searchresult');
-            return @records.map({ findFile($_[0]) });
+            for findByStashIndex($target, 'searchresult') -> $path {
+                next unless $path;
+                testPathExistsInArchive($path[0]);
+                @paths.append: $path[0];
+            }
         }
 
         when 'alternate' {
-            my @altSizes = readConfig('alt_sizes').split(' ');
+            my $size = readConfig('alt_sizes').split(' ').first;
 
-            if ($target.IO.f) {
-                my $path = relativePath($target);
-                return findAlternate($path, @altSizes.first);
+            when $target eq 'lastimport' {
+                my $path = findByNewestImport();
+                testPathExistsInArchive($path);
+                @paths.append: findAlternate($path, $size) if $path;
+                succeed
             }
 
-            my @records = findByStashIndex($target, 'searchresult');
-            return @records.map({ findAlternate($_[0], @altSizes.first) });
+            when $target.IO ~~ :f {
+                testPathExistsInArchive($target.IO);
+                @paths.append: findAlternate($target.IO, $size);
+                succeed;
+            }
+
+            for findByStashIndex($target, 'searchresult') -> $path {
+                next unless $path;
+                testPathExistsInArchive($path[0]);
+                @paths.append: findAlternate($path[0], $size);
+            }
         }
 
         when 'parent' {
-            if ($target.IO.f) {
-                return $target.IO.parent.List;
+            when $target.IO ~~ :f {
+                testPathExistsInArchive($target.IO);
+                @paths.append: $target.IO.parent;
+                succeed;
             }
 
-            my @records = findByStashIndex($target, 'searchresult');
-            return @records.map({ findFile($_[0]).parent });
+            for findByStashIndex($target, 'searchresult') -> $path {
+                next unless $path;
+                testPathExistsInArchive($path[0]);
+                next if @paths.grep($path[0].parent);
+                @paths.append: $path[0].parent;
+            }
         }
-
     }
+
+    unless @paths {
+        die ImageArchive::Exception::PathNotFoundInArchive.new;
+    }
+
+    return @paths;
 }
 
 #| Display a file's tags.

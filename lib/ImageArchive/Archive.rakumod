@@ -99,14 +99,15 @@ sub findDirectory(Str $path) is export {
 }
 
 # Resolve a path to an alternate.
-sub findAlternate(Str $path, Str $size) is export {
+sub findAlternate(IO::Path $path, Str $size) is export {
+    my $relPath = relativePath($path);
     my $thumbnailExtension = readConfig('alt_format');
     my $cacheRoot = getPath('cache');
 
-    my $target = $cacheRoot.add("$size/$path").extension($thumbnailExtension).IO;
+    my $target = $cacheRoot.add("$size/$relPath").extension($thumbnailExtension).IO;
 
     unless ($target ~~ :f) {
-        generateAlts(findFile($path));
+        generateAlts($path);
     }
 
     return $target;
@@ -262,10 +263,12 @@ sub pruneEmptyDirsUpward(IO::Path $origin) is export {
 }
 
 # See if a file exists within the archive root.
-sub testPathExistsInArchive(IO $file) is export {
+sub testPathExistsInArchive(IO::Path $path) is export {
     my $root = getPath('root');
-    return if $file.absolute.starts-with($root) && ($file ~~ :e);
-    die ImageArchive::Exception::PathNotFoundInArchive.new;
+    return if $path.absolute.starts-with($root) && ($path ~~ :e);
+    die ImageArchive::Exception::PathNotFoundInArchive.new(
+        :path($path)
+    );
 }
 
 # List the files in the archive.
@@ -306,10 +309,6 @@ sub walkArchiveDirs(IO::Path $origin) returns Supply is export {
 
 # Display files in an external application.
 sub viewFiles(@paths) is export {
-    unless (@paths) {
-        die ImageArchive::Exception::PathNotFoundInArchive.new;
-    }
-
     my $command = readConfig('view_file');
 
     unless ($command) {
@@ -326,12 +325,6 @@ sub viewFiles(@paths) is export {
 
 # Display files in an external application.
 sub viewDirectories(@paths) is export {
-    for @paths {
-        unless ($_ ~~ :d) {
-            die ImageArchive::Exception::PathNotFoundInArchive.new;
-        }
-    }
-
     my $command = readConfig('view_directory');
 
     unless ($command) {

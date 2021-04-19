@@ -240,8 +240,8 @@ sub openDatabaseSession() is export {
 }
 
 
-# Locate archive paths by most-recently-imported..
-sub findByNewestImport(Int $limit = 1) is export {
+# The absolute path to the most-recently-imported file in the archive.
+sub findByNewestImport(Int $limit = 1) returns IO::Path is export {
     my $query = qq:to/SQL/;
     SELECT json_extract(a.tags, '\$.SourceFile') as path
     FROM archive a
@@ -251,13 +251,12 @@ sub findByNewestImport(Int $limit = 1) is export {
 
     my $dbh = openDatabase();
     my $sth = $dbh.execute($query, $limit);
+    my @values = $sth.row();
+
+    return Nil unless @values;
 
     my $root = getPath('root');
-    return gather {
-        for $sth.allrows(:array-of-hash) -> $row {
-            take $row;
-        }
-    }
+    return $root.add(@values.first);
 }
 
 # Locate archive paths by index from a previous search.
@@ -291,9 +290,10 @@ sub findByStashIndex(Str $query, Str $key, @tags=(), Bool $debug = False) is exp
 
     my $sth = $dbh.execute($stashQuery);
 
+    my $root = getPath('root');
     return gather {
         for $sth.allrows() -> $row {
-            take $row;
+            take $root.add($row[0]);
         }
 
         if ($debug) {
