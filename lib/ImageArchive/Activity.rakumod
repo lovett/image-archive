@@ -454,6 +454,38 @@ sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
     }
 }
 
+# Display one or more files in an external application.
+sub viewFiles(@paths) is export {
+    my $command = readConfig('view_file');
+
+    unless ($command) {
+        die ImageArchive::Exception::MissingConfig.new(:key('view_file'));
+    }
+
+    my $proc = run $command, @paths, :err;
+    my $err = $proc.err.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+}
+
+# Display one or more directories in an external application.
+sub viewDirectories(@paths) is export {
+    my $command = readConfig('view_directory');
+
+    unless ($command) {
+        die ImageArchive::Exception::MissingConfig.new(:key('view_directory'));
+    }
+
+    my $proc = shell "$command {@paths}", :err;
+    my $err = $proc.err.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+}
+
 #| Remove tags by alias or value.
 sub untagByAlias(@targets, Str $alias, Str $value?, Bool $dryrun = False) is export {
     for @targets -> $target {

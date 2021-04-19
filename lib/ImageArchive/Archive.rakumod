@@ -306,35 +306,3 @@ sub walkArchiveDirs(IO::Path $origin) returns Supply is export {
         }
     }
 }
-
-# Display files in an external application.
-sub viewFiles(@paths) is export {
-    my $command = readConfig('view_file');
-
-    unless ($command) {
-        die ImageArchive::Exception::MissingConfig.new(:key('view_file'));
-    }
-
-    my $proc = run $command, @paths, :err;
-    my $err = $proc.err.slurp(:close);
-
-    if ($proc.exitcode !== 0) {
-        die ImageArchive::Exception::BadExit.new(:err($err));
-    }
-}
-
-# Display files in an external application.
-sub viewDirectories(@paths) is export {
-    my $command = readConfig('view_directory');
-
-    unless ($command) {
-        die ImageArchive::Exception::MissingConfig.new(:key('view_directory'));
-    }
-
-    my $proc = shell "$command {@paths}", :err;
-    my $err = $proc.err.slurp(:close);
-
-    if ($proc.exitcode !== 0) {
-        die ImageArchive::Exception::BadExit.new(:err($err));
-    }
-}
