@@ -94,17 +94,33 @@ class ImageArchive::Exception::NotAWorkspace is Exception is export {
     }
 }
 
-# A file thought to be in the archive does not exist.
+# A file or directory thought to be in the archive does not exist.
 class ImageArchive::Exception::PathNotFoundInArchive is Exception is export {
+    has IO::Path $.path;
+
+    multi method gist {
+        $.message;
+    }
+
     method message {
-        "No such path in archive.";
+        my $message = "Path not found in archive";
+        $message ~= ($!path) ?? ": $!path" !! '.';
+        return $message;
     }
 }
 
-# A file is not within a workspace.
+# A file thought to be in a workspace does not exist.
 class ImageArchive::Exception::PathNotFoundInWorkspace is Exception is export {
+    has IO::Path $.path;
+
+    multi method gist {
+        $.message;
+    }
+
     method message {
-        "File not found in workspace.";
+        my $message = "File not found in workspace";
+        $message ~= ($!path) ?? ": $!path" !! '.';
+        return $message;
     }
 }
 
