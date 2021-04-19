@@ -65,8 +65,13 @@ class ImageArchive::Exception::PathConflict is Exception is export {
 class ImageArchive::Exception::MissingConfig is Exception is export {
     has Str $.key;
 
+    multi method gist {
+        $.message;
+    }
+
     method message {
-        "Cannot continue. No {$!key} in configuration file.";
+        my $config = getPath('config');
+        "Cannot proceed. Missing \"{$!key}\" in {$config}";
     }
 }
 
