@@ -178,17 +178,24 @@ sub tagFile($file, %tags, Bool $dryrun? = False) is export {
         my $formalTag = %aliases{$tag};
         my $existingValue = %existingTags{$tag};
 
-        # This is a cheap way of distinguishing between list tags and
-        # scalar tags. No deserialization is performed by readRawTags
+        # This is a cheap way of distinguishing between lists and
+        # scalars. No deserialization is performed by readRawTags
         # since it's usually not necessary. This is the exception.
-        my $existingValueIsList = $existingValue && $existingValue.starts-with: '[';
+        my $existingValueIsList = ($existingValue or '').starts-with: '[';
 
         for set($value.list).keys -> $item {
+            my $tagValue = $item;
             # If tags were always added in append mode, those that
             # accept scalars would throw a warning. So only append
             # when a tag already exists and accepts a list.
             my $operator = ($existingValueIsList) ?? '+=' !! '=';
-            @commands.push("-{$formalTag}{$operator}{$item}");
+
+            if ($item eq '-') {
+                $operator = '=';
+                $tagValue = '';
+            }
+
+            @commands.push("-{$formalTag}{$operator}{$tagValue}");
         }
     }
 
