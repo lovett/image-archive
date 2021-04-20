@@ -88,7 +88,11 @@ sub readRawTags(IO $file, @tags, Str $flags = '') is export {
         @formalTags.push('-' ~ (%aliases{$tag} || $tag));
     }
 
-    my $proc = run qqw{exiftool -s3 -n -struct -f $flags}, @formalTags, $file.Str, :out, :err;
+    # First run: collect unstructured values.
+    #
+    # This handles the majority of tags by presuming they hold scalar
+    # values.
+    my $proc = run <exiftool -s3 -n -f>, @formalTags, $file.Str, :out, :err;
     my $err = $proc.err.slurp(:close);
     my $out = $proc.out.slurp(:close);
 
@@ -96,8 +100,33 @@ sub readRawTags(IO $file, @tags, Str $flags = '') is export {
         die ImageArchive::Exception::BadExit.new(:err($err));
     }
 
-    my %tags = @tags Z=> $out.lines;
-    return %tags.grep({ .value ne '-' });
+    my %tags = (@tags Z=> $out.lines).grep({ .value ne '-' });
+
+    # Second run: collect structured values.
+    #
+    # Now run with -struct so that lists and objects are accounted
+    # for. There's no way to know whether a structured tag has been
+    # requested or a flattened one, so the strategy is to try both and
+    # merge the results.
+    #
+    # For example, if the desired tag is XMP-iptcExt:SeriesName then
+    # using -struct would not return a value. If the tag is XMP-iptcExt:Series,
+    # the same would happen if -struct was not used.
+    #
+    # This distinction is especially important for list tags like
+    # XMP-dc:subject. Without -struct, the return value is a comma
+    # delimited string. But scalar values could also contain commas.
+    $proc = run <exiftool -s3 -n -f -struct>, @formalTags, $file.Str, :out, :err;
+    $err = $proc.err.slurp(:close);
+    $out = $proc.out.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+
+    my %structTags = (@tags Z=> $out.lines).grep({ .value ne '-' });
+
+    return %tags, %structTags;
 }
 
 # Discard the backup copy of a file Exiftool has modified.
