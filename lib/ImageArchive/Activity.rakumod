@@ -288,9 +288,9 @@ sub resolveColorTarget($target) is export {
 #| Redo question-and-answer tagging.
 sub reprompt(@targets, Bool $dryrun = False) is export {
     for @targets -> $target {
-        my %tags = askQuestions();
+        my %newTags = askQuestions($target);
 
-        tagFile($target, %tags, $dryrun);
+        tagFile($target, %newTags, $dryrun);
         next if $dryrun;
 
         if (isArchiveFile($target)) {
@@ -422,7 +422,7 @@ sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
 
             testContextCoverage(@contexts, @keywords);
 
-            %tags.append(askQuestions());
+            %tags.append(askQuestions($target));
         }
 
         %tags<alias> = @keywords;

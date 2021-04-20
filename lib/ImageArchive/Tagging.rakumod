@@ -1,18 +1,44 @@
 unit module ImageArchive::Tagging;
 
+use Terminal::ANSIColor;
+
 use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Exception;
 use ImageArchive::Util;
 
 # Prompt for tag values that are unique to the image.
-sub askQuestions() is export {
+sub askQuestions(IO::Path $target) is export {
     my %prompts = readConfig('prompts');
-
+    my %currentTags = readRawTags($target, %prompts.keys);
     my %answers;
 
+    say '';
+    say colored('TAGGING NOTES', 'magenta');
+    say q:to/END/;
+    - The current value is shown in brackets if there is one.
+    - Type - to remove the current value and discard the tag.
+    - Leave the tag blank to keep it as-is.
+    - If the current value is a list, the new value will be appended.
+      Otherwise the current value will be replaced.
+    END
+
     for %prompts.sort(*.key) {
-        my $answer = prompt "{$_.value}: ";
+        my $promptText = "{$_.value}: ";
+        my $currentValue = %currentTags{.key};
+        if $currentValue {
+            unless $currentValue.starts-with: '[' {
+                $currentValue = "[$currentValue]";
+            }
+
+            $promptText = sprintf(
+                "%s %s: ",
+                .value,
+                colored($currentValue, 'yellow')
+            );
+        }
+
+        my $answer = prompt $promptText;
         $answer .= trim;
         next unless $answer;
         %answers{$_.key} = ($_.trim for $answer.split(','))
