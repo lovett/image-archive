@@ -100,8 +100,9 @@ multi sub MAIN('show:search') {
 }
 
 #| Find files by color similarity.
-multi sub MAIN('similar:color', Str $file where *.IO.f) {
-    my @rgb = getAverageColor($file.IO);
+multi sub MAIN('similar:color', Str $target) {
+    my @targets = resolveFileTarget($target, 'taggable');
+    my @rgb = getAverageColor(@targets.first.IO);
     my @results = findBySimilarColor(@rgb, 'searchresult');
     printSearchResults(@results, 'score');
 }
