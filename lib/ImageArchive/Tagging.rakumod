@@ -107,6 +107,8 @@ sub readTags(IO::Path $file, @tags) is export {
 }
 
 # Extract multiple tags from a file.
+#
+# This is the file-oriented equivalent of Database::getTags.
 sub readRawTags(IO $file, @tags, Str $flags = '') is export {
     my %aliases = readConfig('aliases');
     my @formalTags;

@@ -159,14 +159,27 @@ sub deportFiles(@files, IO $destinationDir, Bool $dryrun? = False) is export {
 
 
 #| Print a mapping of file paths to RGB triples.
-sub printColorTable(%fileMap) is export {
-    for %fileMap.kv -> $path, @rgb {
+sub printColorTable(@paths) is export {
+
+    my $colspec = "%-6s | %-11s | %s\n";
+
+    say "";
+    printf($colspec, 'Swatch', 'RGB', 'Path');
+    say "-" x 72;
+
+    for @paths -> $path {
+        my %tags = getTags($path, 'AverageRGB');
+        my $rgb = sprintf('%-11s', %tags<AverageRGB> || 'unknown');
+
         printf(
-            "%3s, %3s, %3s | %s\n",
-            @rgb,
-            $path
+            $colspec,
+            colored('      ', "white on_$rgb"),
+            $rgb,
+            relativePath($path)
         );
     }
+
+    say "";
 }
 
 #| Print the contents of a workspace log.
@@ -264,25 +277,6 @@ sub promoteVersion(IO::Path $file, Bool $dryrun? = False) is export {
             exit 1;
         }
     }
-}
-
-#| Look up average color for one or more files.
-sub resolveColorTarget($target) is export {
-    my %targets;
-
-    if ($target.IO.f) {
-        my $path = relativePath($target);
-        %targets{$path} = getAverageColor($target.IO);
-    } else {
-        my @records = findByStashIndex($target, 'searchresult', 'AverageRGB'.List);
-
-        for @records {
-            my $path = relativePath($_[0]);
-            %targets{$path} = $_[1].split(',');
-        }
-    }
-
-    return %targets;
 }
 
 #| Redo question-and-answer tagging.

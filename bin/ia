@@ -16,8 +16,8 @@ use ImageArchive::Workspace;
 
 #| Display a target's average RGB color.
 multi sub MAIN('color', Str $target) {
-    my %targets = resolveColorTarget($target);
-    printColorTable(%targets);
+    my @targets = resolveFileTarget($target, 'original');
+    printColorTable(@targets);
 }
 
 #| Generate the shell completion file.

@@ -217,6 +217,29 @@ sub indexFile(IO $file) is export {
     $sth.execute($uuid, $json);
 }
 
+# Look up one or more tags for a given file.
+#
+# This is the database-oriented equivalent of Tagging:readRawtags().
+sub getTags(IO::Path $path, *@tags) is export {
+    my $relativePath = relativePath($path);
+
+    my $selectSql = @tags.map(
+        { "json_extract(a.tags, '\$.{$_}') as '$_'" }
+    ).join(', ');
+
+
+    my $query = qq:to/STATEMENT/;
+    SELECT {$selectSql}
+    FROM archive a
+    WHERE json_extract(a.tags, '\$.SourceFile') = ?
+    STATEMENT
+
+    my $dbh = openDatabase();
+    my $sth = $dbh.execute($query, $relativePath);
+
+    return $sth.row(:hash);
+}
+
 # Open a connection to the SQLite database.
 #
 # Uses Raku's state declarator for connection reuse.
@@ -265,7 +288,7 @@ sub findByNewestImport(Int $limit = 1) returns Seq is export {
 }
 
 # Locate archive paths by index from a previous search.
-sub findByStashIndex(Str $query, Str $key, @tags=(), Bool $debug = False) is export {
+sub findByStashIndex(Str $query, Str $key, Bool $debug = False) is export {
     my $parserActions = RangeActions.new;
 
     my $parsedQuery = Range.parse(
@@ -277,28 +300,28 @@ sub findByStashIndex(Str $query, Str $key, @tags=(), Bool $debug = False) is exp
         return;
     }
 
-    my @columns = "SourceFile".Array.append(@tags);
-
-    my $selectSql = @columns.map({ "json_extract(a.tags, '\$.{$_}')" }).join(', ');
-
     my $stashQuery = qq:to/SQL/;
-    SELECT * FROM (
-        SELECT {$selectSql}, row_number()
+    SELECT path, series, seriesid FROM (
+        SELECT json_extract(a.tags, '\$.SourceFile') as path,
+        IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
+        CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid,
+        row_number()
         OVER (ORDER BY s.id) as rownum
         FROM stash s, archive a
         WHERE s.archive_id=a.id
-        AND s.key='{$key}'
+        AND s.key=?
     ) WHERE {$parsedQuery.made}
     SQL
 
     my $dbh = openDatabase();
 
-    my $sth = $dbh.execute($stashQuery);
+    my $sth = $dbh.execute($stashQuery, $key);
 
     my $root = getPath('root');
     return gather {
-        for $sth.allrows() -> $row {
-            take $root.add($row[0]);
+        for $sth.allrows(:array-of-hash) -> $row {
+            $row<path> = (getPath('root') ~ $row<path>).IO;
+            take $row;
         }
 
         if ($debug) {
