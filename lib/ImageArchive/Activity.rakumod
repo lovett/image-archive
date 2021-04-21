@@ -323,10 +323,9 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
                 succeed;
             }
 
-            for findByStashIndex($target, 'searchresult') -> $path {
-                next unless $path;
-                testPathExistsInArchive($path[0]);
-                @paths.append: $path[0];
+            for findByStashIndex($target, 'searchresult') -> $record {
+                testPathExistsInArchive($record<path>);
+                @paths.append: $record<path>;
             }
         }
 
@@ -346,10 +345,9 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
                 succeed;
             }
 
-            for findByStashIndex($target, 'searchresult') -> $path {
-                next unless $path;
-                testPathExistsInArchive($path[0]);
-                @paths.append: $path[0];
+            for findByStashIndex($target, 'searchresult') -> $record {
+                testPathExistsInArchive($record<path>);
+                @paths.append: $record<path>;
             }
         }
 
@@ -370,10 +368,9 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
                 succeed;
             }
 
-            for findByStashIndex($target, 'searchresult') -> $path {
-                next unless $path;
-                testPathExistsInArchive($path[0]);
-                @paths.append: findAlternate($path[0], $size);
+            for findByStashIndex($target, 'searchresult') -> $record {
+                testPathExistsInArchive($record<path>);
+                @paths.append: findAlternate($record<path>, $size);
             }
         }
 
