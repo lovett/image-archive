@@ -111,9 +111,9 @@ sub search(@terms, Int $limit = 10, Bool $debug = False) is export {
 sub searchLogs(Regex $matcher, Str $directory?) is export {
     my SetHash $cache = SetHash.new;
 
-    my IO::Path $root = getPath('root');
+    my $root = getPath('root');
     if ($directory) {
-        $root = findDirectory($directory);
+        $root = $root.add($directory);
     }
 
     my $counter = 0;

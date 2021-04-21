@@ -11,11 +11,11 @@ multi sub removeAliasFromArchive(Str $alias, Str $value?, Bool $dryrun = False) 
     my $counter = 0;
 
     for hyper findByTag("{$alias}:any", 'searchresult') -> $result {
-        my $path = findFile($result<path>);
-        removeAlias($path, $alias, $value, $dryrun);
+        testPathExistsInArchive($result<path>);
+        removeAlias($result<path>, $alias, $value, $dryrun);
 
         unless ($dryrun) {
-            indexFile($path);
+            indexFile($result<path>);
         }
 
         $counter++;
@@ -36,11 +36,11 @@ multi sub removeAliasFromArchive(Str $alias, Str $value?, Bool $dryrun = False) 
 sub removeKeywordFromArchive(Str $keyword, Bool $dryrun? = False) is export {
     my $counter = 0;
     for hyper findByTag("alias:{$keyword}", 'searchresult') -> $result {
-        my $path = findFile($result<path>);
-        removeKeyword($path, $keyword);
+        testPathExistsInArchive($result<path>);
+        removeKeyword($result<path>, $keyword);
 
         unless ($dryrun) {
-            indexFile($path);
+            indexFile($result<path>);
         }
 
         $counter++;
@@ -70,32 +70,6 @@ sub deleteAlts(IO::Path $file) is export {
         $target.IO.unlink;
         pruneEmptyDirsUpward($target.parent);
     }
-}
-
-# Resolve a path to an archive file.
-sub findFile(Str $path) is export {
-    my $target = $path.IO;
-
-    unless ($target ~~ :f) {
-        $target = getPath('root').add($path);
-    }
-
-    testPathExistsInArchive($target);
-
-    return $target;
-}
-
-# Resolve a path to an archive directory.
-sub findDirectory(Str $path) is export {
-    my $target = $path.IO;
-
-    unless ($target ~~ :d) {
-        $target = getPath('root').add($path);
-    }
-
-    testPathExistsInArchive($target);
-
-    return $target;
 }
 
 # Resolve a path to an alternate.
@@ -236,7 +210,7 @@ sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
     my IO::Path $root = getPath('root');
 
     if ($directory) {
-        $root = findDirectory($directory);
+        $root = $root.add($directory);
     }
 
     for walkArchiveDirs($root) -> $dir {
