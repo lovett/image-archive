@@ -8,13 +8,13 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 
 # Add a text file to a workspace for capturing notes and progress.
-sub addWorkspaceLog(IO::Path $dir) returns Nil {
-    my $log = findWorkspaceLog($dir);
+sub addWorkspaceLog(IO::Path $workspace) returns Nil {
+    my $log = findWorkspaceLog($workspace);
 
     unless $log.f {
         my $dayNames = <Sun Mon Tue Wed Thu Fri Sat Sun>;
         my $template = %?RESOURCES<history.org>.IO.slurp;
-        $template = $template.subst('@@WORKSPACE@@', relativePath($dir));
+        $template = $template.subst('@@WORKSPACE@@', relativePath($workspace));
 
         $template = $template.subst(
             '@@DATE@@',
@@ -73,6 +73,7 @@ sub findWorkspaceLog(IO::Path $workspace) returns IO::Path is export {
 
 # Locate the editing workspace for a given file.
 sub findWorkspace(IO::Path $file) is export {
+    testPathExistsInArchive($file);
     my $workspace = $file.extension('workspace');
     return $workspace;
 }
@@ -80,38 +81,34 @@ sub findWorkspace(IO::Path $file) is export {
 # Create the editing workspace for a given file.
 sub openWorkspace(IO::Path $file) is export {
     my $workspace = findWorkspace($file);
-    my $archive = $workspace.extension('archive');
 
-    if ($archive ~~ :d) {
-        rename($archive, $workspace);
+    unless $workspace ~~ :d {
+        mkdir($workspace);
+        addWorkspaceLog($workspace);
     }
-
-    $workspace.mkdir unless $workspace ~~ :d;
-
-    addWorkspaceLog($workspace);
 
     return $workspace;
 }
 
 # Transfer a workspace to a new location within or outside the archive.
-sub moveWorkspace(IO::Path $dir, IO $destinationDir, Bool $dryrun? = False) is export {
-    my $destinationPath = $destinationDir.add($dir.basename);
+sub moveWorkspace(IO::Path $workspace, IO::Path $destination, Bool $dryrun? = False) is export {
+    my $destinationPath = $destination.add($workspace.basename);
 
     if ($destinationPath.IO ~~ :d) {
         die ImageArchive::Exception::PathConflict.new(:path($destinationPath));
     }
 
     if ($dryrun) {
-        wouldHaveDone("Move {relativePath($dir)} to {$destinationPath}");
+        wouldHaveDone("Move {relativePath($workspace)} to {$destinationPath}");
         return;
     }
 
-    rename($dir, $destinationPath);
+    rename($workspace, $destinationPath);
 
     my $log = findWorkspaceLog($destinationPath);
 
     if ($log) {
-        my $originalRelativePath = relativePath($dir);
+        my $originalRelativePath = relativePath($workspace);
         my $destinationRelativePath = relativePath($destinationPath);
 
         my $tmp = open $log ~ '.tmp', :w;
@@ -140,11 +137,7 @@ sub findWorkspaceMaster(IO::Path $workspace) is export {
 # See if a file exists within a workspace directory.
 sub testPathExistsInWorkspace(IO::Path $file) is export {
     return if $file.parent.basename.ends-with('workspace');
-    die ImageArchive::Exception::PathNotFoundInWorkspace.new;
-}
-
-# See if a path refers to a workspace diretory.
-sub testPathIsWorkspace(IO::Path $path) is export {
-    return if $path.extension eq 'workspace';
-    die ImageArchive::Exception::NotAWorkspace.new;
+    die ImageArchive::Exception::PathNotFoundInArchive.new(
+        :path($file)
+    );
 }
