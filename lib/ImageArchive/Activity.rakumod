@@ -202,10 +202,10 @@ sub printHistory(@files) is export {
     printHistory(@files);
 }
 
-sub printSearchResults(@records, $flavor) is export {
+sub printSearchResults(@results, $flavor) is export {
     my $counter = 0;
 
-    for (@records) -> $result {
+    for @results -> $result {
         my $col1 = sprintf("%3d", ++$counter);
 
         my $col2;
