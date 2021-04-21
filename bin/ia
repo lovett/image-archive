@@ -76,7 +76,7 @@ multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
 }
 
 multi sub MAIN('search') is hidden-from-USAGE {
-    die ImageArchive::Exception::NoSearchQuery.new;
+    note 'No search terms were provided.';
 }
 
 #| Establish the application configuration and database.

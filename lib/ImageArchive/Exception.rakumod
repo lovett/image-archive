@@ -85,13 +85,6 @@ class ImageArchive::Exception::MissingContext is Exception is export {
 
 }
 
-# The search command is invoked without search terms.
-class ImageArchive::Exception::NoSearchQuery is Exception is export {
-    method message {
-        "No search terms provided."
-    }
-}
-
 # A path expected to be a workspace is not.
 class ImageArchive::Exception::NotAWorkspace is Exception is export {
     method message {
