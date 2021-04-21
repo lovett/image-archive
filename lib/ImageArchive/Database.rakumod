@@ -386,6 +386,7 @@ sub findBySimilarColor(@rgb, Str $key) is export {
     my $root = getPath('root');
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
+            $row<path> = (getPath('root') ~ $row<path>).IO;
             take $row;
         }
     }
@@ -419,6 +420,7 @@ sub findNewest(Int $limit, Str $key) is export {
     my $root = getPath('root');
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
+            $row<path> = (getPath('root') ~ $row<path>).IO;
             take $row;
         }
     }
@@ -477,6 +479,7 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
     my $root = getPath('root');
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
+            $row<path> = (getPath('root') ~ $row<path>).IO;
             take $row;
         }
 
