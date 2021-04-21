@@ -74,7 +74,7 @@ sub reindex(Str $target?) is export {
     my @targets;
 
     if ($target) {
-        @targets = resolveFileTarget($target, 'original');
+        @targets = resolveFileTarget($target);
     } else {
         my $root = getPath('root');
         @targets =  walkArchive($root).List;
@@ -127,9 +127,9 @@ sub searchLogs(Regex $matcher, Str $directory?) is export {
 
 # Remove a file from the archive.
 sub deportFiles(@files, IO $destinationDir, Bool $dryrun? = False) is export {
-    return unless @files;
-
     my $file = @files.pop;
+
+    testPathExistsInArchive($file);
 
     my $destinationPath = $destinationDir.add($file.basename);
 
@@ -154,7 +154,9 @@ sub deportFiles(@files, IO $destinationDir, Bool $dryrun? = False) is export {
 
     pruneEmptyDirsUpward($file.parent);
 
-    deportFiles(@files, $destinationDir, $dryrun);
+    if (@files) {
+        deportFiles(@files, $destinationDir, $dryrun);
+    }
 }
 
 
@@ -304,7 +306,7 @@ sub reprompt(@targets, Bool $dryrun = False) is export {
 }
 
 #| Locate file paths within the archive.
-sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
+sub resolveFileTarget($target, Str $flavor = 'original') is export {
     my @paths;
 
     given $flavor {
@@ -320,28 +322,6 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
             when $target.IO ~~ :f {
                 testPathExistsInArchive($target.IO);
                 @paths.append: $target.IO;
-                succeed;
-            }
-
-            for findByStashIndex($target, 'searchresult') -> $record {
-                testPathExistsInArchive($record<path>);
-                @paths.append: $record<path>;
-            }
-        }
-
-        # Almost the same as original, but does not require target
-        # to be inside the archive when provided as a path.
-        when 'taggable' {
-            when $target.IO ~~ :f {
-                @paths.append: $target.IO;
-                succeed;
-            }
-
-            when $target eq 'lastimport' {
-                for findByNewestImport() -> $record {
-                    testPathExistsInArchive($record<path>);
-                    @paths.append: $record<path>;
-                }
                 succeed;
             }
 

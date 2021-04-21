@@ -16,7 +16,7 @@ use ImageArchive::Workspace;
 
 #| Display a target's average RGB color.
 multi sub MAIN('color', Str $target) {
-    my @targets = resolveFileTarget($target, 'original');
+    my @targets = resolveFileTarget($target);
     printColorTable(@targets);
 }
 
@@ -32,7 +32,7 @@ multi sub MAIN('dbshell') {
 
 #| Take a target out of the archive.
 multi sub MAIN('deport', Str $target, Bool :$dryrun) {
-    my @targets = resolveFileTarget($target, 'original');
+    my @targets = resolveFileTarget($target);
     deportFiles(@targets, $*CWD.IO, $dryrun);
 }
 
@@ -44,7 +44,7 @@ multi sub MAIN('fixup', Bool :$dryrun) {
 
 #| Display a target's edit history.
 multi sub MAIN('history', Str $target) {
-    my @targets= resolveFileTarget($target, 'original');
+    my @targets= resolveFileTarget($target);
     printHistory(@targets);
 }
 
@@ -65,7 +65,7 @@ multi sub MAIN('reindex', Str $target?) {
 
 #| Redo question-and-answer tagging.
 multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
-    my @targets = resolveFileTarget($target, 'taggable');
+    my @targets = resolveFileTarget($target);
     reprompt(@targets, $dryrun);
 }
 
@@ -89,7 +89,7 @@ multi sub MAIN('setup', Str $directory where *.IO.d) {
 
 #| Display a file's tags.
 multi sub MAIN('show', Str $target) {
-    my @targets = resolveFileTarget($target, 'taggable');
+    my @targets = resolveFileTarget($target);
     showTags(@targets);
 }
 
@@ -101,7 +101,7 @@ multi sub MAIN('show:search') {
 
 #| Find files by color similarity.
 multi sub MAIN('similar:color', Str $target) {
-    my @targets = resolveFileTarget($target, 'taggable');
+    my @targets = resolveFileTarget($target);
     my @rgb = getAverageColor(@targets.first.IO);
     my @results = findBySimilarColor(@rgb, 'searchresult');
     printSearchResults(@results, 'score');
@@ -124,7 +124,7 @@ multi sub MAIN('stats:years') {
 
 #| Add tags to a file.
 multi sub MAIN('tag', Str $target, Bool :$dryrun, *@keywords) {
-    my @targets = resolveFileTarget($target, 'taggable');
+    my @targets = resolveFileTarget($target);
     tagAndImport(@targets, @keywords, $dryrun);
 }
 
@@ -146,7 +146,7 @@ multi sub MAIN('untag:alias', Str $target, Str $alias, Str $value?, Bool :$dryru
         }
 
         default {
-            my @targets = resolveFileTarget($target, 'taggable');
+            my @targets = resolveFileTarget($target);
             untagByAlias(@targets, $alias, $value, $dryrun);
         }
     }
@@ -160,7 +160,7 @@ multi sub MAIN('untag:keyword', Str $target, Str $keyword, Bool :$dryrun = False
         }
 
         default {
-            my @targets = resolveFileTarget($target, 'taggable');
+            my @targets = resolveFileTarget($target);
             untagByKeyword(@targets, $keyword, $dryrun);
         }
     }
@@ -174,7 +174,7 @@ multi sub MAIN('view', Str $target) {
 
 #| Display an original file by path or search index.
 multi sub MAIN('view:original', Str $target) {
-    my @targets = resolveFileTarget($target, 'original');
+    my @targets = resolveFileTarget($target);
     viewFiles(@targets);
 }
 
@@ -186,7 +186,7 @@ multi sub MAIN('visit', Str $target) {
 
 #| Set up an editing workspace by path or search index.
 multi sub MAIN('workon', $target) {
-    my @targets = resolveFileTarget($target, 'original');
+    my @targets = resolveFileTarget($target);
     my $workspace = copyToWorkspace(@targets.first);
     viewDirectories($workspace.list);
 }
