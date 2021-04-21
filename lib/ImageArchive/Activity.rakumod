@@ -316,9 +316,10 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
     given $flavor {
         when 'original' {
             when $target eq 'lastimport' {
-                my $path = findByNewestImport();
-                testPathExistsInArchive($path);
-                @paths.append: $path if $path;
+                for findByNewestImport() -> $record {
+                    testPathExistsInArchive($record<path>);
+                    @paths.append: $record<path>;
+                }
                 succeed;
             }
 
@@ -343,6 +344,14 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
                 succeed;
             }
 
+            when $target eq 'lastimport' {
+                for findByNewestImport() -> $record {
+                    testPathExistsInArchive($record<path>);
+                    @paths.append: $record<path>;
+                }
+                succeed;
+            }
+
             for findByStashIndex($target, 'searchresult') -> $path {
                 next unless $path;
                 testPathExistsInArchive($path[0]);
@@ -354,10 +363,11 @@ sub resolveFileTarget($target, Str $flavor = 'alternate') is export {
             my $size = readConfig('alt_sizes').split(' ').first;
 
             when $target eq 'lastimport' {
-                my $path = findByNewestImport();
-                testPathExistsInArchive($path);
-                @paths.append: findAlternate($path, $size) if $path;
-                succeed
+                for findByNewestImport() -> $record {
+                    testPathExistsInArchive($record<path>);
+                    @paths.append: findAlternate($record<path>, $size);
+                }
+                succeed;
             }
 
             when $target.IO ~~ :f {

@@ -243,9 +243,11 @@ sub openDatabaseSession() is export {
 
 
 # The absolute path to the most-recently-imported file in the archive.
-sub findByNewestImport(Int $limit = 1) returns IO::Path is export {
+sub findByNewestImport(Int $limit = 1) returns Seq is export {
     my $query = qq:to/SQL/;
-    SELECT json_extract(a.tags, '\$.SourceFile') as path
+    SELECT json_extract(a.tags, '\$.SourceFile') as path,
+    IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
+    CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a
     ORDER BY a.rowid DESC
     LIMIT ?
@@ -253,12 +255,13 @@ sub findByNewestImport(Int $limit = 1) returns IO::Path is export {
 
     my $dbh = openDatabase();
     my $sth = $dbh.execute($query, $limit);
-    my @values = $sth.row();
 
-    return Nil unless @values;
-
-    my $root = getPath('root');
-    return $root.add(@values.first);
+    return gather {
+        for $sth.allrows(:array-of-hash) -> $row {
+            $row<path> = (getPath('root') ~ $row<path>).IO;
+            take $row;
+        }
+    }
 }
 
 # Locate archive paths by index from a previous search.
