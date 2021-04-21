@@ -116,14 +116,27 @@ sub searchLogs(Regex $matcher, Str $directory?) is export {
         $root = findDirectory($directory);
     }
 
+    my $counter = 0;
+
+    clearStashByKey('searchresult');
+
     for walkArchive($root, /history\.org/) -> $path {
         for $path.lines.grep($matcher) -> $line {
             if $path !(elem) $cache {
+                $counter++;
+                my $workspaceMaster = findWorkspaceMaster($path.dirname.IO);
+                stashPath($workspaceMaster);
+
                 print "\n" if $cache.elems > 0;
-                say colored(relativePath($path.dirname), 'cyan underline');
+
+                printf(
+                    "%s | %s\n",
+                    colored(sprintf("%3d", $counter), 'white on_blue'),
+                    relativePath($workspaceMaster)
+                )
             }
 
-            say $line;
+            say $line.subst(/ ^\W*/, '    | ');
             $cache{$path} = True;
         }
     }

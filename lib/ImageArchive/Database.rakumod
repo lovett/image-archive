@@ -476,7 +476,6 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
 
     my $sth = $dbh.execute($stashQuery);
 
-    my $root = getPath('root');
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
             $row<path> = (getPath('root') ~ $row<path>).IO;
@@ -491,12 +490,14 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
     }
 }
 
-sub stashWorkspace(Str $relativePath) is export {
+sub stashPath(IO::Path $path, Str $key='searchresult') is export {
+    my $relativePath = relativePath($path);
+
     my $dbh = openDatabase();
 
     state $sth = $dbh.prepare(qq:to/STATEMENT/);
     INSERT INTO stash (key, archive_id)
-    SELECT 'workspace', a.id
+    SELECT '{$key}', a.id
     FROM archive a
     WHERE json_extract(a.tags, '\$.SourceFile') = ?
     STATEMENT
