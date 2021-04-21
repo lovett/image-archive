@@ -88,6 +88,9 @@ sub explainSearchSyntax() {
       A search consisting of this term will bring back the most recently added
       files. Use --limit to control how many files are shown.
 
+    SPECIAL TERM: lastimport
+      Equivalent to recent with --limit=1
+
     END
 }
 

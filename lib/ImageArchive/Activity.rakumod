@@ -92,6 +92,10 @@ sub search(@terms, Int $limit = 10, Bool $debug = False) is export {
     my $query = @terms.join(' ');
 
     given $query {
+        when 'lastimport' {
+            return findNewest(1, 'searchresult');
+        }
+
         when 'recent' {
             return findNewest($limit, 'searchresult');
         }
