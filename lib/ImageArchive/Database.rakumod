@@ -146,9 +146,10 @@ sub deindexFile(IO::Path $file) is export {
     $sth.execute($uuid);
 }
 
+# Retrieve the contents of the stash table for a given key.
 sub dumpStash(Str $key) is export {
     my $stashQuery = qq:to/SQL/;
-    SELECT * FROM (
+    SELECT path, series, seriesid FROM (
         SELECT json_extract(a.tags, '\$.SourceFile') as path,
         IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
         CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid,
@@ -156,15 +157,16 @@ sub dumpStash(Str $key) is export {
         OVER (ORDER BY s.id) as rownum
         FROM archive a, stash s
         WHERE a.id=s.archive_id
-        AND s.key='{$key}'
+        AND s.key=?
     )
     SQL
 
     my $dbh = openDatabase();
-    my $sth = $dbh.execute($stashQuery);
+    my $sth = $dbh.execute($stashQuery, $key);
 
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
+            $row<path> = (getPath('root') ~ $row<path>).IO;
             take $row;
         }
     }

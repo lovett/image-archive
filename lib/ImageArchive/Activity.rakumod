@@ -210,7 +210,7 @@ sub printSearchResults(@records, $flavor) is export {
             "%s | %15s | %s\n",
             colored($col1, 'white on_blue'),
             $col2,
-            $result<path>
+            relativePath($result<path>)
         );
     }
 
