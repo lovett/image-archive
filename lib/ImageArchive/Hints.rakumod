@@ -31,7 +31,8 @@ sub explainSyntax(Str $command) is export {
     my $shortSummary = $*USAGE.lines.grep( / ' ' $command ' ' / ).first;
 
     unless ($shortSummary) {
-        die "Unknown command.";
+        say "Unknown command.";
+        return;
     }
 
     say "Usage:";
