@@ -10,6 +10,7 @@ use ImageArchive::Database;
 use ImageArchive::Exception;
 use ImageArchive::Shell;
 use ImageArchive::Hints;
+use ImageArchive::Publish;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
@@ -56,6 +57,13 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
 #| Replace an archive file with a workspace version.
 multi sub MAIN('promote', Str $version where *.IO.f, Bool :$dryrun) {
     promoteVersion($version.IO, $dryrun);
+}
+
+#| View the previous search in a web browser.
+multi sub MAIN('publish') {
+    my @results = dumpStash('searchresult');
+    my $path = publishHtml(@results);
+    viewHtml($path);
 }
 
 #| Re-add imported files to the database using search index.

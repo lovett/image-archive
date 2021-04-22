@@ -1,0 +1,49 @@
+BODY {
+    background-color: #fff;
+    margin: 0;
+    font-family: sans-serif;
+}
+
+#gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    margin: 1em;
+    gap: 1em;
+}
+
+#gallery > a {
+    background-size: cover;
+    background-color: #ccc;
+    text-decoration: none;
+    border-radius: .5em;
+    box-shadow: .25em .25em .25em 0 #333;
+    height: 250px;
+    overflow: hidden;
+}
+
+#gallery a dl {
+    visibility: hidden;
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    color: #fff;
+    background-color: rgba(0, 0, 0,  0.75);
+    margin: 0;
+    height: 100%;
+    padding: 0.5em;
+}
+
+#gallery a:hover dl {
+    visibility: visible;
+}
+
+#gallery a dt {
+    margin-left: 0;
+    font-weight: bold;
+    font-variant: small-caps;
+}
+
+#gallery a dd {
+    margin-left: 0;
+    margin-bottom: 1em;
+}

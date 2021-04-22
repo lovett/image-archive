@@ -1,0 +1,27 @@
+{{< layout }}
+
+{{$page_content}}
+
+<div id="gallery">
+    {{#image}}
+        <a href="{{ href }}" style="background-image:url('{{ path }}')" target="_blank">
+            <dl>
+                {{# date }}
+                <dt>Date</dt>
+                <dd>{{ date }}</dd>
+                {{/ date }}
+
+                <dt>Filename</dt>
+                <dd>{{ filename }}</dd>
+
+                {{# series }}
+                <dt>Series</dt>
+                <dd>{{ series }}</dd>
+                {{/ series }}
+            </dl>
+        </a>
+        {{/image}}
+</div>
+{{/page_content}}
+
+{{/ layout }}

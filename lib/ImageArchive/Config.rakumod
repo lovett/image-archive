@@ -33,6 +33,10 @@ sub getPath(Str $keyword) is export is cached {
             return getPath('root').add('_cache');
         }
 
+        when 'html' {
+            return getPath('cache').add('html');
+        }
+
         when 'config' {
             return getPath('root').add('config.ini');
         }

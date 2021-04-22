@@ -468,6 +468,23 @@ sub viewFiles(@paths) is export {
     }
 }
 
+# Display an HTML file in an external application.
+sub viewHtml(IO::Path $path) is export {
+    my $command = readConfig('view_html');
+
+    unless ($command) {
+        die ImageArchive::Exception::MissingConfig.new(:key('view_html'));
+    }
+
+    my $proc = run $command, $path, :err;
+    my $err = $proc.err.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+}
+
+
 # Display one or more directories in an external application.
 sub viewDirectories(@paths) is export {
     my $command = readConfig('view_directory');
