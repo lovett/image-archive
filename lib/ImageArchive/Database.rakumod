@@ -223,6 +223,13 @@ sub indexFile(IO $file) is export {
 sub getTags(IO::Path $path, *@tags) is export {
     my $relativePath = relativePath($path);
 
+    my $parserActions = SearchActions.new();
+
+    my $parsedQuery = Search.parse(
+        'sourcefile: ' ~ $relativePath,
+        actions => $parserActions
+    );
+
     my $selectSql = @tags.map(
         { "json_extract(a.tags, '\$.{$_}') as '$_'" }
     ).join(', ');
@@ -230,12 +237,12 @@ sub getTags(IO::Path $path, *@tags) is export {
 
     my $query = qq:to/STATEMENT/;
     SELECT {$selectSql}
-    FROM archive a
-    WHERE json_extract(a.tags, '\$.SourceFile') = ?
+    FROM archive a JOIN archive_fts f ON a.id=f.rowid
+    WHERE {$parsedQuery.made<ftsClause>}
     STATEMENT
 
     my $dbh = openDatabase();
-    my $sth = $dbh.execute($query, $relativePath);
+    my $sth = $dbh.execute($query);
 
     return $sth.row(:hash);
 }
