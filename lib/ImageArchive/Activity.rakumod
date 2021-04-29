@@ -378,11 +378,10 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
                 succeed;
             }
 
-            for findByStashIndex($target, 'searchresult') -> $path {
-                next unless $path;
-                testPathExistsInArchive($path[0]);
-                next if @paths.grep($path[0].parent);
-                @paths.append: $path[0].parent;
+            for findByStashIndex($target, 'searchresult') -> $record {
+                testPathExistsInArchive($record<path>);
+                next if @paths.grep($record<path>.parent);
+                @paths.append: $record<path>.parent;
             }
         }
     }
