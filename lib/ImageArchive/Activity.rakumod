@@ -230,7 +230,7 @@ sub printSearchResults(@results, $flavor) is export {
         my $col2;
         given $flavor {
             when 'series' {
-                $col2 = sprintf('%s-%03d', $result<series>, $result<seriesid>);
+                $col2 = formattedSeriesId($result<series>, $result<seriesid>.Str);
             }
 
             when 'score' {

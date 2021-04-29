@@ -1,4 +1,3 @@
-
 unit module ImageAarchive::Publish;
 
 use Template::Mustache;
@@ -6,6 +5,7 @@ use Template::Mustache;
 use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Database;
+use ImageArchive::Util;
 
 # Write an HTML file containing thumbnails of search results.
 sub publishHtml(@results) is export {
@@ -20,7 +20,7 @@ sub publishHtml(@results) is export {
         my %tags = getTags($result<path>, 'CreateDate');
         my $series = ($result<series> eq 'unknown') ?? '' !! $result<series>;
         if ($series and $result<seriesid>) {
-            $series = "{$series}-" ~ sprintf('%02s', $result<seriesid>);
+            $series = formattedSeriesId($series, $result<seriesid>.Str);
         }
 
         %vars.push('image', %(

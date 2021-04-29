@@ -70,6 +70,11 @@ sub pluralize(Int $quantity, Str $singular, Str $plural) is export {
     return sprintf("%d %s", $quantity, $label);
 }
 
+# Canonical formatting for series name with id.
+sub formattedSeriesId(Str $series, Str $id) is export {
+    return sprintf('%s-%03d', $series, $id);
+}
+
 # Print a messsage to stdout indicating what would have happened if
 # the --dryrun flag had not been specified.
 sub wouldHaveDone(Str $message) is export {
