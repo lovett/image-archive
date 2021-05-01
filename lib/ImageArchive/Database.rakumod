@@ -274,10 +274,10 @@ sub openDatabaseSession() is export {
 
 # The absolute path to the most-recently-imported file in the archive.
 sub findByNewestImport(Int $limit = 1) returns Seq is export {
-    my $query = qq:to/SQL/;
-    SELECT json_extract(a.tags, '\$.SourceFile') as path,
-    IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
-    CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid
+    my $query = q:to/SQL/;
+    SELECT json_extract(a.tags, '$.SourceFile') as path,
+    IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
+    CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a
     ORDER BY a.rowid DESC
     LIMIT ?
@@ -413,16 +413,16 @@ sub findNewest(Int $limit, Str $key) is export {
 
     $sth.execute($key, $limit.Str);
 
-    my $stashQuery = qq:to/SQL/;
-    SELECT json_extract(a.tags, '\$.SourceFile') as path,
-    IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
-    CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid
+    my $stashQuery = q:to/SQL/;
+    SELECT json_extract(a.tags, '$.SourceFile') as path,
+    IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
+    CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, stash s
-    WHERE a.id=s.archive_id AND s.key='{$key}'
+    WHERE a.id=s.archive_id AND s.key=?
     ORDER BY s.rowid
     SQL
 
-    $sth = $dbh.execute($stashQuery);
+    $sth = $dbh.execute($stashQuery, $key);
 
     my $root = getPath('root');
     return gather {
@@ -472,16 +472,16 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
 
     $dbh.execute($ftsQuery);
 
-    my $stashQuery = qq:to/SQL/;
-    SELECT json_extract(a.tags, '\$.SourceFile') as path,
-    IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
-    CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid
+    my $stashQuery = q:to/SQL/;
+    SELECT json_extract(a.tags, '$.SourceFile') as path,
+    IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
+    CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, stash s
-    WHERE a.id=s.archive_id AND s.key='{$key}'
+    WHERE a.id=s.archive_id AND s.key=?
     ORDER BY s.rowid
     SQL
 
-    my $sth = $dbh.execute($stashQuery);
+    my $sth = $dbh.execute($stashQuery, $key);
 
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
