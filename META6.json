@@ -1,7 +1,7 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2021.04.17",
+  "version" : "2021.05.01",
   "description" : "Automation for image metatdata tagging.",
   "provides" : {
     "ImageArchive::Activity": "lib/ImageArchive/Activity.rakumod",
@@ -34,7 +34,8 @@
     "Config::INI",
     "Date::Names",
     "DBIish",
-    "Terminal::ANSIColor"
+    "Terminal::ANSIColor",
+    "Template::Mustache"
   ],
   "test-depends" : [],
   "tags": []
