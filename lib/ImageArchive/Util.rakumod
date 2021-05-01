@@ -71,7 +71,7 @@ sub pluralize(Int $quantity, Str $singular, Str $plural) is export {
 }
 
 # Canonical formatting for series name with id.
-sub formattedSeriesId(Str $series, Str $id) is export {
+sub formattedSeriesId($series, $id) is export {
     return sprintf('%s-%03d', $series, $id);
 }
 
