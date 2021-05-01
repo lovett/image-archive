@@ -177,26 +177,26 @@ multi sub MAIN('untag:keyword', Str $target, Str $keyword, Bool :$dryrun = False
 #| Display a file alternate by path or search index.
 multi sub MAIN('view', Str $target) {
     my @targets = resolveFileTarget($target);
-    viewFiles(@targets);
+    viewImage(@targets);
 }
 
 #| Display an original file by path or search index.
 multi sub MAIN('view:original', Str $target) {
     my @targets = resolveFileTarget($target);
-    viewFiles(@targets);
+    viewImage(@targets);
 }
 
 #| Navigate to an archive file by path or search index.
 multi sub MAIN('visit', Str $target) {
     my @targets = resolveFileTarget($target, 'parent');
-    viewDirectories(@targets);
+    viewDirectory(@targets);
 }
 
 #| Set up an editing workspace by path or search index.
 multi sub MAIN('workon', $target) {
     my @targets = resolveFileTarget($target);
     my $workspace = copyToWorkspace(@targets.first);
-    viewDirectories($workspace.list);
+    viewDirectory($workspace);
 }
 
 #| Display the application version.

@@ -451,8 +451,8 @@ sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
     }
 }
 
-# Display one or more files in an external application.
-sub viewFiles(@paths) is export {
+# Display one or more images in an external application.
+sub viewImage(*@paths) is export {
     my $command = readConfig('view_file');
 
     unless ($command) {
@@ -468,14 +468,14 @@ sub viewFiles(@paths) is export {
 }
 
 # Display an HTML file in an external application.
-sub viewHtml(IO::Path $path) is export {
+sub viewHtml(*@paths) is export {
     my $command = readConfig('view_html');
 
     unless ($command) {
         die ImageArchive::Exception::MissingConfig.new(:key('view_html'));
     }
 
-    my $proc = run $command, $path, :err;
+    my $proc = run $command, @paths, :err;
     my $err = $proc.err.slurp(:close);
 
     if ($proc.exitcode !== 0) {
@@ -485,7 +485,7 @@ sub viewHtml(IO::Path $path) is export {
 
 
 # Display one or more directories in an external application.
-sub viewDirectories(@paths) is export {
+sub viewDirectory(*@paths) is export {
     my $command = readConfig('view_directory');
 
     unless ($command) {
