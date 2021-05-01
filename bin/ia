@@ -63,7 +63,7 @@ multi sub MAIN('promote', Str $version where *.IO.f, Bool :$dryrun) {
 multi sub MAIN('publish') {
     my @results = dumpStash('searchresult');
     my $path = publishHtml(@results);
-    viewHtml($path);
+    viewExternally($path);
 }
 
 #| Re-add imported files to the database using search index.
@@ -177,26 +177,26 @@ multi sub MAIN('untag:keyword', Str $target, Str $keyword, Bool :$dryrun = False
 #| Display a file alternate by path or search index.
 multi sub MAIN('view', Str $target) {
     my @targets = resolveFileTarget($target);
-    viewImage(@targets);
+    viewExternally(@targets);
 }
 
 #| Display an original file by path or search index.
 multi sub MAIN('view:original', Str $target) {
     my @targets = resolveFileTarget($target);
-    viewImage(@targets);
+    viewExternally(@targets);
 }
 
 #| Navigate to an archive file by path or search index.
 multi sub MAIN('visit', Str $target) {
     my @targets = resolveFileTarget($target, 'parent');
-    viewDirectory(@targets);
+    viewExternally(@targets);
 }
 
 #| Set up an editing workspace by path or search index.
 multi sub MAIN('workon', $target) {
     my @targets = resolveFileTarget($target);
     my $workspace = copyToWorkspace(@targets.first);
-    viewDirectory($workspace);
+    viewExternally($workspace);
 }
 
 #| Display the application version.

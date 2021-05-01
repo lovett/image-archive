@@ -451,47 +451,28 @@ sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
     }
 }
 
-# Display one or more images in an external application.
-sub viewImage(*@paths) is export {
-    my $command = readConfig('view_file');
+# Display one or more files in an external application.
+sub viewExternally(*@paths) is export {
+    my $key = 'view_file';
+
+    given @paths[0].IO {
+        when .extension eq 'html' {
+            $key = 'view_html'
+        }
+
+        when :d {
+            $key = 'view_directory'
+        }
+    }
+
+    my $command = readConfig($key);
 
     unless ($command) {
-        die ImageArchive::Exception::MissingConfig.new(:key('view_file'));
+        die ImageArchive::Exception::MissingConfig.new(:key($key));
     }
 
-    my $proc = run $command, @paths, :err;
-    my $err = $proc.err.slurp(:close);
-
-    if ($proc.exitcode !== 0) {
-        die ImageArchive::Exception::BadExit.new(:err($err));
-    }
-}
-
-# Display an HTML file in an external application.
-sub viewHtml(*@paths) is export {
-    my $command = readConfig('view_html');
-
-    unless ($command) {
-        die ImageArchive::Exception::MissingConfig.new(:key('view_html'));
-    }
-
-    my $proc = run $command, @paths, :err;
-    my $err = $proc.err.slurp(:close);
-
-    if ($proc.exitcode !== 0) {
-        die ImageArchive::Exception::BadExit.new(:err($err));
-    }
-}
-
-
-# Display one or more directories in an external application.
-sub viewDirectory(*@paths) is export {
-    my $command = readConfig('view_directory');
-
-    unless ($command) {
-        die ImageArchive::Exception::MissingConfig.new(:key('view_directory'));
-    }
-
+    # This uses shell rather than run for maximum compatibility.
+    # For example, emacsclient wouldn't work with run.
     my $proc = shell "$command {@paths}", :err;
     my $err = $proc.err.slurp(:close);
 
