@@ -48,19 +48,27 @@ sub countFiles() is export {
 
 #| Tally of walkable files per month in a given year.
 sub countMonths(Int $year) is export {
+    my $pager = getPager();
+
     for countRecordsByMonth($year) -> $tally {
         my $month = $tally[0] == 0 ?? 'Unknown' !! monthName($tally[0]);
-        printf("%10s | %s\n", $month, $tally[1]);
+        $pager.in.printf("%10s | %s\n", $month, $tally[1]);
     }
+
+    $pager.in.close;
 }
 
 #| Tally of walkable files by year.
 sub countYears() is export {
+    my $pager = getPager();
+
     for countRecordsByYear() -> $tally {
         my $year = $tally[0];
         $year = 'Undated' if $year == 0;
-        printf("%7s | %s\n", $year, $tally[1]);
+        $pager.in.printf("%7s | %s\n", $year, $tally[1]);
     }
+
+    $pager.in.close;
 }
 
 #| Bring a file into the archive.
@@ -110,6 +118,7 @@ sub search(@terms, Int $limit = 10, Bool $debug = False) is export {
 #| Locate lines in log files matching a regex.
 sub searchLogs(Regex $matcher, Str $directory?) is export {
     my SetHash $cache = SetHash.new;
+    my $pager = getPager();
 
     my $root = getPath('root');
     if ($directory) {
@@ -127,19 +136,21 @@ sub searchLogs(Regex $matcher, Str $directory?) is export {
                 my $workspaceMaster = findWorkspaceMaster($path.dirname.IO);
                 stashPath($workspaceMaster);
 
-                print "\n" if $cache.elems > 0;
+                $pager.in.print: "\n" if $cache.elems > 0;
 
-                printf(
+                $pager.in.printf(
                     "%s | %s\n",
                     colored(sprintf("%3d", $counter), 'white on_blue'),
                     relativePath($workspaceMaster)
                 )
             }
 
-            say $line.subst(/ ^\W*/, '    | ');
+            $pager.in.say: $line.subst(/ ^\W*/, '    | ');
             $cache{$path} = True;
         }
     }
+
+    $pager.in.close;
 }
 
 # Remove a file from the archive.
@@ -179,18 +190,19 @@ sub deportFiles(@files, IO $destinationDir, Bool $dryrun? = False) is export {
 
 #| Print a mapping of file paths to RGB triples.
 sub printColorTable(@paths) is export {
+    my $pager = getPager();
 
     my $colspec = "%-6s | %-11s | %s\n";
 
-    say "";
-    printf($colspec, 'Swatch', 'RGB', 'Path');
-    say "-" x 72;
+    $pager.in.say: "";
+    $pager.in.printf($colspec, 'Swatch', 'RGB', 'Path');
+    $pager.in.say: "-" x 72;
 
     for @paths -> $path {
         my %tags = getTags($path, 'AverageRGB');
         my $rgb = sprintf('%-11s', %tags<AverageRGB> || 'unknown');
 
-        printf(
+        $pager.in.printf(
             $colspec,
             colored('      ', "white on_$rgb"),
             $rgb,
@@ -198,31 +210,35 @@ sub printColorTable(@paths) is export {
         );
     }
 
-    say "";
+    $pager.in.say: "";
+    $pager.in.close;
 }
 
 #| Print the contents of a workspace log.
 sub printHistory(@files) is export {
-    return unless @files;
+    my $pager = getPager();
 
-    my $file = @files.pop;
-    my $workspace = findWorkspace($file);
-    my $log = findWorkspaceLog($workspace);
+    for @files -> $file {
+        my $workspace = findWorkspace($file);
+        my $log = findWorkspaceLog($workspace);
 
-    if ($log ~~ :f) {
+        next unless $log ~~ :f;
+
         for $log.lines -> $line {
             next unless $line.trim;
             next if $line.starts-with('#');
             $line.subst(/\*+\s/, "").say;
-            print "\n" if $line.starts-with('*');
+            $pager.in.print: "\n" if $line.starts-with('*');
         }
     }
 
-    printHistory(@files);
+    $pager.in.close;
 }
 
 sub printSearchResults(@results, $flavor) is export {
     my $counter = 0;
+
+    my $pager = getPager();
 
     for @results -> $result {
         my $col1 = sprintf("%3d", ++$counter);
@@ -238,7 +254,7 @@ sub printSearchResults(@results, $flavor) is export {
             }
         }
 
-        printf(
+        $pager.in.printf(
             "%s | %15s | %s\n",
             colored($col1, 'white on_blue'),
             $col2,
@@ -249,14 +265,18 @@ sub printSearchResults(@results, $flavor) is export {
     unless ($counter) {
         note 'No matches.';
     }
+
+    $pager.in.close;
 }
 
 sub printUnindexed() is export {
+    my $pager = getPager();
+
     my $counter = 0;
 
     for findUnindexed() -> $path {
         my $index = sprintf("%3d", ++$counter);
-        printf(
+        $pager.in.printf(
             "%s | %s\n",
             colored($index, 'white on_red'),
             relativePath($path),
@@ -266,6 +286,8 @@ sub printUnindexed() is export {
     unless $counter {
         say "No unindexed files.";
     }
+
+    $pager.in.close;
 }
 
 # Move a file out of the workspace.

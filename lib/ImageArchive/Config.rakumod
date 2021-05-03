@@ -22,6 +22,12 @@ sub contextNegationKeywords(%contexts) is export {
     %contexts.keys.map({ "no" ~ $_ });
 }
 
+# Open an external process for piping output to a pager.
+sub getPager() returns Proc is export {
+    my $command = readConfig('pager');
+    run $command.split(' '), :in;
+}
+
 # Lookup an application file path by keyword.
 sub getPath(Str $keyword) is export is cached {
     given $keyword {
