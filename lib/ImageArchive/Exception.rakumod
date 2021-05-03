@@ -55,21 +55,21 @@ class ImageArchive::Exception::BadExit is ImageArchive::Exception is export {
     }
 }
 
-# A file slated for import clashes with an existing file.
-class ImageArchive::Exception::FileExists is ImageArchive::Exception is export {
-    has IO $.path;
-
-    method message {
-        "Filename clashes with {$!path}";
-    }
-}
-
-# A path slated clashes with an existing path.
+# A path already exists.
 class ImageArchive::Exception::PathConflict is ImageArchive::Exception is export {
     has IO::Path $.path;
+    has Str $.reason;
 
     method message {
-        "{$!path} already exists";
+        given $!reason {
+            when "basename" {
+                "File name clashes with {$!path}";
+            }
+
+            default {
+                "{$!path} already exists";
+            }
+        }
     }
 }
 

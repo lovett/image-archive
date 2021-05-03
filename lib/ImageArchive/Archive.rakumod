@@ -180,7 +180,7 @@ sub importFile(IO $file, Bool $dryrun? = False) returns IO::Path is export {
     if ($destination ~~ :d) {
         for walkArchive($destination) -> $path {
             if ($path.extension('').basename eq $file.extension('').basename) {
-                die ImageArchive::Exception::FileExists.new(:path($path));
+                die ImageArchive::Exception::PathConflict.new(:path($path), :reason("basename"));
             }
         }
     }
