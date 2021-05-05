@@ -329,16 +329,19 @@ sub reprompt(@targets, Bool $dryrun = False) is export {
         next if $dryrun;
 
         if (isArchiveFile($target)) {
+            my $workspace = findWorkspace($target);
             my $importedFile = importFile($target);
             if ($importedFile) {
                 say "Relocated to {$importedFile}";
 
-                my $workspace = findWorkspace($target);
                 if ($workspace ~~ :d) {
                     moveWorkspace($workspace, $importedFile.parent);
                 }
                 pruneEmptyDirsUpward($target.parent);
+                indexFile($importedFile);
+                next;
             }
+
             indexFile($target);
         }
     }
