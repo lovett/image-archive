@@ -79,12 +79,13 @@ multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
 
 #| Locate files within the archive.
 multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
+    unless (@terms) {
+        note 'No search terms were provided.';
+        exit 1;
+    }
+
     my @results = search(@terms, $limit, $debug);
     printSearchResults(@results, 'series');
-}
-
-multi sub MAIN('search') is hidden-from-USAGE {
-    note 'No search terms were provided.';
 }
 
 #| Establish the application configuration and database.
