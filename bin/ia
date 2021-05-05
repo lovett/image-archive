@@ -66,7 +66,7 @@ multi sub MAIN('publish') {
     viewExternally($path);
 }
 
-#| Re-add imported files to the database using search index.
+#| Re-add imported files to the database.
 multi sub MAIN('reindex', Str $target?) {
     reindex($target);
 }
