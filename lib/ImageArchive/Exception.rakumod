@@ -102,6 +102,15 @@ class ImageArchive::Exception::NotAWorkspace is ImageArchive::Exception is expor
     }
 }
 
+# A workspace cannot be paired with a master file.
+class ImageArchive::Exception::OrphanedWorkspace is ImageArchive::Exception is export {
+    has IO::Path $.path;
+
+    method message {
+        "Could not find a master file for " ~ $!path;
+    }
+}
+
 # A file or directory thought to be in the archive does not exist.
 class ImageArchive::Exception::PathNotFoundInArchive is ImageArchive::Exception is export {
     has IO::Path $.path;

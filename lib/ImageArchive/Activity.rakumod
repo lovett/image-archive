@@ -241,25 +241,28 @@ sub printSearchResults(@results, $flavor) is export {
     my $pager = getPager();
 
     for @results -> $result {
-        my $col1 = sprintf("%3d", ++$counter);
+        my @columns = colored(sprintf("%3d", ++$counter), 'white on_blue');
 
-        my $col2;
         given $flavor {
             when 'series' {
-                $col2 = formattedSeriesId($result<series>, $result<seriesid>.Str);
+                @columns.push: sprintf("%15s", formattedSeriesId(
+                    $result<series>,
+                    $result<seriesid>.Str
+                ));
             }
 
             when 'score' {
-                $col2 = sprintf("%2.2f", $result<score>);
+                @columns.push: sprintf("%2.2f", $result<score>);
+            }
+
+            when 'modified' {
+                @columns.push: $result<modified>.yyyy-mm-dd;
             }
         }
 
-        $pager.in.printf(
-            "%s | %15s | %s\n",
-            colored($col1, 'white on_blue'),
-            $col2,
-            relativePath($result<path>)
-        );
+        @columns.push: relativePath($result<path>);
+
+        $pager.in.say: @columns.join(" | ");
     }
 
     unless ($counter) {

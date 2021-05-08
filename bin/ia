@@ -50,6 +50,12 @@ multi sub MAIN('filecount') {
     countFiles();
 }
 
+#| Files with dormant workspaces.
+multi sub MAIN('finished') {
+    my @results = walkWorkspaces('inactive');
+    printSearchResults(@results, 'modified');
+}
+
 #| Perform cleanup chores on the archive.
 multi sub MAIN('fixup', Bool :$dryrun) {
     pruneEmptyDirsDownward('', $dryrun);
@@ -58,13 +64,19 @@ multi sub MAIN('fixup', Bool :$dryrun) {
 
 #| Display a target's edit history.
 multi sub MAIN('history', Str $target) {
-    my @targets= resolveFileTarget($target);
+    my @targets = resolveFileTarget($target);
     printHistory(@targets);
 }
 
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     import($file.IO, $dryrun);
+}
+
+#| Files that have edits in progress.
+multi sub MAIN('inprogress') {
+    my @results = walkWorkspaces('active');
+    printSearchResults(@results, 'modified');
 }
 
 #| Redisplay the results of the previous search.

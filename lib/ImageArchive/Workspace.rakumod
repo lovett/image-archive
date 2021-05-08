@@ -66,6 +66,19 @@ sub copyToWorkspace(IO::Path $source) returns IO::Path is export {
     return $workspace;
 }
 
+sub findNewestVersion(IO::Path $workspace) is export {
+    my IO::Path $newest;
+
+    for ($workspace.dir) -> $path {
+        next unless $path.f;
+        next unless $path.basename.starts-with: 'v';
+        next if $newest && $newest.modified > $path.modified;
+        $newest = $path;
+    }
+
+    return $newest;
+}
+
 # The history file within a given workspace.
 sub findWorkspaceLog(IO::Path $workspace) returns IO::Path is export {
     return $workspace.add("history.org");
@@ -131,7 +144,9 @@ sub findWorkspaceMaster(IO::Path $workspace) is export {
         return $path if $path.basename.starts-with($workspaceBasename);
     }
 
-    die ImageArchive::Exception::PathNotFoundInArchive.new;
+    die ImageArchive::Exception::OrphanedWorkspace.new(
+        :path($workspace)
+    );
 }
 
 # See if a file exists within a workspace directory.
@@ -140,4 +155,35 @@ sub testPathExistsInWorkspace(IO::Path $file) is export {
     die ImageArchive::Exception::PathNotFoundInArchive.new(
         :path($file)
     );
+}
+
+#| Filter the list of workspaces.
+sub walkWorkspaces(Str $flavor, Str $directory?) is export {
+    my IO::Path $root = getPath('root');
+
+    if ($directory) {
+        $root = $root.add($directory);
+    }
+
+    my $counter = 0;
+
+    clearStashByKey('searchresult');
+
+    return gather {
+        for walkArchiveDirs($root) -> $dir {
+            next unless $dir.extension eq 'workspace';
+
+            my IO::Path $master = findWorkspaceMaster($dir);
+            my $newestVersion = findNewestVersion($dir);
+
+            my $masterIsNewer = $master.modified >= $newestVersion.modified;
+
+            next if $flavor eq 'active' and $masterIsNewer;
+            next if $flavor eq 'inactive' and not $masterIsNewer;
+
+            stashPath($master);
+
+            take %(path => $master, modified => $newestVersion.modified.DateTime);
+        }
+    }
 }
