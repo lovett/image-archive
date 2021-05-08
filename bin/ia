@@ -15,10 +15,18 @@ use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
 
-#| Display a target's average RGB color.
+#| Display a target's average color.
 multi sub MAIN('color', Str $target) {
     my @targets = resolveFileTarget($target);
     printColorTable(@targets);
+}
+
+#| Find files by color similarity.
+multi sub MAIN('colormatch', Str $target) {
+    my @targets = resolveFileTarget($target);
+    my @rgb = getAverageColor(@targets.first.IO);
+    my @results = findBySimilarColor(@rgb, 'searchresult');
+    printSearchResults(@results, 'score');
 }
 
 #| Generate the shell completion file.
@@ -37,6 +45,11 @@ multi sub MAIN('deport', Str $target, Bool :$dryrun) {
     deportFiles(@targets, $*CWD.IO, $dryrun);
 }
 
+#| The number of files in the archive.
+multi sub MAIN('filecount') {
+    countFiles();
+}
+
 #| Perform cleanup chores on the archive.
 multi sub MAIN('fixup', Bool :$dryrun) {
     pruneEmptyDirsDownward('', $dryrun);
@@ -52,6 +65,17 @@ multi sub MAIN('history', Str $target) {
 #| Bring a file into the archive.
 multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
     import($file.IO, $dryrun);
+}
+
+#| Redisplay the results of the previous search.
+multi sub MAIN('lastsearch') {
+    my @results = dumpStash('searchresult');
+    printSearchResults(@results, 'series');
+}
+
+#| Count files per month in a given year.
+multi sub MAIN('monthcount', Int $year) {
+    countMonths($year);
 }
 
 #| Replace an archive file with a workspace version.
@@ -77,7 +101,7 @@ multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
     reprompt(@targets, $dryrun);
 }
 
-#| Locate files within the archive.
+#| Find files within the archive.
 multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
     unless (@terms) {
         note 'No search terms were provided.';
@@ -102,35 +126,6 @@ multi sub MAIN('show', Str $target) {
     showTags(@targets);
 }
 
-#| Redisplay the results of the previous search.
-multi sub MAIN('show:search') {
-    my @results = dumpStash('searchresult');
-    printSearchResults(@results, 'series');
-}
-
-#| Find files by color similarity.
-multi sub MAIN('similar:color', Str $target) {
-    my @targets = resolveFileTarget($target);
-    my @rgb = getAverageColor(@targets.first.IO);
-    my @results = findBySimilarColor(@rgb, 'searchresult');
-    printSearchResults(@results, 'score');
-}
-
-#| The number of files in the archive.
-multi sub MAIN('stats:count') {
-    countFiles();
-}
-
-#| The number of files per month in the given year.
-multi sub MAIN('stats:year', Int $year) {
-    countMonths($year);
-}
-
-#| The number of files per year.
-multi sub MAIN('stats:years') {
-    countYears();
-}
-
 #| Add tags to a file.
 multi sub MAIN('tag', Str $target, Bool :$dryrun, *@keywords) {
     my @targets = resolveFileTarget($target);
@@ -147,57 +142,34 @@ multi sub MAIN('unindexed') {
     printUnindexed();
 }
 
-#| Remove tags by alias or value.
-multi sub MAIN('untag:alias', Str $target, Str $alias, Str $value?, Bool :$dryrun = False, ) {
-    given $target {
-        when 'allfiles' {
-            removeAliasFromArchive($alias, $value, $dryrun);
-        }
-
-        default {
-            my @targets = resolveFileTarget($target);
-            untagByAlias(@targets, $alias, $value, $dryrun);
-        }
-    }
+#| Remove tags by keyword or alias.
+multi sub MAIN('untag', Str $target, Str $term, Str $value?, Bool :$dryrun = False) {
+    untagTerm($target, $term, $value, $dryrun);
 }
 
-#| Remove tags by keyword.
-multi sub MAIN('untag:keyword', Str $target, Str $keyword, Bool :$dryrun = False) {
-    given $target {
-        when 'allfiles' {
-            removeKeywordFromArchive($keyword, $dryrun);
-        }
-
-        default {
-            my @targets = resolveFileTarget($target);
-            untagByKeyword(@targets, $keyword, $dryrun);
-        }
-    }
-}
-
-#| Display a file alternate by path or search index.
-multi sub MAIN('view', Str $target) {
-    my @targets = resolveFileTarget($target);
+#| Display a file.
+multi sub MAIN('view', Str $target, Bool :$original) {
+    my $flavor = ($original ?? 'original' !! 'alternate');
+    my @targets = resolveFileTarget($target, $flavor);
     viewExternally(@targets);
 }
 
-#| Display an original file by path or search index.
-multi sub MAIN('view:original', Str $target) {
-    my @targets = resolveFileTarget($target);
-    viewExternally(@targets);
-}
-
-#| Navigate to an archive file by path or search index.
+#| Navigate to a file.
 multi sub MAIN('visit', Str $target) {
     my @targets = resolveFileTarget($target, 'parent');
     viewExternally(@targets);
 }
 
-#| Set up an editing workspace by path or search index.
+#| Set up or return to a file's editing workspace.
 multi sub MAIN('workon', $target) {
     my @targets = resolveFileTarget($target);
     my $workspace = copyToWorkspace(@targets.first);
     viewExternally($workspace);
+}
+
+#| Count files per year.
+multi sub MAIN('yearcount') {
+    countYears();
 }
 
 #| Display the application version.

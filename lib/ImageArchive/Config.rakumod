@@ -72,6 +72,17 @@ sub getKeywords() is export {
     return configSections().grep({ not @exclusions.first($_) });
 }
 
+# Figure out if a word is a keyword or alias.
+sub identifyTerm(Str $term) is export returns Str {
+    my @keywords = getKeywords();
+    return 'keyword' if @keywords.grep($term);
+
+    my @aliases = readConfig('aliases').keys;
+    return 'alias' if @aliases.grep($term);
+
+    return '';
+}
+
 # Find all keywords referenced by a context.
 #
 # A context can consist of aliases or keywords.

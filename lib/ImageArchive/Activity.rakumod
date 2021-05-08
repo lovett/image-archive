@@ -506,25 +506,40 @@ sub viewExternally(*@paths) is export {
     }
 }
 
-#| Remove tags by alias or value.
-sub untagByAlias(@targets, Str $alias, Str $value?, Bool $dryrun = False) is export {
-    for @targets -> $target {
-        removeAlias($target, $alias, $value, $dryrun);
+# Remove tags by keyword, alias, or alias-and-value.
+sub untagTerm(Str $target, Str $term, Str $value?, Bool :$dryrun = False) is export {
+    my $termType = identifyTerm($term);
 
-        if (isArchiveFile($target)) {
-            indexFile($target);
+    given $target, $termType {
+        when 'allfiles', 'alias' {
+            removeAliasFromArchive($term, $value, $dryrun);
+        }
+
+        when 'allfiles', 'keyword' {
+            removeKeywordFromArchive($term, $dryrun);
+        }
+
+        when :Str, 'alias' {
+            my @targets = resolveFileTarget($target);
+            for @targets -> $target {
+                removeAlias($target, $term, $value, $dryrun);
+
+                if (isArchiveFile($target)) {
+                    indexFile($target);
+                }
+            }
+        }
+
+        when :Str, 'keyword' {
+            my @targets = resolveFileTarget($target);
+
+            for @targets -> $target {
+                removeKeyword($target, $term, $dryrun);
+
+                if (isArchiveFile($target)) {
+                    indexFile($target);
+                }
+            }
         }
     }
-}
-
-#| Remove tags by keyword.
-sub untagByKeyword(@targets, Str $keyword, Bool $dryrun = False) is export {
-    for @targets -> $target {
-        removeKeyword($target, $keyword, $dryrun);
-
-        if (isArchiveFile($target)) {
-            indexFile($target);
-        }
-    }
-
 }
