@@ -235,7 +235,7 @@ sub printHistory(@files) is export {
     $pager.in.close;
 }
 
-sub printSearchResults(@results, $flavor) is export {
+sub printSearchResults(@results) is export {
     my $counter = 0;
 
     my $pager = getPager();
@@ -243,19 +243,19 @@ sub printSearchResults(@results, $flavor) is export {
     for @results -> $result {
         my @columns = colored(sprintf("%3d", ++$counter), 'white on_blue');
 
-        given $flavor {
-            when 'series' {
+        given $result {
+            when $result<series>:exists {
                 @columns.push: sprintf("%15s", formattedSeriesId(
                     $result<series>,
                     $result<seriesid>.Str
                 ));
             }
 
-            when 'score' {
+            when $result<score>:exists {
                 @columns.push: sprintf("%2.2f", $result<score>);
             }
 
-            when 'modified' {
+            when $result<modified>:exists {
                 @columns.push: $result<modified>.yyyy-mm-dd;
             }
         }

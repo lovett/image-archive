@@ -26,7 +26,7 @@ multi sub MAIN('colormatch', Str $target) {
     my @targets = resolveFileTarget($target);
     my @rgb = getAverageColor(@targets.first.IO);
     my @results = findBySimilarColor(@rgb, 'searchresult');
-    printSearchResults(@results, 'score');
+    printSearchResults(@results);
 }
 
 #| Generate the shell completion file.
@@ -53,7 +53,7 @@ multi sub MAIN('filecount') {
 #| Files with dormant workspaces.
 multi sub MAIN('finished') {
     my @results = walkWorkspaces('inactive');
-    printSearchResults(@results, 'modified');
+    printSearchResults(@results);
 }
 
 #| Perform cleanup chores on the archive.
@@ -76,13 +76,13 @@ multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
 #| Files that have edits in progress.
 multi sub MAIN('inprogress') {
     my @results = walkWorkspaces('active');
-    printSearchResults(@results, 'modified');
+    printSearchResults(@results);
 }
 
 #| Redisplay the results of the previous search.
 multi sub MAIN('lastsearch') {
     my @results = dumpStash('searchresult');
-    printSearchResults(@results, 'series');
+    printSearchResults(@results);
 }
 
 #| Count files per month in a given year.
@@ -121,7 +121,7 @@ multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
     }
 
     my @results = search(@terms, $limit, $debug);
-    printSearchResults(@results, 'series');
+    printSearchResults(@results);
 }
 
 #| Establish the application configuration and database.
