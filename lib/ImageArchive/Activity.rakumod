@@ -351,7 +351,7 @@ sub reprompt(@targets, Bool $dryrun = False) is export {
 }
 
 #| Locate file paths within the archive.
-sub resolveFileTarget($target, Str $flavor = 'original') is export {
+sub resolveFileTarget($target, Str $flavor = 'original', Bool $allowExternal = False) is export {
     my @paths;
 
     given $flavor {
@@ -365,7 +365,9 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
             }
 
             when $target.IO ~~ :f {
-                testPathExistsInArchive($target.IO);
+                unless ($allowExternal) {
+                    testPathExistsInArchive($target.IO);
+                }
                 @paths.append: $target.IO;
                 succeed;
             }

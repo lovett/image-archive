@@ -140,7 +140,7 @@ multi sub MAIN('show', Str $target) {
 
 #| Add tags to a file.
 multi sub MAIN('tag', Str $target, Bool :$dryrun, *@keywords) {
-    my @targets = resolveFileTarget($target);
+    my @targets = resolveFileTarget($target, 'original', True);
     tagAndImport(@targets, @keywords, $dryrun);
 }
 
