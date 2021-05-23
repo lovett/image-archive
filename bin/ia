@@ -109,7 +109,7 @@ multi sub MAIN('reindex', Str $target?) {
 
 #| Redo question-and-answer tagging.
 multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
-    my @targets = resolveFileTarget($target, 'original', True);
+    my @targets = resolveFileTarget($target);
     reprompt(@targets, $dryrun);
 }
 
@@ -140,7 +140,7 @@ multi sub MAIN('show', Str $target) {
 
 #| Add tags to a file.
 multi sub MAIN('tag', Str $target, Bool :$dryrun, *@keywords) {
-    my @targets = resolveFileTarget($target, 'original', True);
+    my @targets = resolveFileTarget($target);
     tagAndImport(@targets, @keywords, $dryrun);
 }
 
