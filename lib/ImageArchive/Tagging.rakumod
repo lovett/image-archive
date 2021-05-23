@@ -154,8 +154,7 @@ sub readRawTags(IO $file, @tags, Str $flags = '') is export {
 
     my %structTags = (@tags Z=> $out.lines).grep({ .value ne '-' });
 
-
-    return %tags.push: %structTags;
+    return Hash.new(%tags, %structTags);
 }
 
 # Discard the backup copy of a file Exiftool has modified.
