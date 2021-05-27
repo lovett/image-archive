@@ -159,28 +159,34 @@ sub deportFiles(@files, IO $destinationDir, Bool $dryrun? = False) is export {
 
     testPathExistsInArchive($file);
 
-    my $destinationPath = $destinationDir.add($file.basename);
+    my $workspace = findWorkspace($file);
+    my $parent = $file.parent;
+    my $fileDestination = $destinationDir.add($file.basename);
+    my $workspaceDestination = $destinationDir.add($workspace.basename);
 
-    if ($destinationPath ~~ :f) {
-        die ImageArchive::Exception::PathConflict.new(:path($destinationPath));
+    if ($fileDestination ~~ :f) {
+        die ImageArchive::Exception::PathConflict.new(:path($fileDestination));
+    }
+
+    if ($workspaceDestination ~~ :d) {
+        die ImageArchive::Exception::PathConflict.new(:path($workspaceDestination));
     }
 
     if ($dryrun) {
-        wouldHaveDone("Move {relativePath($file)} to {$destinationPath}");
+        wouldHaveDone("Move {relativePath($file)} to {$fileDestination}");
         return;
     }
 
     deindexFile($file);
-    move($file, $destinationPath);
-    $destinationPath.IO.chmod(0o644);
+    move($file, $fileDestination);
+    $fileDestination.IO.chmod(0o644);
     deleteAlts($file);
 
-    my $workspace = findWorkspace($file);
     if ($workspace ~~ :d) {
         moveWorkspace($workspace, $destinationDir, $dryrun);
     }
 
-    pruneEmptyDirsUpward($file.parent);
+    pruneEmptyDirsUpward($parent);
 
     if (@files) {
         deportFiles(@files, $destinationDir, $dryrun);
