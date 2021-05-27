@@ -294,7 +294,7 @@ sub testKeywords(@keywords) is export {
 
 # Copy tags from one file to another via exiftool, excluding orientation.
 sub transferTags(IO $donor, IO $recipient) is export {
-    my $proc = run <exiftool -tagsFromFile>, $donor, '-x Orientation', $recipient, :out, :err;
+    my $proc = run <exiftool -tagsFromFile>, $donor, '-all:all -x Orientation', $recipient, :out, :err;
 
     my $err = $proc.err.slurp(:close);
     my $out = $proc.out.slurp(:close);
