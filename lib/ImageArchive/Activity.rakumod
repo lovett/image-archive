@@ -360,6 +360,9 @@ sub reprompt(@targets, Bool $dryrun = False) is export {
 sub resolveFileTarget($target, Str $flavor = 'original') is export {
     my @paths;
 
+    my $root = getPath('root');
+    my $rootedTarget = $root.add($target);
+
     given $flavor {
         when 'original' {
             when $target eq 'lastimport' {
@@ -372,6 +375,11 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
 
             when $target.IO ~~ :f {
                 @paths.append: $target.IO;
+                succeed;
+            }
+
+            when $rootedTarget.IO ~~ :f {
+                @paths.append: $rootedTarget.IO;
                 succeed;
             }
 
@@ -398,6 +406,11 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
                 succeed;
             }
 
+            when $rootedTarget.IO ~~ :f {
+                @paths.append: findAlternate($rootedTarget.IO, $size);
+                succeed;
+            }
+
             for findByStashIndex($target, 'searchresult') -> $record {
                 testPathExistsInArchive($record<path>);
                 @paths.append: findAlternate($record<path>, $size);
@@ -408,6 +421,11 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
             when $target.IO ~~ :f {
                 testPathExistsInArchive($target.IO);
                 @paths.append: $target.IO.parent;
+                succeed;
+            }
+
+            when $rootedTarget.IO ~~ :f {
+                @paths.append: $rootedTarget.IO.parent;
                 succeed;
             }
 
