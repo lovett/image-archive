@@ -59,6 +59,7 @@ multi sub MAIN('finished') {
 #| Perform cleanup chores on the archive.
 multi sub MAIN('fixup', Bool :$dryrun) {
     pruneEmptyDirsDownward('', $dryrun);
+    verifyDateTags($dryrun);
     generateAlts($dryrun);
 }
 

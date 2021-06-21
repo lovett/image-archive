@@ -245,6 +245,38 @@ sub testPathExistsInArchive(IO::Path $path) is export {
     );
 }
 
+# An image's date tag should reflect its filesystem path.
+sub verifyDateTags(Bool $dryrun = False) is export {
+    my $root = getPath('root');
+    my $channel = walkArchive($root).Channel;
+
+    await (^$*KERNEL.cpu-cores).map: {
+        start {
+            react {
+                whenever $channel -> $path {
+                    my $tagDate = readRawTag($path, 'XMP-xmp:CreateDate').subst(':', '/', :g);
+                    my $expectedDate = relativePath($path).IO.dirname;
+
+                    next if ($tagDate eq $expectedDate);
+                    next if ($tagDate eq '' && $expectedDate eq 'undated');
+
+                    my $newDate = $expectedDate.subst('/', '-', :g);
+
+                    if ($newDate eq 'undated') {
+                        $newDate = '-';
+                    }
+
+
+                    tagFile($path, {datecreated => $newDate}, $dryrun);
+                    indexFile($path);
+                }
+            }
+        }
+    }
+
+    return Nil;
+}
+
 # List the files in the archive.
 multi sub walkArchive(IO::Path $origin) returns Supply is export {
     supply for ($origin.dir) {
