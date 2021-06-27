@@ -215,7 +215,7 @@ sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
 
     for walkArchiveDirs($root) -> $dir {
         my @files = $dir.dir;
-        next unless @files;
+        next if @files;
 
         if ($dryrun) {
             wouldHaveDone("Delete $dir");
