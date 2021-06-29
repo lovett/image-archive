@@ -1,7 +1,7 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2021.06.26",
+  "version" : "2021.06.28",
   "description" : "Automation for image metadata tagging.",
   "provides" : {
     "ImageArchive::Activity": "lib/ImageArchive/Activity.rakumod",
