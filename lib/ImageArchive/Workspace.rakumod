@@ -141,7 +141,7 @@ sub findWorkspaceMaster(IO::Path $workspace) is export {
     my $workspaceBasename = $workspace.extension('').basename;
 
     for walkArchive($workspace.parent) -> $path {
-        return $path if $path.basename.starts-with($workspaceBasename);
+        return $path if $path.extension('').basename eq $workspaceBasename;
     }
 
     die ImageArchive::Exception::OrphanedWorkspace.new(
