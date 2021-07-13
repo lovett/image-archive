@@ -156,7 +156,7 @@ multi sub MAIN('unindexed') {
 }
 
 #| Remove tags by keyword or alias.
-multi sub MAIN('untag', Str $target, Str $term, Str $value?, Bool :$dryrun = False) {
+multi sub MAIN('untag', Str $target, Str $term, Str $value = '', Bool :$dryrun = False) {
     untagTerm($target, $term, $value, $dryrun);
 }
 

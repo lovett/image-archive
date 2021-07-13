@@ -533,7 +533,7 @@ sub viewExternally(*@paths) is export {
 }
 
 # Remove tags by keyword, alias, or alias-and-value.
-sub untagTerm(Str $target, Str $term, Str $value?, Bool :$dryrun = False) is export {
+sub untagTerm(Str $target, Str $term, Str $value, Bool $dryrun = False) is export {
     my $termType = identifyTerm($term);
 
     given $target, $termType {
