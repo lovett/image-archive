@@ -71,6 +71,22 @@ sub countYears() is export {
     $pager.in.close;
 }
 
+#| Add a JobRef tag, which is a keyword describing a project or workflow.
+sub groupFiles(@targets, Str $name, Bool $dryrun = False) is export {
+    # Skipping Id and URL for the moment and only using Name.
+    my %tags = group => "\{Name=$name\}";
+
+    for @targets -> $target {
+        tagFile($target, %tags, $dryrun);
+
+        next if $dryrun;
+
+        if (isArchiveFile($target)) {
+            indexFile($target);
+        }
+    }
+}
+
 #| Bring a file into the archive.
 sub import(IO::Path $file, Bool $dryrun = False) is export {
     my $importedFile = importFile($file.IO, $dryrun);

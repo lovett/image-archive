@@ -63,6 +63,12 @@ multi sub MAIN('fixup', Bool :$dryrun) {
     generateAlts($dryrun);
 }
 
+#| Associate images based on a task or project.
+multi sub MAIN('group', Str $target, Str $name, Bool :$dryrun) {
+    my @targets = resolveFileTarget($target);
+    groupFiles(@targets, $name, $dryrun);
+}
+
 #| Display a target's edit history.
 multi sub MAIN('history', Str $target) {
     my @targets = resolveFileTarget($target);
@@ -108,7 +114,7 @@ multi sub MAIN('reindex', Str $target?) {
     reindex($target);
 }
 
-#| Redo question-and-answer tagging.
+#| Redo question-and-answer taging.
 multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
     my @targets = resolveFileTarget($target);
     reprompt(@targets, $dryrun);

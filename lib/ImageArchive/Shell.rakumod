@@ -14,6 +14,7 @@ our %commands = %(
     'filecount' => Nil,
     'finished' => Nil,
     'fixup' => Nil,
+    'group' => Nil,
     'history' => <archivefile>,
     'import' => <file>,
     'inprogress' => Nil,
