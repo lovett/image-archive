@@ -548,6 +548,23 @@ sub viewExternally(*@paths) is export {
     }
 }
 
+#| Remove a JobRef tag.
+sub ungroupFiles(@targets, Str $name, Bool $dryrun = False) is export {
+    my %aliases = readConfig('aliases');
+    my $formalTag = %aliases<group>;
+
+    for @targets -> $target {
+        commitTags($target, "-{$formalTag}-=\{Name=$name\}".List, $dryrun);
+
+        next if $dryrun;
+
+        if (isArchiveFile($target)) {
+            indexFile($target);
+        }
+    }
+}
+
+
 # Remove tags by keyword, alias, or alias-and-value.
 sub untagTerm(Str $target, Str $term, Str $value, Bool $dryrun = False) is export {
     my $termType = identifyTerm($term);

@@ -161,6 +161,13 @@ multi sub MAIN('unindexed') {
     printUnindexed();
 }
 
+#| Remove a group name.
+multi sub MAIN('ungroup', Str $target, Str $name, Bool :$dryrun) {
+    my @targets = resolveFileTarget($target);
+    ungroupFiles(@targets, $name, $dryrun);
+}
+
+
 #| Remove tags by keyword or alias.
 multi sub MAIN('untag', Str $target, Str $term, Str $value = '', Bool :$dryrun = False) {
     untagTerm($target, $term, $value, $dryrun);
