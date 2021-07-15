@@ -95,7 +95,7 @@ sub readRawTag(IO $file, $tag) is export {
 sub readTags(IO::Path $file, @tags) is export {
     my @tagArguments = @tags.map({ '-' ~ $_});
 
-    my $proc = run <exiftool -G -l>, @tagArguments, $file.Str, :out, :err;
+    my $proc = run <exiftool -G -struct>, @tagArguments, $file.Str, :out, :err;
     my $err = $proc.err.slurp(:close);
     my $out = $proc.out.slurp(:close);
 
