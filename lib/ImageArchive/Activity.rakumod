@@ -94,20 +94,11 @@ sub import(IO::Path $file, Bool $dryrun = False) is export {
     say "Imported as {$importedFile}";
 }
 
-sub reindex(Str $target?) is export {
-    my @targets;
-
-    if ($target) {
-        @targets = resolveFileTarget($target);
-    } else {
-        my $root = getPath('root');
-        @targets =  walkArchive($root).List;
-    }
-
-    for @targets -> $target {
-        print "Reindexing {$target}...";
-        tagFile($target, {});
-        indexFile($target);
+sub reindex(@paths) is export {
+    for @paths -> $path {
+        print "Reindexing {$path}...";
+        tagFile($path, {});
+        indexFile($path);
         say "done.";
     }
 }

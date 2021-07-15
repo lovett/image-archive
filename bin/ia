@@ -111,7 +111,15 @@ multi sub MAIN('publish') {
 
 #| Re-add imported files to the database.
 multi sub MAIN('reindex', Str $target?) {
-    reindex($target);
+    if ($target) {
+        my @paths = resolveFileTarget($target);
+        reindex(@paths);
+        return;
+    }
+
+    my $root = getPath('root');
+    my @paths =  walkArchive($root).List;
+    reindex(@paths);
 }
 
 #| Redo question-and-answer taging.
