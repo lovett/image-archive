@@ -555,22 +555,12 @@ sub ungroupFiles(@targets, Str $name, Bool $dryrun = False) is export {
     }
 }
 
-
 # Remove tags by keyword, alias, or alias-and-value.
-sub untagTerm(Str $target, Str $term, Str $value, Bool $dryrun = False) is export {
+multi sub untagTerm(@targets, Str $term, Str $value, Bool $dryrun = False) is export {
     my $termType = identifyTerm($term);
 
-    given $target, $termType {
-        when 'allfiles', 'alias' {
-            removeAliasFromArchive($term, $value, $dryrun);
-        }
-
-        when 'allfiles', 'keyword' {
-            removeKeywordFromArchive($term, $dryrun);
-        }
-
-        when :Str, 'alias' {
-            my @targets = resolveFileTarget($target);
+    given $termType {
+        when 'alias' {
             for @targets -> $target {
                 removeAlias($target, $term, $value, $dryrun);
 
@@ -580,9 +570,7 @@ sub untagTerm(Str $target, Str $term, Str $value, Bool $dryrun = False) is expor
             }
         }
 
-        when :Str, 'keyword' {
-            my @targets = resolveFileTarget($target);
-
+        when 'keyword' {
             for @targets -> $target {
                 removeKeyword($target, $term, $dryrun);
 
@@ -590,6 +578,20 @@ sub untagTerm(Str $target, Str $term, Str $value, Bool $dryrun = False) is expor
                     indexFile($target);
                 }
             }
+        }
+    }
+}
+
+multi sub untagTerm(Str $term, Str $value, Bool $dryrun = False) is export {
+    my $termType = identifyTerm($term);
+
+    given $termType {
+        when 'alias' {
+            removeAliasFromArchive($term, $value, $dryrun);
+        }
+
+        when 'keyword' {
+            removeKeywordFromArchive($term, $dryrun);
         }
     }
 }

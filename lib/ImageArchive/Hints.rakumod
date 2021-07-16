@@ -42,10 +42,6 @@ sub explainSyntax(Str $command) is export {
         when 'search' {
             say explainSearchSyntax();
         }
-
-        when / ^ untag / {
-            say explainAllfiles();
-        }
     }
 }
 
@@ -91,17 +87,6 @@ sub explainSearchSyntax() {
 
     SPECIAL TERM: lastimport
       Equivalent to recent with --limit=1
-
-    END
-}
-
-sub explainAllfiles() {
-
-    return qq:to/END/;
-
-    SPECIAL TERM: allfiles
-    To apply this command to all files within the archive, specify "allfiles"
-    as the target.
 
     END
 }

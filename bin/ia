@@ -128,6 +128,11 @@ multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
     reprompt(@targets, $dryrun);
 }
 
+#| Archive-wide untag by keyword or alias.
+multi sub MAIN('scrub', Str $term, Str $value = '', Bool :$dryrun = False) {
+    untagTerm($term, $value, $dryrun);
+}
+
 #| Find files within the archive.
 multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
     unless (@terms) {
@@ -178,7 +183,8 @@ multi sub MAIN('ungroup', Str $target, Str $name, Bool :$dryrun) {
 
 #| Remove tags by keyword or alias.
 multi sub MAIN('untag', Str $target, Str $term, Str $value = '', Bool :$dryrun = False) {
-    untagTerm($target, $term, $value, $dryrun);
+    my @targets = resolveFileTarget($target);
+    untagTerm(@targets, $term, $value, $dryrun);
 }
 
 #| Display a file.
