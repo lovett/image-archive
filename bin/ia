@@ -34,11 +34,6 @@ multi sub MAIN('completion') {
     writeShellCompletion();
 }
 
-#| Start a database CLI session.
-multi sub MAIN('dbshell') {
-    openDatabaseSession();
-}
-
 #| Take a target out of the archive.
 multi sub MAIN('deport', Str $target, Bool :$dryrun) {
     my @targets = resolveFileTarget($target);

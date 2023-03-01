@@ -9,7 +9,6 @@ our %commands = %(
     'color' => <file>,
     'colormatch' => <file>,
     'completion' => Nil,
-    'dbshell' => Nil,
     'deport' => <archivefile>,
     'filecount' => Nil,
     'finished' => Nil,
