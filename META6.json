@@ -1,7 +1,7 @@
 {
   "perl" : "6.d",
   "name" : "ImageArchive",
-  "version" : "2021.07.15",
+  "version" : "2022.03.01",
   "description" : "Automation for image metadata tagging.",
   "provides" : {
     "ImageArchive::Activity": "lib/ImageArchive/Activity.rakumod",
@@ -13,6 +13,7 @@
     "ImageArchive::Shell": "lib/ImageArchive/Shell.rakumod",
     "ImageArchive::Hints": "lib/ImageArchive/Hints.rakumod",
     "ImageArchive::Publish": "lib/ImageArchive/Publish.rakumod",
+    "ImageArchive::Setup": "lib/ImageArchive/Setup.rakumod",
     "ImageArchive::Tagging": "lib/ImageArchive/Tagging.rakumod",
     "ImageArchive::Util": "lib/ImageArchive/Util.rakumod",
     "ImageArchive::Workspace": "lib/ImageArchive/Workspace.rakumod",

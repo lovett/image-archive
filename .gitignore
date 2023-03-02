@@ -8,3 +8,4 @@ resources/*.sqlite3extension
 resources/*.dSYM
 testroot
 .precomp
+Archive

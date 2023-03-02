@@ -11,6 +11,7 @@ use ImageArchive::Exception;
 use ImageArchive::Shell;
 use ImageArchive::Hints;
 use ImageArchive::Publish;
+use ImageArchive::Setup;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
@@ -139,12 +140,9 @@ multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
     printSearchResults(@results);
 }
 
-#| Establish the application configuration and database.
-multi sub MAIN('setup', Str $directory where *.IO.d) {
-    writeApplicationConfig($directory.IO);
-    writeArchiveConfig();
-    createDatabase();
-    writeShellCompletion();
+#| Establish the archive.
+multi sub MAIN('setup', Str $path?) {
+    setup($path);
 }
 
 #| Display a file's tags.

@@ -42,7 +42,29 @@ sub explainSyntax(Str $command) is export {
         when 'search' {
             say explainSearchSyntax();
         }
+
+        when 'setup' {
+            say explainSetup();
+        }
     }
+}
+
+sub explainSetup() {
+
+    my $appconfig = getPath('appconfig');
+
+    return qq:to/END/;
+
+    If a path is specified, it will be used as the archive. Otherwise,
+    a directory called Archive will be created at the current location.
+
+    The archive is where tagged images are kept. It is also
+    home to the configuration file and the database.
+
+    Once created, the location of the archive will be determined by
+    reading $appconfig.
+
+    END
 }
 
 sub explainSearchSyntax() {

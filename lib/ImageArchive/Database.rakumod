@@ -117,26 +117,6 @@ sub countRecordsByYear() is export {
     }
 }
 
-# Establish the SQLite database.
-sub createDatabase() is export {
-    my $dbPath = getPath('database');
-
-    return if $dbPath.f;
-
-    my $schemaPath = %?RESOURCES<schema-sqlite.sql>.absolute;
-
-    my $proc = run 'sqlite3', $dbPath, :in;
-    $proc.in.say(".read {$schemaPath}");
-    $proc.in.close;
-
-    CATCH {
-        when X::Proc::Unsuccessful {
-            my $err = "Failed to apply database schema.";
-            ImageArchive::Exception::BadExit.new(:err($err)).throw;
-        }
-    }
-}
-
 # Remove a file from the database.
 sub deindexFile(IO::Path $file) is export {
     my $uuid = readRawTag($file, 'id');
