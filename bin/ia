@@ -1,5 +1,7 @@
 #!/usr/bin/env rakudo
 
+use lib $*PROGRAM.absolute.IO.parent(2).add('lib');
+
 use Terminal::ANSIColor;
 
 use ImageArchive::Activity;
