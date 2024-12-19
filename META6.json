@@ -1,5 +1,5 @@
 {
-  "perl" : "6.d",
+  "raku" : "6.d",
   "name" : "ImageArchive",
   "version" : "2022.03.01",
   "description" : "Automation for image metadata tagging.",
