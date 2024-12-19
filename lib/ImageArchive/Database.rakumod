@@ -325,9 +325,7 @@ sub findBySimilarColor(@rgb, Str $key) is export {
 
     my $proc = run 'sqlite3', $dbPath, :in, :err;
 
-    my $extension = %?RESOURCES<colordelta.sqlite3extension>.absolute;
-
-    say $extension;
+    my $extension = %?RESOURCES<colordelta.sqlite3extension>.IO.absolute;
 
     $proc.in.say: qq:to/SQL/;
     .load {$extension} sqlite3_colordelta_init

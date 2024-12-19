@@ -10,7 +10,9 @@ sub createDatabase() is export {
 
     return if $dbPath.f;
 
-    my $schemaPath = %?RESOURCES<schema-sqlite.sql>.absolute;
+    my $schemaPath = %?RESOURCES<schema-sqlite.sql>.IO.absolute;
+
+    say $schemaPath;
 
     my $proc = run 'sqlite3', $dbPath, :in;
     $proc.in.say(".read {$schemaPath}");
@@ -85,7 +87,7 @@ sub writeApplicationConfig(IO::Path $root) is export {
 sub writeArchiveConfig() is export {
     my $target = getPath('config');
 
-    my $templatePath = %?RESOURCES<config.ini>.absolute;
+    my $templatePath = %?RESOURCES<config.ini>.IO.absolute;
 
     return if $target ~~ :f;
 
