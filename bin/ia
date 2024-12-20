@@ -123,7 +123,7 @@ multi sub MAIN('reindex', Str $target?) {
 #| Overwrite an imported file.
 multi sub MAIN('replace', Str $target, Str $substitue where *.IO.f, Bool :$dryrun = False) {
     my @targets = resolveFileTarget($target);
-    replaceFilePreservingName(@targets.first.IO, $replacement.IO, $dryrun);
+    replaceFilePreservingName(@targets.first.IO, $substitue.IO, $dryrun);
 }
 
 #| Redo question-and-answer taging.
