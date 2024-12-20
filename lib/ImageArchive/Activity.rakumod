@@ -94,6 +94,37 @@ sub import(IO::Path $file, Bool $dryrun = False) is export {
     say "Imported as {$importedFile}";
 }
 
+sub replaceFilePreservingName(IO::Path $original, IO::Path $substitue, Bool $dryrun = False) is export {
+    testPathExistsInArchive($original);
+
+    my $replacement = $substitue.dirname().IO.add($original.basename).extension($substitue.extension);
+
+    if ($dryrun) {
+        wouldHaveDone("Rename $substitue to $replacement");
+        wouldHaveDone("Replace $original with $replacement");
+        exit;
+    }
+
+    rename($substitue, $replacement);
+
+    replaceFile($original, $replacement);
+
+    CATCH {
+        when ImageArchive::Exception::PathNotFoundInWorkspace {
+            note colored($_.message, 'red');
+            exit 1;
+        }
+    }
+}
+
+sub replaceFile(IO::Path $original, IO::Path $replacement) is export {
+    transferTags($original, $replacement);
+    deleteAlts($original);
+    deindexFile($original);
+    unlink($original);
+    importFile($replacement);
+}
+
 sub reindex(@paths) is export {
     for @paths -> $path {
         print "Reindexing {$path}...";
@@ -318,22 +349,7 @@ sub promoteVersion(IO::Path $file, Bool $dryrun? = False) is export {
         return;
     }
 
-    transferTags($master, $file);
-    deleteAlts($master);
-    deindexFile($master);
-    unlink($master);
-
-    rename($file, $newMaster);
-    indexFile($newMaster);
-    generateAlts($newMaster);
-    $newMaster.chmod(0o400);
-
-    CATCH {
-        when ImageArchive::Exception::PathNotFoundInWorkspace {
-            note colored($_.message, 'red');
-            exit 1;
-        }
-    }
+    replaceFile($master, $newMaster);
 }
 
 #| Redo question-and-answer tagging.

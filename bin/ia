@@ -120,6 +120,12 @@ multi sub MAIN('reindex', Str $target?) {
     reindex(@paths);
 }
 
+#| Overwrite an imported file.
+multi sub MAIN('replace', Str $target, Str $substitue where *.IO.f, Bool :$dryrun = False) {
+    my @targets = resolveFileTarget($target);
+    replaceFilePreservingName(@targets.first.IO, $replacement.IO, $dryrun);
+}
+
 #| Redo question-and-answer taging.
 multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
     my @targets = resolveFileTarget($target);
