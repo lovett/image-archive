@@ -1,7 +1,6 @@
 unit package ImageArchive::Command;
 
 use ImageArchive::Config;
-use ImageArchive::Shell;
 use ImageArchive::Util;
 
 our sub setup() is export {
@@ -14,7 +13,6 @@ our sub setup() is export {
 
     createDatabase();
     writeConfig();
-    writeShellCompletion();
 }
 
 sub createDatabase() {

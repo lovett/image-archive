@@ -128,7 +128,9 @@ multi sub MAIN("search", Int :$limit = 10, Bool :$debug, *@terms) {
 multi sub MAIN("setup", Str $path?) {
     %*ENV<IA_ROOT> = $path.IO.absolute if $path;
     use ImageArchive::Command::Setup;
+    use ImageArchive::Command::Completion;
     ImageArchive::Command::setup();
+    ImageArchive::Command::completion();
     if ($path) {
         say "Be sure to set the IA_ROOT environment variable to {$path.IO.absolute} in your shell.";
     }
