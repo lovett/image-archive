@@ -18,11 +18,3 @@ sub suggestContextKeywords(@contexts) is export {
         say "";
     }
 }
-
-sub suggestFilters() is export {
-    my %filters = readConfig('filters');
-    my @filters = %filters.keys.sort;
-
-    say "";
-    say colored('Filters', 'cyan underline') ~ "\n" ~ @filters.join(", ");
-}
