@@ -28,11 +28,9 @@ Running `make install` from a checkout of this repository will take
 care of installing third-party libraries and put the `ia` executable
 onto the Raku PATH, usually `$HOME/.raku/bin`.
 
-Once installed, run `ia setup` to establish an archive in the current
-directory. It will be called Archive. A starter configuration file
-(`config.ini`) will be placed here along with an empty SQLite
-database. Run `ia --help setup` for further details on customizing the
-name of the archive or its location.
+Once installed, run `ia setup` to establish an archive in the default
+location, `$HOME/Archive`. Run `ia --help setup` for further details
+on customizing the name of the archive or its location.
 
 ## Configuration
 

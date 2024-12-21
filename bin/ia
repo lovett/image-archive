@@ -2,18 +2,13 @@
 
 use lib $*PROGRAM.absolute.IO.parent(2).add('lib');
 
-use Terminal::ANSIColor;
-
 use ImageArchive::Activity;
 use ImageArchive::Archive;
 use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
-use ImageArchive::Exception;
 use ImageArchive::Shell;
-use ImageArchive::Hints;
 use ImageArchive::Publish;
-use ImageArchive::Setup;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
@@ -148,9 +143,14 @@ multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
     printSearchResults(@results);
 }
 
-#| Establish the archive.
-multi sub MAIN('setup', Str $path?) {
-    setup($path);
+#| Create a new archive.
+multi sub MAIN("setup", Str $path?) {
+    %*ENV<IA_ROOT> = $path.IO.absolute if $path;
+    use ImageArchive::Command::Setup;
+    ImageArchive::Command::setup();
+    if ($path) {
+        say "Be sure to set the IA_ROOT environment variable to {$path.IO.absolute} in your shell.";
+    }
 }
 
 #| Display a file's tags.
@@ -220,6 +220,7 @@ multi sub MAIN(Bool :$version) {
 
 sub USAGE() {
     if @*ARGS.first eq '--help' and @*ARGS.elems == 2 {
+        use ImageArchive::Help;
         explainSyntax(@*ARGS[1]);
         return;
     }

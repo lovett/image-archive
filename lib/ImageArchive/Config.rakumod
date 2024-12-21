@@ -56,12 +56,7 @@ sub getPath(Str $keyword) is export is cached {
         }
 
         when 'root' {
-            my $appConfig = getPath('appconfig');
-
-            my %ini = Config::INI::parse_file($appConfig.Str);
-
-            my $root = %ini<_><root>;
-            $root ~= '/' unless $root.ends-with('/');
+            my $root = %*ENV<IA_ROOT> //  "{$*HOME}/Archive";
             return $root.IO;
         }
     }
