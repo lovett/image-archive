@@ -1,14 +1,21 @@
-unit module ImageAarchive::Publish;
+unit package ImageArchive::Command;
 
 use Template::Mustache;
 
+use ImageArchive::Database;
+use ImageArchive::Activity;
 use ImageArchive::Archive;
 use ImageArchive::Config;
-use ImageArchive::Database;
 use ImageArchive::Util;
 
+our sub publish() is export {
+    my @results = dumpStash('searchresult');
+    my $path = publishHtml(@results);
+    viewExternally($path);
+}
+
 # Write an HTML file containing thumbnails of search results.
-sub publishHtml(@results) is export {
+sub publishHtml(@results) {
     my %templates = loadTemplates('layout', 'gallery');
     my @sizes = readConfig('alt_sizes').split(' ');
 

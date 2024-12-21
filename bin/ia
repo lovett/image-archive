@@ -2,145 +2,126 @@
 
 use lib $*PROGRAM.absolute.IO.parent(2).add('lib');
 
-use ImageArchive::Activity;
-use ImageArchive::Archive;
-use ImageArchive::Color;
-use ImageArchive::Config;
-use ImageArchive::Database;
-use ImageArchive::Shell;
-use ImageArchive::Publish;
-use ImageArchive::Tagging;
-use ImageArchive::Util;
-use ImageArchive::Workspace;
+#use ImageArchive::Activity;
 
 #| Display a target's average color.
-multi sub MAIN('color', Str $target) {
-    my @targets = resolveFileTarget($target);
-    printColorTable(@targets);
+multi sub MAIN("color", Str $target) {
+    use ImageArchive::Command::Color;
+    ImageArchive::Command::color($target);
 }
 
 #| Find files by color similarity.
-multi sub MAIN('colormatch', Str $target) {
-    my @targets = resolveFileTarget($target);
-    my @rgb = getAverageColor(@targets.first.IO);
-    my @results = findBySimilarColor(@rgb, 'searchresult');
-    printSearchResults(@results);
+multi sub MAIN("colormatch", Str $target) {
+    use ImageArchive::Command::Colormatch;
+    ImageArchive::Command::colormatch($target);
 }
 
 #| Generate the shell completion file.
-multi sub MAIN('completion') {
-    writeShellCompletion();
+multi sub MAIN("completion") {
+    use ImageArchive::Command::Completion;
+    ImageArchive::Command::completion();
 }
 
 #| Take a target out of the archive.
-multi sub MAIN('deport', Str $target, Bool :$dryrun) {
-    my @targets = resolveFileTarget($target);
-    deportFiles(@targets, $*CWD.IO, $dryrun);
+multi sub MAIN("deport", Str $target, Bool :$dryrun) {
+    use ImageArchive::Command::Deport;
+    ImageArchive::Command::deport($target, $dryrun);
 }
 
 #| The number of files in the archive.
-multi sub MAIN('filecount') {
-    countFiles();
+multi sub MAIN("filecount") {
+    use ImageArchive::Command::Filecount;
+    ImageArchive::Command::filecount();
 }
 
 #| Files with dormant workspaces.
-multi sub MAIN('finished') {
-    my @results = walkWorkspaces('inactive');
-    printSearchResults(@results);
+multi sub MAIN("finished") {
+    use ImageArchive::Command::Finished;
+    ImageArchive::Command::finished();
 }
 
 #| Perform cleanup chores on the archive.
-multi sub MAIN('fixup', Bool :$dryrun) {
-    pruneEmptyDirsDownward('', $dryrun);
-    verifyDateTags($dryrun);
-    generateAlts($dryrun);
+multi sub MAIN("fixup", Bool :$dryrun) {
+    use ImageArchive::Command::Fixup;
+    ImageArchive::Command::fixup($dryrun);
 }
 
 #| Associate images based on a task or project.
-multi sub MAIN('group', Str $target, Str $name, Bool :$dryrun) {
-    my @targets = resolveFileTarget($target);
-    groupFiles(@targets, $name, $dryrun);
+multi sub MAIN("group", Str $target, Str $name, Bool :$dryrun) {
+    use ImageArchive::Command::Group;
+    ImageArchive::Command::group($dryrun);
 }
 
 #| Display a target's edit history.
-multi sub MAIN('history', Str $target) {
-    my @targets = resolveFileTarget($target);
-    printHistory(@targets);
+multi sub MAIN("history", Str $target) {
+    use ImageArchive::Command::History;
+    ImageArchive::Command::history($target);
 }
 
 #| Bring a file into the archive.
-multi sub MAIN('import', Str $file where *.IO.f, Bool :$dryrun) {
-    import($file.IO, $dryrun);
+multi sub MAIN("import", Str $file where *.IO.f, Bool :$dryrun) {
+    ImageArchive::Command::Import;
+    ImageArchive::Command::import($file, $dryrun);
 }
 
 #| Files that have edits in progress.
-multi sub MAIN('inprogress') {
-    my @results = walkWorkspaces('active');
-    printSearchResults(@results);
+multi sub MAIN("inprogress") {
+    ImageArchive::Command::Inprogress;
+    ImageArchive::Command::inprogress();
 }
 
 #| Redisplay the results of the previous search.
-multi sub MAIN('lastsearch') {
-    my @results = dumpStash('searchresult');
-    printSearchResults(@results);
+multi sub MAIN("lastsearch") {
+    use ImageArchive::Command::Lastsearch;
+    ImageArchive::Command::lastsearch();
 }
 
 #| Count files per month in a given year.
-multi sub MAIN('monthcount', Int $year) {
-    countMonths($year);
+multi sub MAIN("monthcount", Int $year) {
+    use ImageArchive::Command::Monthcount;
+    ImageArchive::Command::monthcount();
 }
 
 #| Replace an archive file with a workspace version.
-multi sub MAIN('promote', Str $version where *.IO.f, Bool :$dryrun) {
-    promoteVersion($version.IO, $dryrun);
+multi sub MAIN("promote", Str $version where *.IO.f, Bool :$dryrun) {
+    use ImageArchive::Command::Promote;
+    ImageArchive::Command::promote($version, $dryrun);
 }
 
 #| View the previous search in a web browser.
-multi sub MAIN('publish') {
-    my @results = dumpStash('searchresult');
-    my $path = publishHtml(@results);
-    viewExternally($path);
+multi sub MAIN("publish") {
+    use ImageArchive::Command::Publish;
+    ImageArchive::Command::publish();
 }
 
 #| Re-add imported files to the database.
-multi sub MAIN('reindex', Str $target?) {
-    if ($target) {
-        my @paths = resolveFileTarget($target);
-        reindex(@paths);
-        return;
-    }
-
-    my $root = getPath('root');
-    my @paths =  walkArchive($root).List;
-    reindex(@paths);
+multi sub MAIN("reindex", Str $target?) {
+    use ImageArchive::Command::Reindex;
+    ImageArchive::Command::reindex($target);
 }
 
 #| Overwrite an imported file.
-multi sub MAIN('replace', Str $target, Str $substitue where *.IO.f, Bool :$dryrun = False) {
-    my @targets = resolveFileTarget($target);
-    replaceFilePreservingName(@targets.first.IO, $substitue.IO, $dryrun);
+multi sub MAIN("replace", Str $target, Str $substitue where *.IO.f, Bool :$dryrun = False) {
+    use ImageArchive::Command::Replace;
+    ImageArchive::Command::replace($target, $substitue, $dryrun);
 }
 
 #| Redo question-and-answer taging.
-multi sub MAIN('reprompt', Str $target, Bool :$dryrun = False) {
-    my @targets = resolveFileTarget($target);
-    reprompt(@targets, $dryrun);
+multi sub MAIN("reprompt", Str $target, Bool :$dryrun = False) {
+    use ImageArchive::Command::Reprompt;
+    ImageArchive::Command::reprompt($target, $dryrun);
 }
 
 #| Archive-wide untag by keyword or alias.
-multi sub MAIN('scrub', Str $term, Str $value = '', Bool :$dryrun = False) {
-    untagTerm($term, $value, $dryrun);
+multi sub MAIN("scrub", Str $term, Str $value = '', Bool :$dryrun = False) {
+    use ImageArchive::Command::Scrub;
+    ImageArchive::Command::scrub($term, $value, $dryrun);
 }
 
 #| Find files within the archive.
-multi sub MAIN('search', Int :$limit = 10, Bool :$debug = False, *@terms) {
-    unless (@terms) {
-        note 'No search terms were provided.';
-        exit 1;
-    }
-
-    my @results = search(@terms, $limit, $debug);
-    printSearchResults(@results);
+multi sub MAIN("search", Int :$limit = 10, Bool :$debug, *@terms) {
+    use ImageArchive::Command::Search;
+    ImageArchive::Command::search($limit, $debug, @terms);
 }
 
 #| Create a new archive.
@@ -154,68 +135,69 @@ multi sub MAIN("setup", Str $path?) {
 }
 
 #| Display a file's tags.
-multi sub MAIN('show', Str $target) {
-    my @targets = resolveFileTarget($target);
-    showTags(@targets);
+multi sub MAIN("show", Str $target) {
+    use ImageArchive::Command::Show;
+    ImageArchive::Command::show($target);
 }
 
 #| Add tags to a file.
-multi sub MAIN('tag', Str $target, Bool :$dryrun, *@keywords) {
-    my @targets = resolveFileTarget($target);
-    tagAndImport(@targets, @keywords, $dryrun);
+multi sub MAIN("tag", Str $target, Bool :$dryrun, *@keywords) {
+    use ImageArchive::Command::Tag;
+    ImageArchive::Command::tag($target);
 }
 
 #| List out TODO lines in workspace history files.
-multi sub MAIN('todo', Str $directory?) {
-    searchLogs(/TODO/, $directory);
+multi sub MAIN("todo", Str $directory?) {
+    use ImageArchive::Command::Todo;
+    ImageArchive::Command::todo($directory);
 }
 
 #| Find file that are not in the database.
-multi sub MAIN('unindexed') {
-    printUnindexed();
+multi sub MAIN("unindexed") {
+    use ImageArchive::Command::Unindexed;
+    ImageArchive::Command::unindexed();
 }
 
 #| Remove a group name.
-multi sub MAIN('ungroup', Str $target, Str $name, Bool :$dryrun) {
-    my @targets = resolveFileTarget($target);
-    ungroupFiles(@targets, $name, $dryrun);
+multi sub MAIN("ungroup", Str $target, Str $name, Bool :$dryrun) {
+    use ImageArchive::Command::Ungroup;
+    ImageArchive::Command::ungroup($target, $name, $dryrun);
 }
 
-
 #| Remove tags by keyword or alias.
-multi sub MAIN('untag', Str $target, Str $term, Str $value = '', Bool :$dryrun = False) {
-    my @targets = resolveFileTarget($target);
-    untagTerm(@targets, $term, $value, $dryrun);
+multi sub MAIN("untag", Str $target, Str $term, Str $value = '', Bool :$dryrun = False) {
+    use ImageArchive::Command::Untag;
+    ImageArchive::Command::untag($target);
 }
 
 #| Display a file.
-multi sub MAIN('view', Str $target, Bool :$original) {
-    my $flavor = ($original ?? 'original' !! 'alternate');
-    my @targets = resolveFileTarget($target, $flavor);
-    viewExternally(@targets);
+multi sub MAIN("view", Str $target, Bool :$original) {
+    use ImageArchive::Command::View;
+    ImageArchive::Command::view($target);
 }
 
 #| Navigate to a file.
-multi sub MAIN('visit', Str $target) {
-    my @targets = resolveFileTarget($target, 'parent');
-    viewExternally(@targets);
+multi sub MAIN("visit", Str $target) {
+    use ImageArchive::Command::Visit;
+    ImageArchive::Command::visit($target);
 }
 
 #| Set up or return to a file's editing workspace.
-multi sub MAIN('workon', $target) {
-    my @targets = resolveFileTarget($target);
-    my $workspace = copyToWorkspace(@targets.first);
-    viewExternally($workspace);
+multi sub MAIN("workon", Str $target) {
+    use ImageArchive::Command::Workon;
+    ImageArchive::Command::workon();
 }
 
 #| Count files per year.
-multi sub MAIN('yearcount') {
-    countYears();
+multi sub MAIN("yearcount") {
+    use ImageArchive::Command::Yearcount;
+    ImageArchive::Command::yearcount();
 }
 
 #| Display the application version.
-multi sub MAIN(Bool :$version) {
-    say applicationVersion() if $version;
+multi sub MAIN("version") {
+    use ImageArchive::Command::Version;
+    ImageArchive::Command::version();
 }
 
 sub USAGE() {

@@ -87,13 +87,6 @@ sub groupFiles(@targets, Str $name, Bool $dryrun = False) is export {
     }
 }
 
-#| Bring a file into the archive.
-sub import(IO::Path $file, Bool $dryrun = False) is export {
-    my $importedFile = importFile($file.IO, $dryrun);
-    indexFile($importedFile);
-    say "Imported as {$importedFile}";
-}
-
 sub replaceFilePreservingName(IO::Path $original, IO::Path $substitue, Bool $dryrun = False) is export {
     testPathExistsInArchive($original);
 
@@ -123,34 +116,6 @@ sub replaceFile(IO::Path $original, IO::Path $replacement) is export {
     deindexFile($original);
     unlink($original);
     importFile($replacement);
-}
-
-sub reindex(@paths) is export {
-    for @paths -> $path {
-        print "Reindexing {$path}...";
-        tagFile($path, {});
-        indexFile($path);
-        say "done.";
-    }
-}
-
-sub search(@terms, Int $limit = 10, Bool $debug = False) is export {
-    my $query = @terms.join(' ');
-
-    given $query {
-        when 'lastimport' {
-            return findNewest(1, 'searchresult');
-        }
-
-        when 'recent' {
-            return findNewest($limit, 'searchresult');
-        }
-
-        default {
-            return findByTag($query, 'searchresult', $debug);
-        }
-
-    }
 }
 
 #| Locate lines in log files matching a regex.
@@ -316,27 +281,6 @@ sub printSearchResults(@results) is export {
     $pager.in.close;
 }
 
-sub printUnindexed() is export {
-    my $pager = getPager();
-
-    my $counter = 0;
-
-    for findUnindexed() -> $path {
-        my $index = sprintf("%3d", ++$counter);
-        $pager.in.printf(
-            "%s | %s\n",
-            colored($index, 'white on_red'),
-            relativePath($path),
-        );
-    }
-
-    unless $counter {
-        say "No unindexed files.";
-    }
-
-    $pager.in.close;
-}
-
 # Move a file out of the workspace.
 sub promoteVersion(IO::Path $file, Bool $dryrun? = False) is export {
     testPathExistsInWorkspace($file);
@@ -350,33 +294,6 @@ sub promoteVersion(IO::Path $file, Bool $dryrun? = False) is export {
     }
 
     replaceFile($master, $newMaster);
-}
-
-#| Redo question-and-answer tagging.
-sub reprompt(@targets, Bool $dryrun = False) is export {
-    for @targets -> $target {
-        my %newTags = askQuestions($target);
-
-        tagFile($target, %newTags, $dryrun);
-        next if $dryrun;
-
-        if (isArchiveFile($target)) {
-            my $workspace = findWorkspace($target);
-            my $importedFile = importFile($target);
-            if ($importedFile) {
-                say "Relocated to {$importedFile}";
-
-                if ($workspace ~~ :d) {
-                    moveWorkspace($workspace, $importedFile.parent);
-                }
-                pruneEmptyDirsUpward($target.parent);
-                indexFile($importedFile);
-                next;
-            }
-
-            indexFile($target);
-        }
-    }
 }
 
 #| Locate file paths within the archive.

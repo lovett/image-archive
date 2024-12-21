@@ -31,6 +31,7 @@ our %commands = %(
     'todo' => Nil,
     'unindexed' => Nil,
     'untag' => Nil,
+    'version' => Nil,
     'view' => <archivefile>,
     'visit' => <file>,
     'workon' => <archivefile>,
