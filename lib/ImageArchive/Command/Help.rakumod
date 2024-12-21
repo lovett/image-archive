@@ -1,8 +1,13 @@
-unit module ImageArchive::Help;
+unit package ImageArchive::Command;
 
 use ImageArchive::Config;
 
-sub explainSyntax(Str $command) is export {
+our sub help(Str $command) is export {
+    unless ($command) {
+        say $*USAGE;
+        return;
+    }
+
     my $shortSummary = $*USAGE.lines.grep( / ' ' $command ' ' / ).first;
 
     unless ($shortSummary) {

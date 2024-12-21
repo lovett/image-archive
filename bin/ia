@@ -52,6 +52,12 @@ multi sub MAIN("group", Str $target, Str $name, Bool :$dryrun) {
     ImageArchive::Command::group($dryrun);
 }
 
+#| Command-specific documentation.
+multi sub MAIN("help", Str $command?) {
+    use ImageArchive::Command::Help;
+    ImageArchive::Command::help($command);
+}
+
 #| Display a target's edit history.
 multi sub MAIN("history", Str $target) {
     use ImageArchive::Command::History;
@@ -200,16 +206,6 @@ multi sub MAIN("yearcount") {
 multi sub MAIN("version") {
     use ImageArchive::Command::Version;
     ImageArchive::Command::version();
-}
-
-sub USAGE() {
-    if @*ARGS.first eq '--help' and @*ARGS.elems == 2 {
-        use ImageArchive::Help;
-        explainSyntax(@*ARGS[1]);
-        return;
-    }
-
-    say $*USAGE;
 }
 
 # Local Variables:
