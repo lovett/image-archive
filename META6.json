@@ -11,7 +11,6 @@
     "ImageArchive::Database": "lib/ImageArchive/Database.rakumod",
     "ImageArchive::Exception": "lib/ImageArchive/Exception.rakumod",
     "ImageArchive::Help": "lib/ImageArchive/Help.rakumod",
-    "ImageArchive::Hints": "lib/ImageArchive/Hints.rakumod",
     "ImageArchive::Command::Colormatch": "lib/ImageArchive/Command/Colormatch.rakumod",
     "ImageArchive::Command::Color": "lib/ImageArchive/Command/Color.rakumod",
     "ImageArchive::Command::Completion": "lib/ImageArchive/Command/Completion.rakumod",

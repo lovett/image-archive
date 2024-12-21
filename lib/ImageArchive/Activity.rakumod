@@ -1,15 +1,14 @@
 unit module ImageArchive::Activity;
 
+use Terminal::ANSIColor;
+
 use ImageArchive::Archive;
 use ImageArchive::Color;
 use ImageArchive::Config;
 use ImageArchive::Database;
-use ImageArchive::Hints;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 use ImageArchive::Workspace;
-
-use Terminal::ANSIColor;
 
 =begin pod
 This module is for multi-step operations that involve multiple other modules or do things that don't
@@ -390,6 +389,21 @@ sub showTags(@targets) is export {
 
     for @targets -> $target {
         say readTags($target, %aliases.values);
+    }
+}
+
+sub suggestContextKeywords(@contexts) {
+    my %contexts = readConfig('contexts');
+
+    my %suggestionContexts = @contexts Z=> %contexts{@contexts};
+
+    say "";
+
+    for %suggestionContexts.kv -> $context, $aliases {
+        my @keywords = keywordsInContext($context);
+        say colored("{$context} keywords", 'cyan underline') ~ "\n" ~ @keywords.sort.join(", ");
+        say "To disable: no{$context}";
+        say "";
     }
 }
 
