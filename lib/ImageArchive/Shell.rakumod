@@ -21,6 +21,7 @@ our %commands = %(
     'monthcount' => Nil,
     'promote' => <archivefile>,
     'reindex' => Nil,
+    'replace' => <archivefile file>,
     'reprompt' => <file>,
     'search' => Nil,
     'search:recent' => Nil,
