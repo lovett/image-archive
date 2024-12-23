@@ -31,10 +31,6 @@ sub getPager() returns Proc is export {
 # Lookup an application file path by keyword.
 sub getPath(Str $keyword) is export is cached {
     given $keyword {
-        when 'appconfig' {
-            return $*HOME.add('.config/ia.conf');
-        }
-
         when 'cache' {
             return getPath('root').add('_cache');
         }
