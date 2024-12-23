@@ -22,16 +22,28 @@ multi sub MAIN("completion") {
     completion();
 }
 
+#| Number of files in the archive.
+multi sub MAIN("count", "files") {
+    use ImageArchive::Command::Count;
+    countFiles();
+}
+
+#| Number of files per year.
+multi sub MAIN("count", "years") {
+    use ImageArchive::Command::Count;
+    countByYear();
+}
+
+#| Number of files per month in a given year.
+multi sub MAIN("count", "months", Int $year) {
+    use ImageArchive::Command::Count;
+    countByYearAndMonth($year);
+}
+
 #| Take a target out of the archive.
 multi sub MAIN("deport", Str $target, Bool :$dryrun) {
     use ImageArchive::Command::Deport;
     deport($target, $dryrun);
-}
-
-#| The number of files in the archive.
-multi sub MAIN("filecount") {
-    use ImageArchive::Command::Filecount;
-    filecount();
 }
 
 #| Files with dormant workspaces.
@@ -80,12 +92,6 @@ multi sub MAIN("inprogress") {
 multi sub MAIN("lastsearch") {
     use ImageArchive::Command::Lastsearch;
     lastsearch();
-}
-
-#| Count files per month in a given year.
-multi sub MAIN("monthcount", Int $year) {
-    use ImageArchive::Command::Monthcount;
-    monthcount();
 }
 
 #| Replace an archive file with a workspace version.
@@ -194,12 +200,6 @@ multi sub MAIN("visit", Str $target) {
 multi sub MAIN("workon", Str $target) {
     use ImageArchive::Command::Workon;
     workon($target);
-}
-
-#| Count files per year.
-multi sub MAIN("yearcount") {
-    use ImageArchive::Command::Yearcount;
-    yearcount();
 }
 
 #| Display the application version.

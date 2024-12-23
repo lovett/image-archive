@@ -1,6 +1,5 @@
 unit module ImageArchive::Util;
 
-use Date::Names;
 use Terminal::ANSIColor;
 
 # Extract version information from META6.json
@@ -56,12 +55,6 @@ sub hashFile(IO $path) returns Str is export {
     }
 
     return '';
-}
-
-# Cnvert a numeric month to its name.
-sub monthName($month) is export {
-    my $d = Date::Names.new: :lang('en');
-    return $d.mon($month.Int);
 }
 
 # Pick the singular or plural form based on a quantity.
