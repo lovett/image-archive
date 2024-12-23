@@ -56,7 +56,7 @@ sub getPath(Str $keyword) is export is cached {
         }
 
         when 'root' {
-            my $root = %*ENV<IA_ROOT> //  "{$*HOME}/Archive";
+            my $root = %*ENV<IA_ROOT> //  "{$*HOME}/Pictures/Archive";
             return $root.IO;
         }
     }
