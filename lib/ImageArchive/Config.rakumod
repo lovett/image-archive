@@ -105,25 +105,25 @@ sub keywordsToTags(@keywords) is export {
     return %tags;
 }
 
-# Load the application configuration file.
-sub readConfig(Str $lookup?) is export {
+sub loadConfig() is export is cached {
+    my $path = appPath("config");
 
-    unless (%config) {
-        my $tarapp = appPath('config');
-        %config = Config::INI::parse_file($target.Str);
+    my %config = Config::INI::parse_file($path.Str);
 
-        # Remove backslash when followed by punctuation.
-        #
-        # This is just an editing convenience. The backslashes prevent
-        # INI syntax highlighting from getting thrown off.
-        my regex unescape { \\ (<punct>) };
+    my regex unescape { \\ (<punct>) };
 
-        for %config.kv -> $section, %members {
-            for %members.kv -> $key, $value {
-                %config{$section}{$key} = $value.subst(&unescape, { "$0" }, :g);
-            }
+    for %config.kv -> $section, %members {
+        for %members.kv -> $key, $value {
+            %config{$section}{$key} = $value.subst(&unescape, { "$0" }, :g);
         }
     }
+
+    return %config;
+}
+
+#| Load the config file for the active repository.
+sub readConfig(Str $lookup?) is export {
+    my %config = loadConfig();
 
     if ($lookup) {
         return %config<_>{$lookup} || %config{$lookup};
@@ -131,6 +131,7 @@ sub readConfig(Str $lookup?) is export {
 
     return %config;
 }
+
 
 # List the sections of the config.
 sub configSections() is export {

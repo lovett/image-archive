@@ -67,6 +67,8 @@
     "Terminal::ANSIColor",
     "Template::Mustache"
   ],
-  "test-depends" : [],
+  "test-depends" : [
+    "File::Temp"
+  ],
   "tags": []
 }

@@ -1,0 +1,32 @@
+#!/usr/bin/env rakudo
+
+use Test;
+use File::Temp;
+
+use lib $*PROGRAM.parent(2).add("lib");
+
+use ImageArchive::Config;
+
+my $fixture = $*PROGRAM.IO.parent().add("fixture/config.ini");
+
+my $root = tempdir();
+
+my $config = $root.IO.add($fixture.basename);
+
+copy($fixture, $config);
+
+%*ENV<IA_ROOT> = $root;
+
+plan 6;
+
+my %result = readConfig();
+isa-ok %result<_>, Hash, "Config has a default section";
+isa-ok %result<prompts>, Hash, "Config has a non-default section";
+is %result<quotetest><mykey>, Q<it's a value \ with "escaped" backslashes>, "Values are un-escaped";
+
+isa-ok readConfig("alt_format"), Str, "Value lookup considers default section";
+isa-ok readConfig("prompts"), Hash, "Value lookup considers non-default section";
+
+unlink($config);
+is readConfig("view_html"), "echo", "Config is cached";
+done-testing;

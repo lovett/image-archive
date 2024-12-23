@@ -35,7 +35,7 @@ sub createDatabase() {
 }
 
 sub writeConfig() {
-    my IO::Path $tarapp = appPath("config");
+    my IO::Path $target = appPath("config");
 
     if ($target.f) {
         note "Skipping $target because it already exists.";
