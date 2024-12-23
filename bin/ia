@@ -37,7 +37,7 @@ multi sub MAIN("count", "years") {
 #| Number of files per month in a given year.
 multi sub MAIN("count", "months", Int $year) {
     use ImageArchive::Command::Count;
-    countByYearAndMonth($year);
+    countByYearAndMonth($year.Int);
 }
 
 #| Take a target out of the archive.

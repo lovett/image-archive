@@ -62,8 +62,8 @@
   ],
   "depends" : [
     "Config::INI",
-    "Date::Names",
     "DBIish",
+    "Prettier::Table",
     "Terminal::ANSIColor",
     "Template::Mustache"
   ],

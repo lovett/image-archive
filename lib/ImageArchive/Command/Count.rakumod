@@ -1,13 +1,12 @@
 unit package ImageArchive::Command;
 
-use Date::Names;
+use Prettier::Table;
 
 use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-#| Tally of walkable files by year.
 our sub countByYear() is export {
     my $grandTotal = 0;
     my $format = "%7s | %s\n";
@@ -26,25 +25,27 @@ our sub countByYear() is export {
     $pager.in.close;
 }
 
-#| Tally of walkable files per month in a given year.
 our sub countByYearAndMonth(Int $year) is export {
-    my $pager = getPager();
-    my $d = Date::Names.new: :lang("en");
     my $grandTotal = 0;
-    my $format = "%10s | %s\n";
 
-    for countRecordsByMonth($year) -> $tally {
-        my $month = $tally[0] == 0 ?? 'Unknown' !! $d.mon($tally[0]);
-        $pager.in.printf($format, $month, $tally[1]);
-        $grandTotal += $tally[1];
+    my $table = Prettier::Table.new(
+        title => "Files by month in $year",
+        field-names => <Month Count>,
+        align => %(Month => "l", Count => "r")
+    );
+
+    for countRecordsByMonth($year) -> $row {
+        $table.add-row: $row;
+        $grandTotal += $row[1];
     }
 
-    $pager.in.printf($format, "TOTAL", $grandTotal);
+    $table.add-row: ["TOTAL", $grandTotal];
 
+    my $pager = getPager();
+    $pager.in.print($table);
     $pager.in.close;
 }
 
-#| Tally of all walkable files.
 our sub countFiles() is export {
     my $root = appPath('root');
 

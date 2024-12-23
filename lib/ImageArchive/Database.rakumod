@@ -52,26 +52,39 @@ sub countRecords() is export {
 # Tally of records by month.
 sub countRecordsByMonth(Int $year) is export {
     my $query = q:to/SQL/;
-    SELECT substr(json_extract(tags, '$.CreateDate'), 0, 5) as year,
-    CASE length(substr(json_extract(tags, '$.CreateDate'), 6, 2))
-         WHEN 0 THEN 0
-         ELSE CAST(substr(json_extract(tags, '$.CreateDate'), 6, 2) as NUMBER)
-    END as month,
-    count(*) AS tally
-    FROM archive
-    WHERE year=?
-    GROUP BY month
-    ORDER BY month > 0 DESC, month ASC
+    WITH RECURSIVE months(i, name) AS (
+        SELECT  0, 'Unknown'
+        UNION ALL
+        SELECT i+1, CASE i+1
+          WHEN  1 THEN 'January'
+          WHEN  2 THEN 'February'
+          WHEN  3 THEN 'March'
+          WHEN  4 THEN 'April'
+          WHEN  5 THEN 'May'
+          WHEN  6 THEN 'June'
+          WHEN  7 THEN 'July'
+          WHEN  8 THEN 'August'
+          WHEN  9 THEN 'September'
+          WHEN 10 THEN 'October'
+          WHEN 11 THEN 'November'
+          WHEN 12 THEN 'December'
+        END
+        FROM months
+        WHERE i<12
+    ) SELECT
+      months.name as label, count(archive.id) as tally
+    FROM months
+    LEFT JOIN archive ON
+      months.i=CAST(substr(tags ->> '$.CreateDate', 6, 2) as number)
+      AND CAST(substr(tags ->> '$.CreateDate', 0, 5) as number) = ?
+    GROUP BY months.i
+    ORDER BY months.i > 0 DESC, months.i ASC
     SQL
 
     my $dbh = openDatabase();
-    my $sth = $dbh.execute($query, $year.Str);
+    my $sth = $dbh.execute($query, $year);
 
-    return gather {
-        for $sth.allrows(:array-of-hash) -> $row {
-            take ($row<month>, $row<tally>);
-        }
-    }
+    return $sth.allrows();
 }
 
 # Tally of records by fulltext search.
