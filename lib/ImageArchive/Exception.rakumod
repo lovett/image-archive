@@ -78,7 +78,7 @@ class ImageArchive::Exception::MissingConfig is ImageArchive::Exception is expor
     has Str $.key;
 
     method message {
-        my $config = getPath('config');
+        my $config = appPath('config');
         "Cannot proceed. Missing \"{$!key}\" in {$config}";
     }
 }

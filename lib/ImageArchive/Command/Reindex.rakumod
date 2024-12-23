@@ -12,7 +12,7 @@ multi sub reindex(Str $target) is export {
 }
 
 multi sub reindex() is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
     my @paths =  walkArchive($root).List;
     reindex(@paths);
 }

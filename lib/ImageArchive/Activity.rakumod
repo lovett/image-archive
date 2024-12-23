@@ -17,7 +17,7 @@ quite fit in another module. It helps keep the main script lean.
 
 # Tally of all walkable files.
 sub countFiles() is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
 
     my $fileCount = 0;
     for walkArchive($root) -> $path {
@@ -122,7 +122,7 @@ sub searchLogs(Regex $matcher, Str $directory?) is export {
     my SetHash $cache = SetHash.new;
     my $pager = getPager();
 
-    my $root = getPath('root');
+    my $root = appPath('root');
     if ($directory) {
         $root = $root.add($directory);
     }
@@ -299,7 +299,7 @@ sub promoteVersion(IO::Path $file, Bool $dryrun? = False) is export {
 sub resolveFileTarget($target, Str $flavor = 'original') is export {
     my @paths;
 
-    my $root = getPath('root');
+    my $root = appPath('root');
     my $rootedTarget = $root.add($target);
 
     given $flavor {

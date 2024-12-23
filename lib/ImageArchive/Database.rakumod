@@ -146,7 +146,7 @@ sub dumpStash(Str $key) is export {
 
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (getPath('root') ~ $row<path>).IO;
+            $row<path> = (appPath('root') ~ $row<path>).IO;
             take $row;
         }
     }
@@ -183,7 +183,7 @@ sub indexFile(IO $file) is export {
 
     # Exiftool populates the SourceFile with an absolute path.
     # Make it root-relative.
-    my $root = getPath('root');
+    my $root = appPath('root');
     $json ~~ s:g/ "{$root}" //;
 
     my $dbh = openDatabase();
@@ -234,7 +234,7 @@ sub getTags(IO::Path $path, *@tags) is export {
 sub openDatabase() is export {
     state $dbh = DBIish.connect(
         'SQLite',
-        database => getPath('database')
+        database => appPath('database')
     );
 
     # Minimum version for FTS5.
@@ -261,7 +261,7 @@ sub findByNewestImport(Int $limit = 1) returns Seq is export {
 
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (getPath('root') ~ $row<path>).IO;
+            $row<path> = (appPath('root') ~ $row<path>).IO;
             take $row;
         }
     }
@@ -297,10 +297,10 @@ sub findByStashIndex(Str $query, Str $key, Bool $debug = False) is export {
 
     my $sth = $dbh.execute($stashQuery, $key);
 
-    my $root = getPath('root');
+    my $root = appPath('root');
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (getPath('root') ~ $row<path>).IO;
+            $row<path> = (appPath('root') ~ $row<path>).IO;
             take $row;
         }
 
@@ -321,7 +321,7 @@ sub findByStashIndex(Str $query, Str $key, Bool $debug = False) is export {
 # connection is used for followup queries that do not need the
 # extension.
 sub findBySimilarColor(@rgb, Str $key) is export {
-    my $dbPath = getPath('database');
+    my $dbPath = appPath('database');
 
     my $proc = run 'sqlite3', $dbPath, :in, :err;
 
@@ -361,10 +361,10 @@ sub findBySimilarColor(@rgb, Str $key) is export {
 
     my $sth = $dbh.execute($stashQuery);
 
-    my $root = getPath('root');
+    my $root = appPath('root');
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (getPath('root') ~ $row<path>).IO;
+            $row<path> = (appPath('root') ~ $row<path>).IO;
             take $row;
         }
     }
@@ -395,10 +395,10 @@ sub findNewest(Int $limit, Str $key) is export {
 
     $sth = $dbh.execute($stashQuery, $key);
 
-    my $root = getPath('root');
+    my $root = appPath('root');
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (getPath('root') ~ $row<path>).IO;
+            $row<path> = (appPath('root') ~ $row<path>).IO;
             take $row;
         }
     }
@@ -456,7 +456,7 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
 
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (getPath('root') ~ $row<path>).IO;
+            $row<path> = (appPath('root') ~ $row<path>).IO;
             take $row;
         }
 

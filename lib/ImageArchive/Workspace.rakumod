@@ -159,7 +159,7 @@ sub testPathExistsInWorkspace(IO::Path $file) is export {
 
 #| Filter the list of workspaces.
 sub walkWorkspaces(Str $flavor, Str $directory?) is export {
-    my IO::Path $root = getPath('root');
+    my IO::Path $root = appPath('root');
 
     if ($directory) {
         $root = $root.add($directory);

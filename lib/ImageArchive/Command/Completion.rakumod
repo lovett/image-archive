@@ -38,7 +38,7 @@ our %commands = %(
 );
 
 our sub completion() is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
     my $appVersion = applicationVersion();
 
     my %contexts = readConfig('contexts');
@@ -65,8 +65,8 @@ sub commandFilter($argumentKind) {
 }
 
 sub writeFishCompletion(@keywords, @aliases, $appVersion) {
-    my $root = getPath('root');
-    my $completionFile = getPath('completion-fish');
+    my $root = appPath('root');
+    my $completionFile = appPath('completion-fish');
 
     my $prefix = "complete -c {$*PROGRAM-NAME.IO.basename}";
 

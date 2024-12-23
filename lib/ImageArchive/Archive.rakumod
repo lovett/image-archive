@@ -58,7 +58,7 @@ sub removeKeywordFromArchive(Str $keyword, Bool $dryrun? = False) is export {
 }
 
 sub deleteAlts(IO::Path $file) is export {
-    my $cacheRoot = getPath('cache');
+    my $cacheRoot = appPath('cache');
 
     my $relativePath = relativePath($file.Str);
 
@@ -76,7 +76,7 @@ sub deleteAlts(IO::Path $file) is export {
 sub findAlternate(IO::Path $path, Str $size) is export {
     my $relPath = relativePath($path);
     my $thumbnailExtension = readConfig('alt_format');
-    my $cacheRoot = getPath('cache');
+    my $cacheRoot = appPath('cache');
 
     my $target = $cacheRoot.add("$size/$relPath").extension($thumbnailExtension).IO;
 
@@ -89,7 +89,7 @@ sub findAlternate(IO::Path $path, Str $size) is export {
 
 # Locate files that are not in the database.
 sub findUnindexed() returns Supply is export {
-    my $archiveRoot = getPath('root');
+    my $archiveRoot = appPath('root');
 
     return walkArchive($archiveRoot).grep({
         my $query = 'sourcefile:' ~ relativePath($_);
@@ -102,8 +102,8 @@ sub findUnindexed() returns Supply is export {
 multi sub generateAlts(IO::Path $file, Bool $dryrun? = False) returns Nil is export {
     testPathExistsInArchive($file);
 
-    my $archiveRoot = getPath('root');
-    my $cacheRoot = getPath('cache');
+    my $archiveRoot = appPath('root');
+    my $cacheRoot = appPath('cache');
     my $thumbnailExtension = readConfig('alt_format');
     my $source = $file.relative($archiveRoot);
     my @sizes = readConfig('alt_sizes').split(' ');
@@ -143,7 +143,7 @@ multi sub generateAlts(IO::Path $file, Bool $dryrun? = False) returns Nil is exp
 
 # Resize all images in the archive to smaller sizes.
 multi sub generateAlts(Bool $dryrun? = False) returns Nil is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
     my $channel = walkArchive($root).Channel;
 
     await (^$*KERNEL.cpu-cores).map: {
@@ -161,7 +161,7 @@ multi sub generateAlts(Bool $dryrun? = False) returns Nil is export {
 
 # Move a file to a subfolder under the archive root.
 sub importFile(IO $file, Bool $dryrun? = False) returns IO::Path is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
 
     my $tagValue = readRawTag($file.IO, 'datecreated') || 'undated';
 
@@ -200,14 +200,14 @@ sub isArchiveFile(IO $path) returns Bool is export {
     my $target = $path.IO;
     return False unless ($target ~~ :f);
 
-    my $root = getPath('root');
+    my $root = appPath('root');
 
     return $target.absolute.starts-with($root);
 }
 
 #| Delete empty directories down-tree from the starting point.
 sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
-    my IO::Path $root = getPath('root');
+    my IO::Path $root = appPath('root');
 
     if ($directory) {
         $root = $root.add($directory);
@@ -228,7 +228,7 @@ sub pruneEmptyDirsDownward(Str $directory?, Bool $dryrun = False) is export {
 
 # Delete empty directories up-tree from the starting point.
 sub pruneEmptyDirsUpward(IO::Path $origin) is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
 
     rmdir($origin) unless ($origin.dir);
 
@@ -239,7 +239,7 @@ sub pruneEmptyDirsUpward(IO::Path $origin) is export {
 
 # See if a file exists within the archive root.
 sub testPathExistsInArchive(IO::Path $path) is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
     return if $path.absolute.starts-with($root) && ($path ~~ :e);
     die ImageArchive::Exception::PathNotFoundInArchive.new(
         :path($path)
@@ -248,7 +248,7 @@ sub testPathExistsInArchive(IO::Path $path) is export {
 
 # An image's date tag should reflect its filesystem path.
 sub verifyDateTags(Bool $dryrun = False) is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
     my $channel = walkArchive($root).Channel;
 
     await (^$*KERNEL.cpu-cores).map: {

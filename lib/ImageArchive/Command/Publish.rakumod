@@ -41,7 +41,7 @@ sub publishHtml(@results) {
 
     my $stache = Template::Mustache.new(:from(%templates));
 
-    my $out = getPath('html').add('gallery.html');
+    my $out = appPath('html').add('gallery.html');
     mkdir($out.dirname) unless $out.dirname.IO ~~ :d;
     spurt $out, $stache.render('gallery', %vars);
 
@@ -59,7 +59,7 @@ sub loadTemplates(*@basenames) {
 }
 
 sub publishStaticAssets() {
-    my $outdir = getPath('html');
+    my $outdir = appPath('html');
     mkdir($outdir) unless $outdir.IO ~~ :d;
 
     my @assets = <ia.css>;

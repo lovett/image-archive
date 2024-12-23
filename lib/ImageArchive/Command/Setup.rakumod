@@ -4,7 +4,7 @@ use ImageArchive::Config;
 use ImageArchive::Util;
 
 our sub setup() is export {
-    my IO::Path $root = getPath("root");
+    my IO::Path $root = appPath("root");
 
     unless ($root.d) {
         confirm("Create {$root.absolute}?");
@@ -16,7 +16,7 @@ our sub setup() is export {
 }
 
 sub createDatabase() {
-    my IO::Path $dbPath = getPath("database");
+    my IO::Path $dbPath = appPath("database");
 
     return if $dbPath.f;
 
@@ -35,7 +35,7 @@ sub createDatabase() {
 }
 
 sub writeConfig() {
-    my IO::Path $target = getPath("config");
+    my IO::Path $tarapp = appPath("config");
 
     if ($target.f) {
         note "Skipping $target because it already exists.";

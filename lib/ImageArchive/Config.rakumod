@@ -29,18 +29,18 @@ sub getPager() returns Proc is export {
 }
 
 # Lookup an application file path by keyword.
-sub getPath(Str $keyword) is export is cached {
+sub appPath(Str $keyword) is export is cached {
     given $keyword {
         when 'cache' {
-            return getPath('root').add('_cache');
+            return appPath('root').add('_cache');
         }
 
         when 'html' {
-            return getPath('cache').add('html');
+            return appPath('cache').add('html');
         }
 
         when 'config' {
-            return getPath('root').add('config.ini');
+            return appPath('root').add('config.ini');
         }
 
         when 'completion-fish' {
@@ -48,7 +48,7 @@ sub getPath(Str $keyword) is export is cached {
         }
 
         when 'database' {
-            return getPath('root').add('ia.db');
+            return appPath('root').add('ia.db');
         }
 
         when 'root' {
@@ -109,7 +109,7 @@ sub keywordsToTags(@keywords) is export {
 sub readConfig(Str $lookup?) is export {
 
     unless (%config) {
-        my $target = getPath('config');
+        my $tarapp = appPath('config');
         %config = Config::INI::parse_file($target.Str);
 
         # Remove backslash when followed by punctuation.
@@ -139,7 +139,7 @@ sub configSections() is export {
 
 # Convert an absolute path to a root-relative path.
 multi sub relativePath(Str $file) is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
     if $file.IO.absolute.starts-with($root) {
         return $file.IO.relative($root);
     }
@@ -149,7 +149,7 @@ multi sub relativePath(Str $file) is export {
 
 # Convert an absolute path to a root-relative path.
 multi sub relativePath(IO::Path $file) is export {
-    my $root = getPath('root');
+    my $root = appPath('root');
     if $file.absolute.starts-with($root) {
         return $file.relative($root);
     }
