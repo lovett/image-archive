@@ -10,7 +10,7 @@ multi sub run("finished") is export {
     printSearchResults(@results);
 }
 
-!multi sub run("inprogress") {
+multi sub run("inprogress") {
     my @results = walkWorkspaces("active");
     printSearchResults(@results);
 }

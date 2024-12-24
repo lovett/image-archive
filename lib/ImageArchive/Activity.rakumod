@@ -45,13 +45,6 @@ sub replaceFilePreservingName(IO::Path $original, IO::Path $substitue, Bool $dry
     rename($substitue, $replacement);
 
     replaceFile($original, $replacement);
-
-    CATCH {
-        when ImageArchive::Exception::PathNotFoundInWorkspace {
-            note colored($_.message, 'red');
-            exit 1;
-        }
-    }
 }
 
 sub replaceFile(IO::Path $original, IO::Path $replacement) is export {
@@ -328,21 +321,6 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
     return @paths;
 }
 
-sub suggestContextKeywords(@contexts) {
-    my %contexts = readConfig('contexts');
-
-    my %suggestionContexts = @contexts Z=> %contexts{@contexts};
-
-    say "";
-
-    for %suggestionContexts.kv -> $context, $aliases {
-        my @keywords = keywordsInContext($context);
-        say colored("{$context} keywords", 'cyan underline') ~ "\n" ~ @keywords.sort.join(", ");
-        say "To disable: no{$context}";
-        say "";
-    }
-}
-
 sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
     testKeywords(@keywords);
 
@@ -381,14 +359,6 @@ sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
         indexFile($importedFile);
 
         say "Imported as {$importedFile}";
-    }
-
-    CATCH {
-        when ImageArchive::Exception::MissingContext {
-            note colored($_.message, 'red');
-            suggestContextKeywords($_.offenders);
-            exit 1;
-        }
     }
 }
 
