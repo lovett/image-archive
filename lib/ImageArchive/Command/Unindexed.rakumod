@@ -3,7 +3,7 @@ unit package ImageArchive::Command;
 use Terminal::ANSIColor;
 
 use ImageArchive::Archive;
-use ImageArchive::Config;
+use ImageArchive::Util;
 
 our sub unindexed() is export {
     my $pager = getPager();

@@ -9,20 +9,22 @@ use ImageArchive::Util;
 
 our sub countByYear() is export {
     my $grandTotal = 0;
-    my $format = "%7s | %s\n";
 
-    my $pager = getPager();
+    my $table = Prettier::Table.new(
+        title => "Files by year",
+        field-names => <Year Count>,
+        align => %(Year => "l", Count => "r")
+    );
 
-    for countRecordsByYear() -> $tally {
-        my $year = $tally[0];
-        $year = 'Undated' if $year == 0;
-        $pager.in.printf($format, $year, $tally[1]);
-        $grandTotal += $tally[1];
+
+    for countRecordsByYear() -> $row {
+        $table.add-row: $row;
+        $grandTotal += $row[1];
     }
 
-    $pager.in.printf($format, "TOTAL", $grandTotal);
+    $table.add-row: ["TOTAL", $grandTotal];
 
-    $pager.in.close;
+    pagedPrint($table);
 }
 
 our sub countByYearAndMonth(Int $year) is export {
@@ -41,9 +43,7 @@ our sub countByYearAndMonth(Int $year) is export {
 
     $table.add-row: ["TOTAL", $grandTotal];
 
-    my $pager = getPager();
-    $pager.in.print($table);
-    $pager.in.close;
+    pagedPrint($table);
 }
 
 our sub countFiles() is export {

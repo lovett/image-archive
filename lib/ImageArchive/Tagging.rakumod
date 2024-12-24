@@ -265,7 +265,7 @@ sub testContextCoverage(@contexts, @keywords) is export {
     my $bag = BagHash.new;
 
     for %contexts.kv -> $key, $values {
-        my @terms = commaSplit($values);
+        my @terms = $values.split(",").map(*.trim);
 
         ($bag{$key}++ if @terms (&) @keywords or @keywords (&) keywordsInContext($key));
     }

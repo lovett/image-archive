@@ -72,7 +72,7 @@ sub countRecordsByMonth(Int $year) is export {
         FROM months
         WHERE i<12
     ) SELECT
-      months.name as label, count(archive.id) as tally
+      months.name, count(archive.id)
     FROM months
     LEFT JOIN archive ON
       months.i=CAST(substr(tags ->> '$.CreateDate', 6, 2) as number)
@@ -113,21 +113,19 @@ sub countRecordsByTag(Str $query, Bool $debug = False) is export {
 # Tally of records by year.
 sub countRecordsByYear() is export {
     my $query = q:to/SQL/;
-    SELECT IFNULL(CAST(substr(json_extract(tags, '$.CreateDate'), 0, 5) as number), 0)
-    AS year, count(*) AS tally
+    SELECT IFNULL(
+        substr(tags ->> '$.CreateDate', 0, 5),
+        'Unknown'
+    ) AS year, count(*)
     FROM archive
     GROUP BY year
-    ORDER BY year > 0 DESC, year ASC
+    ORDER BY year
     SQL
 
     my $dbh = openDatabase();
     my $sth = $dbh.execute($query);
 
-    return gather {
-        for $sth.allrows(:array-of-hash) -> $row {
-            take ($row<year>, $row<tally>);
-        }
-    }
+    return $sth.allrows();
 }
 
 # Remove a file from the database.

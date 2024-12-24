@@ -2,15 +2,12 @@ unit module ImageArchive::Util;
 
 use Terminal::ANSIColor;
 
+use ImageArchive::Config;
+
 # Extract version information from META6.json
 # Can't do this directly from the main script.
 sub applicationVersion() is export returns Str {
     return $?DISTRIBUTION.meta<ver>.Str;
-}
-
-# Convert a comma-delimited list of values to a list.
-sub commaSplit(Str $value) is export {
-    $value.split(/ \s* \, \s* /);
 }
 
 # Ask a yes-or-no question and exit if the answer isn't yes.
@@ -82,4 +79,35 @@ sub debug(Str $message, Str $label='') is export {
     say colored('-' x $header.chars, 'yellow');
     say $message.chomp;
     say "";
+}
+
+sub pagedPrint($value) is export {
+    my $pager = getPager();
+    $pager.in.print($value);
+    $pager.in.close;
+}
+
+sub getPager() returns Proc is export {
+    my $command = readConfig('pager');
+    run $command.split(' '), :in;
+}
+
+# Convert an absolute path to a root-relative path.
+multi sub relativePath(Str $file) is export {
+    my $root = appPath('root');
+    if $file.IO.absolute.starts-with($root) {
+        return $file.IO.relative($root);
+    }
+
+    return $file;
+}
+
+# Convert an absolute path to a root-relative path.
+multi sub relativePath(IO::Path $file) is export {
+    my $root = appPath('root');
+    if $file.absolute.starts-with($root) {
+        return $file.relative($root);
+    }
+
+    return $file;
 }

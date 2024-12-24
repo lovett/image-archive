@@ -4,8 +4,6 @@ use experimental :cached;
 
 use Config::INI;
 
-use ImageArchive::Util;
-
 our %config;
 
 # List the contexts that have not been explicity disabled by a
@@ -20,12 +18,6 @@ sub activeContexts(@keywords) is export {
 # A negation keyword is the name of a context prefixed with "no".
 sub contextNegationKeywords(%contexts) is export {
     %contexts.keys.map({ "no" ~ $_ });
-}
-
-# Open an external process for piping output to a pager.
-sub getPager() returns Proc is export {
-    my $command = readConfig('pager');
-    run $command.split(' '), :in;
 }
 
 # Lookup an application file path by keyword.
@@ -81,7 +73,7 @@ sub keywordsInContext($context) is export {
     my %contexts = readConfig('contexts');
     my @keywords;
 
-    my @terms = commaSplit(%contexts{$context});
+    my @terms = %contexts{$context}.split(",").map(*.trim);
 
     for %config.kv -> $section, %members {
         next if $section ~~ any <_ aliases prompts contexts>;
@@ -136,24 +128,4 @@ sub readConfig(Str $lookup?) is export {
 # List the sections of the config.
 sub configSections() is export {
     return readConfig().keys.sort;
-}
-
-# Convert an absolute path to a root-relative path.
-multi sub relativePath(Str $file) is export {
-    my $root = appPath('root');
-    if $file.IO.absolute.starts-with($root) {
-        return $file.IO.relative($root);
-    }
-
-    return $file;
-}
-
-# Convert an absolute path to a root-relative path.
-multi sub relativePath(IO::Path $file) is export {
-    my $root = appPath('root');
-    if $file.absolute.starts-with($root) {
-        return $file.relative($root);
-    }
-
-    return $file;
 }
