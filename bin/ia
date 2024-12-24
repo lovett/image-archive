@@ -41,7 +41,7 @@ multi sub MAIN("count", "months", Int $year) {
 }
 
 #| Take a target out of the archive.
-multi sub MAIN("deport", Str $target, Bool :$dryrun) {
+multi sub MAIN("deport", Str $target, Bool :$dryrun = False) {
     use ImageArchive::Command::Deport;
     deport($target, $dryrun);
 }
@@ -59,13 +59,13 @@ multi sub MAIN("find", "inprogress") {
 }
 
 #| Perform cleanup chores on the archive.
-multi sub MAIN("fixup", Bool :$dryrun) {
+multi sub MAIN("fixup", Bool :$dryrun = False) {
     use ImageArchive::Command::Fixup;
     fixup($dryrun);
 }
 
 #| Associate images based on a task or project.
-multi sub MAIN("group", Str $target, Str $name, Bool :$dryrun) {
+multi sub MAIN("group", Str $target, Str $name, Bool :$dryrun = False) {
     use ImageArchive::Command::Group;
     group($target, $name, $dryrun);
 }
@@ -83,7 +83,7 @@ multi sub MAIN("history", Str $target) {
 }
 
 #| Bring a file into the archive.
-multi sub MAIN("import", Str $file where *.IO.f, Bool :$dryrun) {
+multi sub MAIN("import", Str $file where *.IO.f, Bool :$dryrun = False) {
     ImageArchive::Command::Import;
     ImageArchive::Command::import($file, $dryrun);
 }
@@ -95,7 +95,7 @@ multi sub MAIN("lastsearch") {
 }
 
 #| Replace an archive file with a workspace version.
-multi sub MAIN("promote", Str $version where *.IO.f, Bool :$dryrun) {
+multi sub MAIN("promote", Str $version where *.IO.f, Bool :$dryrun = False) {
     use ImageArchive::Command::Promote;
     promote($version, $dryrun);
 }
@@ -131,7 +131,7 @@ multi sub MAIN("scrub", Str $term, Str $value = '', Bool :$dryrun = False) {
 }
 
 #| Find files within the archive.
-multi sub MAIN("search", Int :$limit = 10, Bool :$debug, *@terms) {
+multi sub MAIN("search", Int :$limit = 10, Bool :$debug = False, *@terms) {
     use ImageArchive::Command::Search;
     search($limit, $debug, @terms);
 }
@@ -155,7 +155,7 @@ multi sub MAIN("show", Str $target) {
 }
 
 #| Add tags to a file.
-multi sub MAIN("tag", Str $target, Bool :$dryrun, *@keywords) {
+multi sub MAIN("tag", Str $target, Bool :$dryrun = False, *@keywords) {
     use ImageArchive::Command::Tag;
     tag($target);
 }
@@ -173,7 +173,7 @@ multi sub MAIN("unindexed") {
 }
 
 #| Remove a group name.
-multi sub MAIN("ungroup", Str $target, Str $name, Bool :$dryrun) {
+multi sub MAIN("ungroup", Str $target, Str $name, Bool :$dryrun = False) {
     use ImageArchive::Command::Ungroup;
     ungroup($target, $name, $dryrun);
 }
