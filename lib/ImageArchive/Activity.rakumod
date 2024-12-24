@@ -213,7 +213,7 @@ sub printSearchResults(@results) is export {
             }
         }
 
-        @columns.push: relativePath($result<path>);
+        @columns.push: relativePath($result<path>.IO);
 
         $pager.in.say: @columns.join(" | ");
     }
@@ -251,8 +251,8 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
         when 'original' {
             when $target eq 'lastimport' {
                 for findByNewestImport() -> $record {
-                    testPathExistsInArchive($record<path>);
-                    @paths.append: $record<path>;
+                    testPathExistsInArchive($record<path>.IO);
+                    @paths.append: $record<path>.IO;
                 }
                 succeed;
             }
@@ -268,8 +268,8 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
             }
 
             for findByStashIndex($target, 'searchresult') -> $record {
-                testPathExistsInArchive($record<path>);
-                @paths.append: $record<path>;
+                testPathExistsInArchive($record<path>.IO);
+                @paths.append: $record<path>.IO;
             }
         }
 
@@ -278,8 +278,8 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
 
             when $target eq 'lastimport' {
                 for findByNewestImport() -> $record {
-                    testPathExistsInArchive($record<path>);
-                    @paths.append: findAlternate($record<path>, $size);
+                    testPathExistsInArchive($record<path>.IO);
+                    @paths.append: findAlternate($record<path>.IO, $size);
                 }
                 succeed;
             }
@@ -296,8 +296,8 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
             }
 
             for findByStashIndex($target, 'searchresult') -> $record {
-                testPathExistsInArchive($record<path>);
-                @paths.append: findAlternate($record<path>, $size);
+                testPathExistsInArchive($record<path>.IO);
+                @paths.append: findAlternate($record<path>.IO, $size);
             }
         }
 
@@ -314,9 +314,9 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
             }
 
             for findByStashIndex($target, 'searchresult') -> $record {
-                testPathExistsInArchive($record<path>);
-                next if @paths.grep($record<path>.parent);
-                @paths.append: $record<path>.parent;
+                testPathExistsInArchive($record<path>.IO);
+                next if @paths.grep($record<path>.IO.parent);
+                @paths.append: $record<path>.IO.parent;
             }
         }
     }
@@ -394,16 +394,10 @@ sub tagAndImport(@targets, @keywords, Bool $dryrun = False) is export {
 
 # Display one or more files in an external application.
 sub viewExternally(*@paths) is export {
-    my $key = 'view_file';
-
-    given @paths[0].IO {
-        when .extension eq 'html' {
-            $key = 'view_html'
-        }
-
-        when :d {
-            $key = 'view_directory'
-        }
+    my $key = do given @paths[0].IO {
+        when .extension eq 'html' { 'view_html' }
+        when :d { 'view_directory' }
+        default { 'view_file' }
     }
 
     my $command = readConfig($key);
@@ -412,8 +406,7 @@ sub viewExternally(*@paths) is export {
         die ImageArchive::Exception::MissingConfig.new(:key($key));
     }
 
-    # This uses shell rather than run for maximum compatibility.
-    # For example, emacsclient wouldn't work with run.
+    # Using shell rather than run for maximum compatibility.
     my $proc = shell "$command {@paths}", :err;
     my $err = $proc.err.slurp(:close);
 
