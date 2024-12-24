@@ -1,4 +1,4 @@
-unit module ImageArchive::Command::Setup::Setup;
+unit module ImageArchive::Command::Setup;
 
 use ImageArchive::Config;
 use ImageArchive::Util;

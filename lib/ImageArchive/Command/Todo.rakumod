@@ -1,4 +1,4 @@
-unit module ImageArchive::Command::Todo::Todo;
+unit module ImageArchive::Command::Todo;
 
 use ImageArchive::Activity;
 

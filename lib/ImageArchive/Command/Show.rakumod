@@ -1,4 +1,4 @@
-unit module ImageArchive::Command::Show::Show;
+unit module ImageArchive::Command::Show;
 
 use ImageArchive::Config;
 use ImageArchive::Activity;
