@@ -1,8 +1,8 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Visit;
 
 use ImageArchive::Activity;
 
-our sub visit(Str $target) is export {
+our sub run(Str $target) {
     my @targets = resolveFileTarget($target, 'parent');
     viewExternally(@targets);
 }

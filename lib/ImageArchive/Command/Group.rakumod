@@ -1,8 +1,8 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Group;
 
 use ImageArchive::Activity;
 
-our sub group(Str $target, Str $name, Bool :$dryrun) is export {
+our sub run(Str $target, Str $name, Bool :$dryrun) {
     my @targets = resolveFileTarget($target);
     groupFiles(@targets, $name, $dryrun);
 }

@@ -1,7 +1,7 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Promote;
 
 use ImageArchive::Activity;
 
-our sub promote(Str $version, Bool :$dryrun) is export {
+our sub run(Str $version, Bool :$dryrun) {
     promoteVersion($version.IO, $dryrun);
 }

@@ -1,8 +1,8 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Help;
 
 use ImageArchive::Config;
 
-our sub help(Str $command) is export {
+our sub run(Str $command) {
     unless ($command) {
         say $*USAGE;
         return;

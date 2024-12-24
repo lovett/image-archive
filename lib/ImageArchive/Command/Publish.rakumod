@@ -1,4 +1,4 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Publish;
 
 use Template::Mustache;
 
@@ -8,7 +8,7 @@ use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Util;
 
-our sub publish() is export {
+our sub run() {
     my @results = dumpStash('searchresult');
     my $path = publishHtml(@results);
     viewExternally($path);

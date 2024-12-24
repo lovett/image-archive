@@ -1,4 +1,4 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Reindex;
 
 use ImageArchive::Config;
 use ImageArchive::Activity;
@@ -6,18 +6,18 @@ use ImageArchive::Tagging;
 use ImageArchive::Archive;
 use ImageArchive::Database;
 
-multi sub reindex(Str $target) is export {
+multi sub run(Str $target) is export {
     my @paths = resolveFileTarget($target);
-    reindex(@paths);
+    run(@paths);
 }
 
-multi sub reindex() is export {
+multi sub run() {
     my $root = appPath('root');
     my @paths =  walkArchive($root).List;
-    reindex(@paths);
+    run(@paths);
 }
 
-multi sub reindex(@paths) is export {
+multi sub run(@paths) {
     for @paths -> $path {
         print "Reindexing {$path}...";
         tagFile($path, {});

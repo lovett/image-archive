@@ -1,7 +1,7 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Todo::Todo;
 
 use ImageArchive::Activity;
 
-our sub todo(Str $directory?) is export {
+our sub run(Str $directory?) {
     searchLogs(/TODO/, $directory);
 }

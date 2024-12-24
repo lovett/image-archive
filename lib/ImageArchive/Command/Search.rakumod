@@ -1,9 +1,9 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Search;
 
 use ImageArchive::Activity;
 use ImageArchive::Database;
 
-our sub search(@terms, Int $limit, Bool $debug = False) is export {
+our sub run(@terms, Int $limit, Bool $debug = False) {
     unless (@terms) {
         note "No search terms were provided.";
         exit 1;

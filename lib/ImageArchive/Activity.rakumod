@@ -213,7 +213,7 @@ sub printSearchResults(@results) is export {
             }
         }
 
-        @columns.push: relativePath($result<path>.IO);
+        @columns.push: relativePath($result<path>);
 
         $pager.in.say: @columns.join(" | ");
     }

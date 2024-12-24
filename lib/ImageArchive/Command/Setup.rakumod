@@ -1,9 +1,9 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Setup::Setup;
 
 use ImageArchive::Config;
 use ImageArchive::Util;
 
-our sub setup() is export {
+our sub run() {
     my IO::Path $root = appPath("root");
 
     unless ($root.d) {

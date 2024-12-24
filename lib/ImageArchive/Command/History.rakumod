@@ -1,8 +1,8 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::History;
 
 use ImageArchive::Activity;
 
-our sub history(Str $target) is export {
+our sub run(Str $target) {
     my @targets = resolveFileTarget($target);
     printHistory(@targets);
 }

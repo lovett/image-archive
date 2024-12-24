@@ -1,14 +1,16 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Find;
 
 use ImageArchive::Activity;
 use ImageArchive::Workspace;
 
-our sub finished() is export {
-    my @results = walkWorkspaces('inactive');
+our proto run(Str $subcommand) {*};
+
+multi sub run("finished") is export {
+    my @results = walkWorkspaces("inactive");
     printSearchResults(@results);
 }
 
-our sub inprogress() is export {
-    my @results = walkWorkspaces('active');
+!multi sub run("inprogress") {
+    my @results = walkWorkspaces("active");
     printSearchResults(@results);
 }

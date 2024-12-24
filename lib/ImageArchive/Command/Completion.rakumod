@@ -1,4 +1,4 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Completion;
 
 use ImageArchive::Config;
 use ImageArchive::Util;
@@ -37,7 +37,7 @@ our %commands = %(
     'yearcount' => Nil,
 );
 
-our sub completion() is export {
+our sub run() {
     my $root = appPath('root');
     my $appVersion = applicationVersion();
 

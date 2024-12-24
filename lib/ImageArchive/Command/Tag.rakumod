@@ -1,8 +1,8 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Tag::Tag;
 
 use ImageArchive::Activity;
 
-our sub tag(Str $target, Bool :$dryrun, *@keywords) is export {
+our sub run(Str $target, Bool :$dryrun, *@keywords) {
     my @targets = resolveFileTarget($target);
     tagAndImport(@targets, @keywords, $dryrun);
 }

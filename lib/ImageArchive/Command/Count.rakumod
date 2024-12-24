@@ -1,4 +1,4 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Count;
 
 use Prettier::Table;
 
@@ -7,7 +7,9 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-our sub countByYear() is export {
+our proto run(Str $subcommand, |) {*};
+
+multi sub run("years") {
     my $grandTotal = 0;
 
     my $table = Prettier::Table.new(
@@ -27,7 +29,7 @@ our sub countByYear() is export {
     pagedPrint($table);
 }
 
-our sub countByYearAndMonth(Int $year) is export {
+multi sub run("months", Int $year) {
     my $grandTotal = 0;
 
     my $table = Prettier::Table.new(
@@ -46,7 +48,7 @@ our sub countByYearAndMonth(Int $year) is export {
     pagedPrint($table);
 }
 
-our sub countFiles() is export {
+multi sub run("files") {
     my $root = appPath('root');
 
     my $fileCount = 0;

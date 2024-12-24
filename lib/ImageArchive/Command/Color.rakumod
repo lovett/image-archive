@@ -1,9 +1,9 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Color;
 
 use ImageArchive::Activity;
 use ImageArchive::Color;
 
-our sub color(Str $target) is export {
+our sub run(Str $target) {
     my @targets = resolveFileTarget($target);
     printColorTable(@targets);
 }

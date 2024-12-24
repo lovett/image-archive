@@ -1,4 +1,4 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Reprompt;
 
 use ImageArchive::Activity;
 use ImageArchive::Tagging;
@@ -6,7 +6,7 @@ use ImageArchive::Workspace;
 use ImageArchive::Archive;
 use ImageArchive::Database;
 
-our sub reprompt($target, Bool :$dryrun) is export {
+our sub run($target, Bool :$dryrun) {
     my @targets = resolveFileTarget($target);
     for @targets -> $target {
         my %newTags = askQuestions($target);

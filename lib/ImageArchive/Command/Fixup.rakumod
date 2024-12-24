@@ -1,8 +1,8 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Fixup;
 
 use ImageArchive::Archive;
 
-our sub fixup(Bool :$dryrun) is export {
+our sub run(Bool :$dryrun) {
     pruneEmptyDirsDownward('', $dryrun);
     verifyDateTags($dryrun);
     generateAlts($dryrun);

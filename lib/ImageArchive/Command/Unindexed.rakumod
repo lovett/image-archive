@@ -1,11 +1,11 @@
-unit package ImageArchive::Command;
+unit module ImageArchive::Command::Unindexed;
 
 use Terminal::ANSIColor;
 
 use ImageArchive::Archive;
 use ImageArchive::Util;
 
-our sub unindexed() is export {
+our sub run() {
     my $pager = getPager();
 
     my $counter = 0;
