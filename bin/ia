@@ -47,9 +47,15 @@ multi sub MAIN("deport", Str $target, Bool :$dryrun) {
 }
 
 #| Files with dormant workspaces.
-multi sub MAIN("finished") {
-    use ImageArchive::Command::Finished;
+multi sub MAIN("find", "finished") {
+    use ImageArchive::Command::Find;
     finished();
+}
+
+#| Files that have edits in progress.
+multi sub MAIN("find", "inprogress") {
+    use ImageArchive::Command::Find;
+    inprogress();
 }
 
 #| Perform cleanup chores on the archive.
@@ -80,12 +86,6 @@ multi sub MAIN("history", Str $target) {
 multi sub MAIN("import", Str $file where *.IO.f, Bool :$dryrun) {
     ImageArchive::Command::Import;
     ImageArchive::Command::import($file, $dryrun);
-}
-
-#| Files that have edits in progress.
-multi sub MAIN("inprogress") {
-    ImageArchive::Command::Inprogress;
-    ImageArchive::Command::inprogress();
 }
 
 #| Redisplay the results of the previous search.
