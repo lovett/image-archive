@@ -21,7 +21,7 @@ sub contextNegationKeywords(%contexts) is export {
 }
 
 # Lookup an application file path by keyword.
-sub appPath(Str $keyword) is export is cached {
+sub appPath(Str $keyword --> IO::Path) is export is cached {
     given $keyword {
         when 'cache' {
             return appPath('root').add('_cache');

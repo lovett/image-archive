@@ -139,11 +139,11 @@ sub deindexFile(IO::Path $file) is export {
 
 # Retrieve the contents of the stash table for a given key.
 sub dumpStash(Str $key) is export {
-    my $stashQuery = qq:to/SQL/;
+    my $stashQuery = q:to/SQL/;
     SELECT path, series, seriesid FROM (
-        SELECT json_extract(a.tags, '\$.SourceFile') as path,
-        IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
-        CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid,
+        SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path,
+        IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
+        CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid,
         row_number()
         OVER (ORDER BY s.id) as rownum
         FROM archive a, stash s
@@ -153,14 +153,9 @@ sub dumpStash(Str $key) is export {
     SQL
 
     my $dbh = openDatabase();
-    my $sth = $dbh.execute($stashQuery, $key);
+    my $sth = $dbh.execute($stashQuery, appPath("root").Str, $key);
 
-    return gather {
-        for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (appPath('root') ~ $row<path>).IO;
-            take $row;
-        }
-    }
+    return $sth.allrows(:array-of-hash);
 }
 
 # Store a file's tags in a database.
@@ -259,7 +254,7 @@ sub openDatabase() is export {
 # The absolute path to the most-recently-imported file in the archive.
 sub findByNewestImport(Int $limit = 1) returns Seq is export {
     my $query = q:to/SQL/;
-    SELECT json_extract(a.tags, '$.SourceFile') as path,
+    SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path,
     IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
     CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a
@@ -268,14 +263,9 @@ sub findByNewestImport(Int $limit = 1) returns Seq is export {
     SQL
 
     my $dbh = openDatabase();
-    my $sth = $dbh.execute($query, $limit);
+    my $sth = $dbh.execute($query, appPath("root").Str, $limit);
 
-    return gather {
-        for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (appPath('root') ~ $row<path>).IO;
-            take $row;
-        }
-    }
+    return $sth.allrows(:array-of-hash);
 }
 
 # Locate archive paths by index from a previous search.
@@ -293,7 +283,7 @@ sub findByStashIndex(Str $query, Str $key, Bool $debug = False) is export {
 
     my $stashQuery = qq:to/SQL/;
     SELECT path, series, seriesid FROM (
-        SELECT json_extract(a.tags, '\$.SourceFile') as path,
+        SELECT CONCAT(?, '/', json_extract(a.tags, '\$.SourceFile')) as path,
         IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
         CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid,
         row_number()
@@ -306,12 +296,11 @@ sub findByStashIndex(Str $query, Str $key, Bool $debug = False) is export {
 
     my $dbh = openDatabase();
 
-    my $sth = $dbh.execute($stashQuery, $key);
+    my $sth = $dbh.execute($stashQuery, appPath("root").Str, $key);
 
     my $root = appPath('root');
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (appPath('root') ~ $row<path>).IO;
             take $row;
         }
 
@@ -363,22 +352,15 @@ sub findBySimilarColor(@rgb, Str $key) is export {
 
     my $dbh = openDatabase();
 
-    my $stashQuery = qq:to/SQL/;
-    SELECT json_extract(a.tags, '\$.SourceFile') as path, s.score
+    my $stashQuery = q:to/SQL/;
+    SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path, s.score
     FROM archive a, stash s
-    WHERE a.id=s.archive_id AND s.key='{$key}'
+    WHERE a.id=s.archive_id AND s.key=?
     ORDER BY s.rowid
     SQL
 
-    my $sth = $dbh.execute($stashQuery);
-
-    my $root = appPath('root');
-    return gather {
-        for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (appPath('root') ~ $row<path>).IO;
-            take $row;
-        }
-    }
+    my $sth = $dbh.execute($stashQuery, appPath("root").Str, $key);
+    return $sth.allrows(:array-of-hash);
 }
 
 sub findNewest(Int $limit, Str $key) is export {
@@ -396,7 +378,7 @@ sub findNewest(Int $limit, Str $key) is export {
     $sth.execute($key, $limit.Str);
 
     my $stashQuery = q:to/SQL/;
-    SELECT json_extract(a.tags, '$.SourceFile') as path,
+    SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path,
     IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
     CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, stash s
@@ -404,15 +386,10 @@ sub findNewest(Int $limit, Str $key) is export {
     ORDER BY s.rowid
     SQL
 
-    $sth = $dbh.execute($stashQuery, $key);
+    $sth = $dbh.execute($stashQuery, appPath("root").Str, $key);
 
     my $root = appPath('root');
-    return gather {
-        for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (appPath('root') ~ $row<path>).IO;
-            take $row;
-        }
-    }
+    return $sth.allrows(:array-of-hash);
 }
 
 # Locate archive paths by fulltext search
@@ -455,7 +432,7 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
     $dbh.execute($ftsQuery);
 
     my $stashQuery = q:to/SQL/;
-    SELECT json_extract(a.tags, '$.SourceFile') as path,
+    SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path,
     IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
     CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
     FROM archive a, stash s
@@ -463,11 +440,10 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
     ORDER BY s.rowid
     SQL
 
-    my $sth = $dbh.execute($stashQuery, $key);
+    my $sth = $dbh.execute($stashQuery, appPath("root").Str, $key);
 
     return gather {
         for $sth.allrows(:array-of-hash) -> $row {
-            $row<path> = (appPath('root') ~ $row<path>).IO;
             take $row;
         }
 
