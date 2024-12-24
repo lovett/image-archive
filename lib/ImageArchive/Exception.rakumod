@@ -9,14 +9,6 @@ class ImageArchive::Exception is Exception {
     }
 }
 
-# A search with an invalid filter.
-class ImageArchive::Exception::BadFilter is ImageArchive::Exception is export {
-
-    method message {
-        "Unknown search filter."
-    }
-}
-
 # An unknown alias is used.
 class ImageArchive::Exception::BadAlias is ImageArchive::Exception is export {
     has Set $.offenders;

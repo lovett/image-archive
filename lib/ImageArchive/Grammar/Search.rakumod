@@ -1,3 +1,7 @@
+unit package ImageArchive::Grammar;
+
+use ImageArchive::Exception;
+
 grammar Search is export {
     rule TOP {
         [ <tag> | <date> | <term> ]*
@@ -23,18 +27,7 @@ class SearchActions is export {
     has $!order;
 
     method tag ($/) {
-        if $/<name> ~~ any <order sourcefile> {
-            $!tag = $/<name>;
-            return;
-        }
-
-        my $formalTag = %.filters{$/<name>};
-
-        unless ($formalTag) {
-            die ImageArchive::Exception::BadFilter.new(:filters(%.filters));
-        }
-
-        $!tag = $formalTag;
+        $!tag = $.filters{$/<name>} // $/<name>;
     }
 
     method term ($/) {
@@ -81,6 +74,8 @@ class SearchActions is export {
         }
 
         $/.make: %(
+            tag => $!tag,
+            terms => %!terms,
             ftsClause => sprintf(
                 "archive_fts MATCH '%s'",
                 @fragments.join(' AND ')

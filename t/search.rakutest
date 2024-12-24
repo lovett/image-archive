@@ -1,0 +1,35 @@
+#!/usr/bin/env rakudo
+
+use Test;
+
+use lib $*PROGRAM.parent(2).add("lib");
+
+use ImageArchive::Grammar::Search;
+
+my $actions = SearchActions.new(
+    filters => %(myfilter => "FormalFilterName")
+);
+
+plan 8;
+
+with Search.parse("one two", actions => $actions) {
+    is .made<tag>, "any", "Tag of an unfiltered multi word query";
+    is .made<terms><any>, "one two", "Terms of an unfiltered multi word query";
+}
+
+with Search.parse("myfilter:hello", actions => $actions) {
+    is .made<tag>, "FormalFilterName", "Tag of a known filter query";
+    is .made<terms><FormalFilterName>, "hello", "Terms of a known filter query";
+}
+
+with Search.parse("unknownFilter:hello2", actions => $actions) {
+    is .made<tag>, "unknownFilter", "Tag of a search with an unknown filter";
+    is .made<terms><unknownFilter>, "hello2", "Tag of a search with an unknown filter";
+}
+
+with Search.parse("hello order:myorder myfilter:world", actions => $actions) {
+    is .made<order>, "myorder", "Order is captured";
+    ok .made<ftsClause> !~~ "myorder", "Order is not added to FTS clause";
+}
+
+done-testing;

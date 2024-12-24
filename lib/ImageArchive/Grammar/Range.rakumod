@@ -1,3 +1,5 @@
+unit package ImageArchive::Grammar;
+
 grammar Range is export {
     rule TOP {
         [ <range> | <barenumber> ]*

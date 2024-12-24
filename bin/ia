@@ -133,7 +133,7 @@ multi sub MAIN("scrub", Str $term, Str $value = '', Bool :$dryrun = False) {
 #| Find files within the archive.
 multi sub MAIN("search", Int :$limit = 10, Bool :$debug = False, *@terms) {
     use ImageArchive::Command::Search;
-    search($limit, $debug, @terms);
+    search(@terms, $limit, $debug);
 }
 
 #| Create a new archive.
