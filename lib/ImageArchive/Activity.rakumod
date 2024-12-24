@@ -328,15 +328,6 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
     return @paths;
 }
 
-#| Display a file's tags.
-sub showTags(@targets) is export {
-    my %aliases = readConfig('aliases');
-
-    for @targets -> $target {
-        say readTags($target, %aliases.values);
-    }
-}
-
 sub suggestContextKeywords(@contexts) {
     my %contexts = readConfig('contexts');
 
