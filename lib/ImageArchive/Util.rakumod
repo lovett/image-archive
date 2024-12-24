@@ -93,21 +93,8 @@ sub getPager() returns Proc is export {
 }
 
 # Convert an absolute path to a root-relative path.
-multi sub relativePath(Str $file) is export {
+sub relativePath($file --> IO::Path) is export {
     my $root = appPath('root');
-    if $file.IO.absolute.starts-with($root) {
-        return $file.IO.relative($root);
-    }
-
-    return $file;
-}
-
-# Convert an absolute path to a root-relative path.
-multi sub relativePath(IO::Path $file) is export {
-    my $root = appPath('root');
-    if $file.absolute.starts-with($root) {
-        return $file.relative($root);
-    }
-
-    return $file;
+    my $relpath = $file.subst(/^ $root \/* /, '');
+    return $relpath.IO;
 }
