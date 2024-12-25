@@ -1,4 +1,4 @@
-unit package ImageArchive::Grammar;
+unit module ImageArchive::Grammar::Search;
 
 use ImageArchive::Exception;
 

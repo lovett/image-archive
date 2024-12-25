@@ -1,4 +1,4 @@
-unit package ImageArchive::Grammar;
+unit module ImageArchive::Grammar::Range;
 
 grammar Range is export {
     rule TOP {
