@@ -1,7 +1,6 @@
 unit module ImageArchive::Command::Reindex;
 
 use ImageArchive::Config;
-use ImageArchive::Activity;
 use ImageArchive::Tagging;
 use ImageArchive::Archive;
 use ImageArchive::Database;

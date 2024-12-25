@@ -98,3 +98,63 @@ sub relativePath($file --> IO::Path) is export {
     my $relpath = $file.subst(/^ $root \/* /, '');
     return $relpath.IO;
 }
+
+sub printSearchResults(@results) is export {
+    my $counter = 0;
+
+    my $pager = getPager();
+
+    for @results -> $result {
+        my @columns = colored(sprintf("%3d", ++$counter), 'white on_blue');
+
+        given $result {
+            when $result<series>:exists {
+                @columns.push: sprintf("%15s", formattedSeriesId(
+                    $result<series>,
+                    $result<seriesid>.Str
+                ));
+            }
+
+            when $result<score>:exists {
+                @columns.push: sprintf("%2.2f", $result<score>);
+            }
+
+            when $result<modified>:exists {
+                @columns.push: $result<modified>.yyyy-mm-dd;
+            }
+        }
+
+        @columns.push: relativePath($result<path>);
+
+        $pager.in.say: @columns.join(" | ");
+    }
+
+    unless ($counter) {
+        note 'No matches.';
+    }
+
+    $pager.in.close;
+}
+
+# Display one or more files in an external application.
+sub viewExternally(*@paths) is export {
+    my $key = do given @paths[0].IO {
+        when .extension eq 'html' { 'view_html' }
+        when :d { 'view_directory' }
+        default { 'view_file' }
+    }
+
+    my $command = readConfig($key);
+
+    unless ($command) {
+        die ImageArchive::Exception::MissingConfig.new(:key($key));
+    }
+
+    # Using shell rather than run for maximum compatibility.
+    my $proc = shell "$command {@paths}", :err;
+    my $err = $proc.err.slurp(:close);
+
+    if ($proc.exitcode !== 0) {
+        die ImageArchive::Exception::BadExit.new(:err($err));
+    }
+}

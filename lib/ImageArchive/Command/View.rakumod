@@ -1,7 +1,7 @@
 unit module ImageArchive::Command::View;
 
-use ImageArchive::Activity;
 use ImageArchive::Archive;
+use ImageArchive::Util;
 
 our sub run(Str $target, Bool :$original) {
     my $flavor = ($original ?? 'original' !! 'alternate');

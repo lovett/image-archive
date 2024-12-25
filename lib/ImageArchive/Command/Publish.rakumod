@@ -3,7 +3,6 @@ unit module ImageArchive::Command::Publish;
 use Template::Mustache;
 
 use ImageArchive::Database;
-use ImageArchive::Activity;
 use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Util;

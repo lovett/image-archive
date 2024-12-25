@@ -1,6 +1,5 @@
 unit module ImageArchive::Command::Reprompt;
 
-use ImageArchive::Activity;
 use ImageArchive::Tagging;
 use ImageArchive::Workspace;
 use ImageArchive::Archive;

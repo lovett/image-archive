@@ -1,7 +1,7 @@
 unit module ImageArchive::Command::Search;
 
-use ImageArchive::Activity;
 use ImageArchive::Database;
+use ImageArchive::Util;
 
 our sub run(@terms, Int $limit, Bool $debug = False) {
     unless (@terms) {

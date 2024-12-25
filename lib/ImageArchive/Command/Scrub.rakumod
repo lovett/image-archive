@@ -1,6 +1,6 @@
 unit module ImageArchive::Command::Scrub;
 
-use ImageArchive::Activity;
+use ImageArchive::Archive;
 
 our sub run(Str $term, Str $value = '', Bool :$dryrun) {
     untagTerm($term, $value, $dryrun);

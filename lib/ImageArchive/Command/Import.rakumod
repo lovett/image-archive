@@ -1,6 +1,5 @@
 unit module ImageArchive::Command::Import;
 
-use ImageArchive::Activity;
 use ImageArchive::Database;
 
 our sub run(IO::Path $file, Bool :$dryrun) {

@@ -4,7 +4,6 @@
   "version" : "dev",
   "description" : "Automation for image metadata tagging.",
   "provides" : {
-    "ImageArchive::Activity": "lib/ImageArchive/Activity.rakumod",
     "ImageArchive::Archive": "lib/ImageArchive/Archive.rakumod",
     "ImageArchive::Color": "lib/ImageArchive/Color.rakumod",
     "ImageArchive::Config": "lib/ImageArchive/Config.rakumod",

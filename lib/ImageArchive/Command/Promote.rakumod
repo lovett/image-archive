@@ -1,6 +1,6 @@
 unit module ImageArchive::Command::Promote;
 
-use ImageArchive::Activity;
+use ImageArchive::Archive;
 use ImageArchive::Workspace;
 use ImageArchive::Util;
 

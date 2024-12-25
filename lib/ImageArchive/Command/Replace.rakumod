@@ -2,7 +2,6 @@ unit module ImageArchive::Command::Replace;
 
 use Terminal::ANSIColor;
 
-use ImageArchive::Activity;
 use ImageArchive::Archive;
 use ImageArchive::Util;
 

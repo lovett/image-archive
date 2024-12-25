@@ -401,3 +401,52 @@ sub resolveFileTarget($target, Str $flavor = 'original') is export {
 
     return @paths;
 }
+
+sub replaceFile(IO::Path $original, IO::Path $replacement) is export {
+    transferTags($original, $replacement);
+    deleteAlts($original);
+    deindexFile($original);
+    unlink($original);
+    importFile($replacement);
+}
+
+# Remove tags by keyword, alias, or alias-and-value.
+multi sub untagTerm(@targets, Str $term, Str $value, Bool $dryrun = False) is export {
+    my $termType = identifyTerm($term);
+
+    given $termType {
+        when 'alias' {
+            for @targets -> $target {
+                removeAlias($target, $term, $value, $dryrun);
+
+                if (isArchiveFile($target)) {
+                    indexFile($target);
+                }
+            }
+        }
+
+        when 'keyword' {
+            for @targets -> $target {
+                removeKeyword($target, $term, $dryrun);
+
+                if (isArchiveFile($target)) {
+                    indexFile($target);
+                }
+            }
+        }
+    }
+}
+
+multi sub untagTerm(Str $term, Str $value, Bool $dryrun = False) is export {
+    my $termType = identifyTerm($term);
+
+    given $termType {
+        when 'alias' {
+            removeAliasFromArchive($term, $value, $dryrun);
+        }
+
+        when 'keyword' {
+            removeKeywordFromArchive($term, $dryrun);
+        }
+    }
+}
