@@ -313,3 +313,91 @@ sub walkArchiveDirs(IO::Path $origin) returns Supply is export {
         }
     }
 }
+
+#| Locate file paths within the archive.
+sub resolveFileTarget($target, Str $flavor = 'original') is export {
+    my @paths;
+
+    my $root = appPath('root');
+    my $rootedTarget = $root.add($target);
+
+    given $flavor {
+        when 'original' {
+            when $target eq 'lastimport' {
+                for findByNewestImport() -> $record {
+                    testPathExistsInArchive($record<path>.IO);
+                    @paths.append: $record<path>.IO;
+                }
+                succeed;
+            }
+
+            when $target.IO ~~ :f {
+                @paths.append: $target.IO;
+                succeed;
+            }
+
+            when $rootedTarget.IO ~~ :f {
+                @paths.append: $rootedTarget.IO;
+                succeed;
+            }
+
+            for findByStashIndex($target, 'searchresult') -> $record {
+                testPathExistsInArchive($record<path>.IO);
+                @paths.append: $record<path>.IO;
+            }
+        }
+
+        when 'alternate' {
+            my $size = readConfig('alt_sizes').split(' ').first;
+
+            when $target eq 'lastimport' {
+                for findByNewestImport() -> $record {
+                    testPathExistsInArchive($record<path>.IO);
+                    @paths.append: findAlternate($record<path>.IO, $size);
+                }
+                succeed;
+            }
+
+            when $target.IO ~~ :f {
+                testPathExistsInArchive($target.IO);
+                @paths.append: findAlternate($target.IO, $size);
+                succeed;
+            }
+
+            when $rootedTarget.IO ~~ :f {
+                @paths.append: findAlternate($rootedTarget.IO, $size);
+                succeed;
+            }
+
+            for findByStashIndex($target, 'searchresult') -> $record {
+                testPathExistsInArchive($record<path>.IO);
+                @paths.append: findAlternate($record<path>.IO, $size);
+            }
+        }
+
+        when 'parent' {
+            when $target.IO ~~ :f {
+                testPathExistsInArchive($target.IO);
+                @paths.append: $target.IO.parent;
+                succeed;
+            }
+
+            when $rootedTarget.IO ~~ :f {
+                @paths.append: $rootedTarget.IO.parent;
+                succeed;
+            }
+
+            for findByStashIndex($target, 'searchresult') -> $record {
+                testPathExistsInArchive($record<path>.IO);
+                next if @paths.grep($record<path>.IO.parent);
+                @paths.append: $record<path>.IO.parent;
+            }
+        }
+    }
+
+    unless @paths {
+        die ImageArchive::Exception::PathNotFoundInArchive.new;
+    }
+
+    return @paths;
+}

@@ -2,9 +2,12 @@ unit module ImageArchive::Command::Tag;
 
 use Terminal::ANSIColor;
 
-use ImageArchive::Activity;
+use ImageArchive::Archive;
 use ImageArchive::Config;
+use ImageArchive::Database;
 use ImageArchive::Exception;
+use ImageArchive::Tagging;
+use ImageArchive::Util;
 
 our sub run(Str $target, Bool :$dryrun, *@keywords) {
     my @targets = resolveFileTarget($target);
@@ -31,5 +34,46 @@ sub suggestContextKeywords(@contexts) {
         say colored("{$context} keywords", 'cyan underline') ~ "\n" ~ @keywords.sort.join(", ");
         say "To disable: no{$context}";
         say "";
+    }
+}
+
+sub tagAndImport(@targets, @keywords, Bool $dryrun = False) {
+    testKeywords(@keywords);
+
+    my %tags = keywordsToTags(@keywords);
+
+    for @targets -> $target {
+        # If the file has id and alias tags, consider it previously tagged
+        # and skip context validation.
+        my $previouslyTagged = readRawTags($target, ['id', 'alias']).elems == 2;
+
+        unless ($previouslyTagged) {
+            my @contexts = activeContexts(@keywords);
+
+            testContexts(@contexts);
+
+            testContextCoverage(@contexts, @keywords);
+
+            %tags.append(askQuestions($target));
+        }
+
+        %tags<alias> = @keywords;
+
+        tagFile($target, %tags, $dryrun);
+
+        if ($dryrun) {
+            return;
+        }
+
+        if (isArchiveFile($target)) {
+            indexFile($target);
+            return;
+        }
+
+        confirm('Tags written. Import to archive?');
+        my $importedFile = importFile($target, $dryrun);
+        indexFile($importedFile);
+
+        say "Imported as {$importedFile}";
     }
 }

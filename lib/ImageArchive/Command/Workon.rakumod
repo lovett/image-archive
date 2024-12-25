@@ -1,6 +1,7 @@
 unit module ImageArchive::Command::Workon;
 
 use ImageArchive::Activity;
+use ImageArchive::Archive;
 use ImageArchive::Workspace;
 
 our sub run(Str $target) {

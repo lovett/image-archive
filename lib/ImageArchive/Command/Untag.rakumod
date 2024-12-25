@@ -1,6 +1,7 @@
 unit module ImageArchive::Command::Untag;
 
 use ImageArchive::Activity;
+use ImageArchive::Archive;
 
 our sub run(Str $target, Str $term, Str $value = '', Bool :$dryrun) {
     my @targets = resolveFileTarget($target);

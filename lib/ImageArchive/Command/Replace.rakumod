@@ -3,6 +3,8 @@ unit module ImageArchive::Command::Replace;
 use Terminal::ANSIColor;
 
 use ImageArchive::Activity;
+use ImageArchive::Archive;
+use ImageArchive::Util;
 
 our sub run(Str $target, Str $substitue, Bool :$dryrun) {
     my @targets = resolveFileTarget($target);
@@ -14,4 +16,20 @@ our sub run(Str $target, Str $substitue, Bool :$dryrun) {
             exit 1;
         }
     }
+}
+
+sub replaceFilePreservingName(IO::Path $original, IO::Path $substitue, Bool $dryrun = False) is export {
+    testPathExistsInArchive($original);
+
+    my $replacement = $substitue.dirname().IO.add($original.basename).extension($substitue.extension);
+
+    if ($dryrun) {
+        wouldHaveDone("Rename $substitue to $replacement");
+        wouldHaveDone("Replace $original with $replacement");
+        exit;
+    }
+
+    rename($substitue, $replacement);
+
+    replaceFile($original, $replacement);
 }
