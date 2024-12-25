@@ -6,14 +6,6 @@ use Config::INI;
 
 our %config;
 
-# List the contexts that have not been explicity disabled by a
-# negation keyword.
-sub activeContexts(@keywords) is export {
-    my %contexts = readConfig('contexts');
-    my @keywordsWithoutNegation = @keywords.map({ $_.subst(/^no/, '')});
-    (%contexts.keys (-) @keywordsWithoutNegation).keys;
-}
-
 # Determine the set of negation keywords for all known contexts.
 # A negation keyword is the name of a context prefixed with "no".
 sub contextNegationKeywords(%contexts) is export {

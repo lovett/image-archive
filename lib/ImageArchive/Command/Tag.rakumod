@@ -22,6 +22,13 @@ our sub run(Str $target, Bool :$dryrun, *@keywords) {
     }
 }
 
+# Contexts that have not been explicity disabled by a negation keyword.
+sub activeContexts(@keywords) {
+    my %contexts = readConfig('contexts');
+    my @keywordsWithoutNegation = @keywords.map({ $_.subst(/^no/, '')});
+    (%contexts.keys (-) @keywordsWithoutNegation).keys;
+}
+
 sub suggestContextKeywords(@contexts) {
     my %contexts = readConfig('contexts');
 
