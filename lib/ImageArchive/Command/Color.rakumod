@@ -4,6 +4,7 @@ use Terminal::ANSIColor;
 
 use ImageArchive::Archive;
 use ImageArchive::Color;
+use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
@@ -15,6 +16,7 @@ our sub run(Str $target) {
 
 #| Print a mapping of file paths to RGB triples.
 sub printColorTable(@paths) is export {
+    my $root = appPath("root");
     my $pager = getPager();
 
     my $colspec = "%-6s | %-11s | %s\n";
@@ -31,7 +33,7 @@ sub printColorTable(@paths) is export {
             $colspec,
             colored('      ', "white on_$rgb"),
             $rgb,
-            relativePath($path)
+            relativePath($path, $root)
         );
     }
 

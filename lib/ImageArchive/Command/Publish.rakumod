@@ -10,11 +10,13 @@ use ImageArchive::Util;
 our sub run() {
     my @results = dumpStash('searchresult');
     my $path = publishHtml(@results);
-    viewExternally($path);
+    my $command = viewCommand("html");
+    viewExternally($command, $path);
 }
 
 # Write an HTML file containing thumbnails of search results.
 sub publishHtml(@results) {
+    my $root = appPath('root');
     my %templates = loadTemplates('layout', 'gallery');
     my @sizes = readConfig('alt_sizes').split(' ');
 
@@ -22,7 +24,7 @@ sub publishHtml(@results) {
     for @results -> $result {
         my $smallAlt = findAlternate($result<path>, @sizes[*-1]);
         my $largeAlt = findAlternate($result<path>, @sizes[0]);
-        my $relpath = relativePath($result<path>);
+        my $relpath = relativePath($result<path>, $root);
         my %tags = getTags($result<path>, 'CreateDate');
         my $series = ($result<series> eq 'unknown') ?? '' !! $result<series>;
         if ($series and $result<seriesid>) {

@@ -2,8 +2,6 @@ unit module ImageArchive::Util;
 
 use Terminal::ANSIColor;
 
-use ImageArchive::Config;
-
 # Extract version information from META6.json
 # Can't do this directly from the main script.
 sub applicationVersion() is export returns Str {
@@ -81,28 +79,14 @@ sub debug(Str $message, Str $label='') is export {
     say "";
 }
 
-sub pagedPrint($value) is export {
-    my $pager = getPager();
-    $pager.in.print($value);
-    $pager.in.close;
-}
-
-sub getPager() returns Proc is export {
-    my $command = readConfig('pager');
-    run $command.split(' '), :in;
-}
-
 # Convert an absolute path to a root-relative path.
-sub relativePath($file --> IO::Path) is export {
-    my $root = appPath('root');
+sub relativePath($file, $root --> IO::Path) is export {
     my $relpath = $file.subst(/^ $root \/* /, '');
     return $relpath.IO;
 }
 
-sub printSearchResults(@results) is export {
+sub printSearchResults(@results, $pager, $root) is export {
     my $counter = 0;
-
-    my $pager = getPager();
 
     for @results -> $result {
         my @columns = colored(sprintf("%3d", ++$counter), 'white on_blue');
@@ -124,7 +108,7 @@ sub printSearchResults(@results) is export {
             }
         }
 
-        @columns.push: relativePath($result<path>);
+        @columns.push: $result<path>;
 
         $pager.in.say: @columns.join(" | ");
     }
@@ -137,19 +121,7 @@ sub printSearchResults(@results) is export {
 }
 
 # Display one or more files in an external application.
-sub viewExternally(*@paths) is export {
-    my $key = do given @paths[0].IO {
-        when .extension eq 'html' { 'view_html' }
-        when :d { 'view_directory' }
-        default { 'view_file' }
-    }
-
-    my $command = readConfig($key);
-
-    unless ($command) {
-        die ImageArchive::Exception::MissingConfig.new(:key($key));
-    }
-
+sub viewExternally(Str $command, *@paths) is export {
     # Using shell rather than run for maximum compatibility.
     my $proc = shell "$command {@paths}", :err;
     my $err = $proc.err.slurp(:close);

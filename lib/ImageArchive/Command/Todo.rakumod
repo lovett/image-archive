@@ -9,11 +9,11 @@ use ImageArchive::Util;
 
 #| Locate lines in log files matching a regex.
 our sub run(Str $directory?) {
+    my $root = appPath("root");
     my $matcher = /TODO/;
     my SetHash $cache = SetHash.new;
     my $pager = getPager();
 
-    my $root = appPath('root');
     if ($directory) {
         $root = $root.add($directory);
     }
@@ -34,7 +34,7 @@ our sub run(Str $directory?) {
                 $pager.in.printf(
                     "%s | %s\n",
                     colored(sprintf("%3d", $counter), 'white on_blue'),
-                    relativePath($workspaceMaster)
+                    relativePath($workspaceMaster, $root)
                 )
             }
 

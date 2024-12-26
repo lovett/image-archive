@@ -1,9 +1,12 @@
 unit module ImageArchive::Command::Search;
 
+use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
 our sub run(@terms, Int $limit, Bool $debug = False) {
+    my $root = appPath('root');
+
     unless (@terms) {
         note "No search terms were provided.";
         exit 1;
@@ -24,5 +27,6 @@ our sub run(@terms, Int $limit, Bool $debug = False) {
         }
     }
 
-    printSearchResults(@result);
+    my $pager = getPager();
+    printSearchResults(@result, $pager, $root);
 }

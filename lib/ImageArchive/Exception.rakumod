@@ -1,7 +1,5 @@
 unit module ImageArchive::Exception;
 
-use ImageArchive::Config;
-
 # A parent class for inheriting backtrace suppression.
 class ImageArchive::Exception is Exception {
     multi method gist {
@@ -68,10 +66,10 @@ class ImageArchive::Exception::PathConflict is ImageArchive::Exception is export
 # The configuration is missing an expected value.
 class ImageArchive::Exception::MissingConfig is ImageArchive::Exception is export {
     has Str $.key;
+    has Str $.config;
 
     method message {
-        my $config = appPath('config');
-        "Cannot proceed. Missing \"{$!key}\" in {$config}";
+        "Cannot proceed. Missing \"{$!key}\" in {$!config}";
     }
 }
 

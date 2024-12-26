@@ -3,9 +3,11 @@ unit module ImageArchive::Command::Unindexed;
 use Terminal::ANSIColor;
 
 use ImageArchive::Archive;
+use ImageArchive::Config;
 use ImageArchive::Util;
 
 our sub run() {
+    my $root = appPath("root");
     my $pager = getPager();
 
     my $counter = 0;
@@ -15,7 +17,7 @@ our sub run() {
         $pager.in.printf(
             "%s | %s\n",
             colored($index, 'white on_red'),
-            relativePath($path),
+            relativePath($path, $root),
         );
     }
 

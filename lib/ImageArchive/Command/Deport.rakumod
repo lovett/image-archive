@@ -1,6 +1,7 @@
 unit module ImageArchive::Command::Deport;
 
 use ImageArchive::Archive;
+use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Exception;
 use ImageArchive::Util;
@@ -12,6 +13,7 @@ our sub run(Str $target, Bool :$dryrun) {
 
 # Remove a file from the archive.
 sub deportFiles(@files, IO $destinationDir, Bool $dryrun? = False) is export {
+    my $root = appPath("root");
     my $file = @files.pop;
 
     testPathExistsInArchive($file);
@@ -30,7 +32,7 @@ sub deportFiles(@files, IO $destinationDir, Bool $dryrun? = False) is export {
     }
 
     if ($dryrun) {
-        wouldHaveDone("Move {relativePath($file)} to {$fileDestination}");
+        wouldHaveDone("Move {relativePath($file, $root)} to {$fileDestination}");
         return;
     }
 

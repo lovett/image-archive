@@ -207,7 +207,8 @@ sub indexFile(IO $file) is export {
 #
 # This is the database-oriented equivalent of Tagging:readRawtags().
 sub getTags(IO::Path $path, *@tags) is export {
-    my $relativePath = relativePath($path);
+    my $root = appPath("root");
+    my $relativePath = relativePath($path, $root);
 
     my $parserActions = SearchActions.new();
 
@@ -456,7 +457,8 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
 }
 
 sub stashPath(IO::Path $path, Str $key='searchresult') is export {
-    my $relativePath = relativePath($path);
+    my $root = appPath("root");
+    my $relativePath = relativePath($path, $root);
 
     my $dbh = openDatabase();
 

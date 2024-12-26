@@ -58,9 +58,10 @@ sub removeKeywordFromArchive(Str $keyword, Bool $dryrun? = False) is export {
 }
 
 sub deleteAlts(IO::Path $file) is export {
+    my $root = appPath("root");
     my $cacheRoot = appPath('cache');
 
-    my $relativePath = relativePath($file.Str);
+    my $relativePath = relativePath($file.Str, $root);
 
     my $thumbnailExtension = readConfig('alt_format');
 
@@ -74,7 +75,8 @@ sub deleteAlts(IO::Path $file) is export {
 
 # Resolve a path to an alternate.
 sub findAlternate(IO::Path $path, Str $size) is export {
-    my $relPath = relativePath($path);
+    my $root = appPath("root");
+    my $relPath = relativePath($path, $root);
     my $thumbnailExtension = readConfig('alt_format');
     my $cacheRoot = appPath('cache');
 
@@ -89,9 +91,9 @@ sub findAlternate(IO::Path $path, Str $size) is export {
 
 # Locate files that are not in the database.
 sub findUnindexed() returns Supply is export {
-    my $archiveRoot = appPath('root');
+    my $root = appPath('root');
 
-    return walkArchive($archiveRoot).grep({
+    return walkArchive($root).grep({
         my $query = 'sourcefile:' ~ relativePath($_);
         my $count = countRecordsByTag($query);
         $count == 0;
@@ -169,7 +171,7 @@ sub importFile(IO $file, Bool $dryrun? = False) returns IO::Path is export {
 
     my $newPath = $destination.add($file.basename);
 
-    if (relativePath($newPath) eq relativePath($file)) {
+    if (relativePath($newPath) eq relativePath($file, $root)) {
         return Nil;
     }
 
@@ -256,7 +258,7 @@ sub verifyDateTags(Bool $dryrun = False) is export {
             react {
                 whenever $channel -> $path {
                     my $tagDate = readRawTag($path, 'XMP-xmp:CreateDate').subst(':', '/', :g);
-                    my $expectedDate = relativePath($path).IO.dirname;
+                    my $expectedDate = relativePath($path, $root).IO.dirname;
 
                     next if ($tagDate eq $expectedDate);
                     next if ($tagDate eq '' && $expectedDate eq 'undated');
@@ -453,12 +455,13 @@ multi sub untagTerm(Str $term, Str $value, Bool $dryrun = False) is export {
 
 # Add a text file to a workspace for capturing notes and progress.
 sub addWorkspaceLog(IO::Path $workspace) returns Nil {
+    my $root = appPath("root");
     my $log = findWorkspaceLog($workspace);
 
     unless $log.f {
         my $dayNames = <Sun Mon Tue Wed Thu Fri Sat Sun>;
         my $template = %?RESOURCES<history.org>.IO.slurp;
-        $template = $template.subst('@@WORKSPACE@@', relativePath($workspace));
+        $template = $template.subst('@@WORKSPACE@@', relativePath($workspace, $root));
 
         $template = $template.subst(
             '@@DATE@@',
@@ -549,6 +552,7 @@ sub openWorkspace(IO::Path $file) is export {
 
 # Transfer a workspace to a new location within or outside the archive.
 sub moveWorkspace(IO::Path $workspace, IO::Path $destination, Bool $dryrun? = False) is export {
+    my $root = appPath("root");
     my $destinationPath = $destination.add($workspace.basename);
 
     if ($destinationPath.IO ~~ :d) {
@@ -556,7 +560,7 @@ sub moveWorkspace(IO::Path $workspace, IO::Path $destination, Bool $dryrun? = Fa
     }
 
     if ($dryrun) {
-        wouldHaveDone("Move {relativePath($workspace)} to {$destinationPath}");
+        wouldHaveDone("Move {relativePath($workspace, $root)} to {$destinationPath}");
         return;
     }
 
@@ -565,8 +569,8 @@ sub moveWorkspace(IO::Path $workspace, IO::Path $destination, Bool $dryrun? = Fa
     my $log = findWorkspaceLog($destinationPath);
 
     if ($log) {
-        my $originalRelativePath = relativePath($workspace);
-        my $destinationRelativePath = relativePath($destinationPath);
+        my $originalRelativePath = relativePath($workspace, $root);
+        my $destinationRelativePath = relativePath($destinationPath, $root);
 
         my $tmp = open $log ~ '.tmp', :w;
 

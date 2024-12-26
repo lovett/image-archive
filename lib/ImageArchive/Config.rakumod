@@ -4,6 +4,8 @@ use experimental :cached;
 
 use Config::INI;
 
+use ImageArchive::Exception;
+
 our %config;
 
 # Determine the set of negation keywords for all known contexts.
@@ -89,9 +91,7 @@ sub keywordsToTags(@keywords) is export {
     return %tags;
 }
 
-sub loadConfig() is export is cached {
-    my $path = appPath("config");
-
+sub loadConfig(IO::Path $path) is export is cached {
     my %config = Config::INI::parse_file($path.Str);
 
     my regex unescape { \\ (<punct>) };
@@ -107,10 +107,18 @@ sub loadConfig() is export is cached {
 
 #| Load the config file for the active repository.
 sub readConfig(Str $lookup?) is export {
-    my %config = loadConfig();
+    my $configPath = appPath("config");
+    my %config = loadConfig($configPath);
 
     if ($lookup) {
-        return %config<_>{$lookup} || %config{$lookup};
+        my $value = %config<_>{$lookup} || %config{$lookup};
+        unless ($value) {
+            die ImageArchive::Exception::MissingConfig.new(
+                :key($lookup)
+                :config($configPath)
+            );
+        }
+        return $value;
     }
 
     return %config;
@@ -120,4 +128,21 @@ sub readConfig(Str $lookup?) is export {
 # List the sections of the config.
 sub configSections() is export {
     return readConfig().keys.sort;
+}
+
+multi sub viewComand("html") is export {
+    return readConfig("view_file");
+}
+
+multi sub viewCommand("directory") is export {
+    return readConfig("view_directory");
+}
+
+multi sub viewCommand("file") is export {
+    return readConfig("view_file");
+}
+
+sub getPager() returns Proc is export {
+    my $command = readConfig('pager');
+    run $command.split(' '), :in;
 }

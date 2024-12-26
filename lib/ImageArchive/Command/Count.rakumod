@@ -26,7 +26,9 @@ multi sub run("years") {
 
     $table.add-row: ["TOTAL", $grandTotal];
 
-    pagedPrint($table);
+    my $pager = getPager();
+    $pager.in.print($table);
+    $pager.in.close;
 }
 
 multi sub run("months", Int $year) {
@@ -45,7 +47,9 @@ multi sub run("months", Int $year) {
 
     $table.add-row: ["TOTAL", $grandTotal];
 
-    pagedPrint($table);
+    my $pager = getPager();
+    $pager.in.print($table);
+    $pager.in.close;
 }
 
 multi sub run("files") {
