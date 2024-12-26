@@ -2,9 +2,9 @@ unit module ImageArchive::Command::Publish;
 
 use Template::Mustache;
 
-use ImageArchive::Database;
 use ImageArchive::Archive;
 use ImageArchive::Config;
+use ImageArchive::Database;
 use ImageArchive::Util;
 
 our sub run() {

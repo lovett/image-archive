@@ -20,11 +20,11 @@ use DBIish;
 #use Grammar::Tracer;
 
 use ImageArchive::Config;
-use ImageArchive::Tagging;
 use ImageArchive::Exception;
-use ImageArchive::Util;
 use ImageArchive::Grammar::Range;
 use ImageArchive::Grammar::Search;
+use ImageArchive::Tagging;
+use ImageArchive::Util;
 
 # Drop stash rows by key
 sub clearStashByKey(Str $key) is export {

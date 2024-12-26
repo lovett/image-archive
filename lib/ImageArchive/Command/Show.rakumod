@@ -1,7 +1,7 @@
 unit module ImageArchive::Command::Show;
 
-use ImageArchive::Config;
 use ImageArchive::Archive;
+use ImageArchive::Config;
 use ImageArchive::Tagging;
 
 our sub run(Str $target) {

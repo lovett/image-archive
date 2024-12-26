@@ -1,8 +1,8 @@
 unit module ImageArchive::Command::Reprompt;
 
-use ImageArchive::Tagging;
 use ImageArchive::Archive;
 use ImageArchive::Database;
+use ImageArchive::Tagging;
 
 our sub run($target, Bool :$dryrun) {
     my @targets = resolveFileTarget($target);

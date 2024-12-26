@@ -1,9 +1,9 @@
 unit module ImageArchive::Command::Reindex;
 
-use ImageArchive::Config;
-use ImageArchive::Tagging;
 use ImageArchive::Archive;
+use ImageArchive::Config;
 use ImageArchive::Database;
+use ImageArchive::Tagging;
 
 multi sub run(Str $target) is export {
     my @paths = resolveFileTarget($target);
