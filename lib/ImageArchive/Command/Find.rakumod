@@ -1,6 +1,6 @@
 unit module ImageArchive::Command::Find;
 
-use ImageArchive::Workspace;
+use ImageArchive::Archive;
 use ImageArchive::Util;
 
 our proto run(Str $subcommand) {*};

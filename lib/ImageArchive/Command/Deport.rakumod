@@ -3,7 +3,6 @@ unit module ImageArchive::Command::Deport;
 use ImageArchive::Archive;
 use ImageArchive::Database;
 use ImageArchive::Exception;
-use ImageArchive::Workspace;
 use ImageArchive::Util;
 
 our sub run(Str $target, Bool :$dryrun) {

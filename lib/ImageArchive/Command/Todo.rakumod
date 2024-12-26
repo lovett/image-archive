@@ -5,7 +5,6 @@ use Terminal::ANSIColor;
 use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Database;
-use ImageArchive::Workspace;
 use ImageArchive::Util;
 
 #| Locate lines in log files matching a regex.

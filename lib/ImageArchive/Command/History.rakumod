@@ -2,7 +2,6 @@ unit module ImageArchive::Command::History;
 
 use ImageArchive::Archive;
 use ImageArchive::Config;
-use ImageArchive::Workspace;
 use ImageArchive::Util;
 
 our sub run(Str $target) {

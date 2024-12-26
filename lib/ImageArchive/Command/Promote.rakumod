@@ -1,7 +1,6 @@
 unit module ImageArchive::Command::Promote;
 
 use ImageArchive::Archive;
-use ImageArchive::Workspace;
 use ImageArchive::Util;
 
 # Move a file out of the workspace.

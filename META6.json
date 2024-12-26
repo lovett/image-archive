@@ -43,7 +43,6 @@
     "ImageArchive::Command::Yearcount": "lib/ImageArchive/Command/Yearcount.rakumod",
     "ImageArchive::Tagging": "lib/ImageArchive/Tagging.rakumod",
     "ImageArchive::Util": "lib/ImageArchive/Util.rakumod",
-    "ImageArchive::Workspace": "lib/ImageArchive/Workspace.rakumod",
     "ImageArchive::Grammar::Range": "lib/ImageArchive/Grammar/Range.rakumod",
     "ImageArchive::Grammar::Search": "lib/ImageArchive/Grammar/Search.rakumod"
   },
