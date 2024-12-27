@@ -141,9 +141,9 @@ sub deindexFile(IO::Path $file) is export {
 sub dumpStash(Str $key) is export {
     my $stashQuery = q:to/SQL/;
     SELECT path, series, seriesid FROM (
-        SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path,
-        IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
-        CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid,
+        SELECT CONCAT(?, '/', a.tags ->> '$.SourceFile') as path,
+        IFNULL(a.tags ->> '$.SeriesName', 'unknown') as series,
+        CAST(IFNULL(a.tags ->> '$.SeriesIdentifier', 0) AS INT)  as seriesid,
         row_number()
         OVER (ORDER BY s.id) as rownum
         FROM archive a, stash s
@@ -218,7 +218,7 @@ sub getTags(IO::Path $path, *@tags) is export {
     );
 
     my $selectSql = @tags.map(
-        { "json_extract(a.tags, '\$.{$_}') as '$_'" }
+        { "a.tags ->> '\$.{$_}' as '$_'" }
     ).join(', ');
 
 
@@ -255,9 +255,9 @@ sub openDatabase() is export {
 # The absolute path to the most-recently-imported file in the archive.
 sub findByNewestImport(Int $limit = 1) returns Seq is export {
     my $query = q:to/SQL/;
-    SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path,
-    IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
-    CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
+    SELECT CONCAT(?, '/', a.tags ->> '$.SourceFile') as path,
+    IFNULL(a.tags ->> '$.SeriesName', 'unknown') as series,
+    CAST(IFNULL(a.tags ->> '$.SeriesIdentifier', 0) AS INT)  as seriesid
     FROM archive a
     ORDER BY a.rowid DESC
     LIMIT ?
@@ -284,9 +284,9 @@ sub findByStashIndex(Str $query, Str $key, Bool $debug = False) is export {
 
     my $stashQuery = qq:to/SQL/;
     SELECT path, series, seriesid FROM (
-        SELECT CONCAT(?, '/', json_extract(a.tags, '\$.SourceFile')) as path,
-        IFNULL(json_extract(a.tags, '\$.SeriesName'), 'unknown') as series,
-        CAST(IFNULL(json_extract(a.tags, '\$.SeriesIdentifier'), 0) AS INT)  as seriesid,
+        SELECT CONCAT(?, '/', a.tags ->> '\$.SourceFile') as path,
+        IFNULL(a.tags ->> '\$.SeriesName', 'unknown') as series,
+        CAST(IFNULL(a.tags ->> '\$.SeriesIdentifier', 0) AS INT)  as seriesid,
         row_number()
         OVER (ORDER BY s.id) as rownum
         FROM stash s, archive a
@@ -335,7 +335,7 @@ sub findBySimilarColor(@rgb, Str $key) is export {
 
     INSERT INTO stash (key, score, archive_id)
     SELECT '{$key}',
-      colordelta('{@rgb.join(',')}', json_extract(tags, '\$.AverageRGB'))
+      colordelta('{@rgb.join(',')}', tags ->> '\$.AverageRGB')
         AS delta,
       archive.id
     FROM archive
@@ -354,7 +354,7 @@ sub findBySimilarColor(@rgb, Str $key) is export {
     my $dbh = openDatabase();
 
     my $stashQuery = q:to/SQL/;
-    SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path, s.score
+    SELECT CONCAT(?, '/', a.tags ->> '$.SourceFile') as path, s.score
     FROM archive a, stash s
     WHERE a.id=s.archive_id AND s.key=?
     ORDER BY s.rowid
@@ -379,9 +379,9 @@ sub findNewest(Int $limit, Str $key) is export {
     $sth.execute($key, $limit.Str);
 
     my $stashQuery = q:to/SQL/;
-    SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path,
-    IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
-    CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
+    SELECT CONCAT(?, '/', a.tags ->> '$.SourceFile') as path,
+    IFNULL(a.tags ->> '$.SeriesName', 'unknown') as series,
+    CAST(IFNULL(a.tags ->> '$.SeriesIdentifier', 0) AS INT)  as seriesid
     FROM archive a, stash s
     WHERE a.id=s.archive_id AND s.key=?
     ORDER BY s.rowid
@@ -418,14 +418,14 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
 
     given $parsedQuery.made<order> {
         when 'filename' {
-            $ftsQuery ~= 'ORDER BY json_extract(archive.tags, "$.FileName")';
+            $ftsQuery ~= 'ORDER BY archive.tags ->> "$.FileName"';
         }
 
         default {
             $ftsQuery ~= q:to/SQL/;
-            ORDER BY json_extract(archive.tags, '$.SeriesName'),
-            CAST(IFNULL(json_extract(archive.tags, '$.SeriesIdentifier'), 0) AS INT),
-            json_extract(archive.tags, "$.SourceFile")
+            ORDER BY archive.tags ->> '$.SeriesName',
+            CAST(IFNULL(archive.tags ->> '$.SeriesIdentifier', 0) AS INT),
+            archive.tags ->> "$.SourceFile"
             SQL
         }
     }
@@ -433,9 +433,9 @@ sub findByTag(Str $query, Str $key, Bool $debug = False) is export {
     $dbh.execute($ftsQuery);
 
     my $stashQuery = q:to/SQL/;
-    SELECT CONCAT(?, '/', json_extract(a.tags, '$.SourceFile')) as path,
-    IFNULL(json_extract(a.tags, '$.SeriesName'), 'unknown') as series,
-    CAST(IFNULL(json_extract(a.tags, '$.SeriesIdentifier'), 0) AS INT)  as seriesid
+    SELECT CONCAT(?, '/', a.tags ->> '$.SourceFile') as path,
+    IFNULL(a.tags ->> '$.SeriesName', 'unknown') as series,
+    CAST(IFNULL(a.tags ->> '$.SeriesIdentifier', 0) AS INT)  as seriesid
     FROM archive a, stash s
     WHERE a.id=s.archive_id AND s.key=?
     ORDER BY s.rowid
@@ -466,7 +466,7 @@ sub stashPath(IO::Path $path, Str $key='searchresult') is export {
     INSERT INTO stash (key, archive_id)
     SELECT '{$key}', a.id
     FROM archive a
-    WHERE json_extract(a.tags, '\$.SourceFile') = ?
+    WHERE a.tags ->> '\$.SourceFile' = ?
     STATEMENT
 
     $sth.execute($relativePath);
