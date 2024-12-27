@@ -8,14 +8,12 @@ use ImageArchive::Util;
 
 my $root = "/fake/path";
 
-%*ENV<IA_ROOT> = $root;
-
 plan 6;
 
-is relativePath("$root/myfile"), "myfile".IO, "Root is removed from string absolute path";
-is relativePath("$root/myfile".IO), "myfile".IO, "Root is removed from IO absolute path";
-is relativePath("myfile"), "myfile".IO, "Relative string path is preserved";
-is relativePath("myfile".IO), "myfile".IO, "Relative IO path is preserved";
-is relativePath("$root/and/$root/again"), "and/$root/again".IO, "Root removal is restricted to string start";
-is relativePath("{$root}///term"), "term".IO, "Root removal leaves no leading slash";
+is relativePath("$root/myfile", $root), "myfile".IO, "Root is removed from string absolute path";
+is relativePath("$root/myfile".IO, $root), "myfile".IO, "Root is removed from IO absolute path";
+is relativePath("myfile", $root), "myfile".IO, "Relative string path is preserved";
+is relativePath("myfile".IO, $root), "myfile".IO, "Relative IO path is preserved";
+is relativePath("$root/and/$root/again", $root), "and/$root/again".IO, "Root removal is restricted to string start";
+is relativePath("{$root}///term", $root), "term".IO, "Root removal leaves no leading slash";
 done-testing;
