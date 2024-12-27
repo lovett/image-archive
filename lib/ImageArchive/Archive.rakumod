@@ -240,9 +240,11 @@ sub pruneEmptyDirsUpward(IO::Path $origin) is export {
 }
 
 # See if a file exists within the archive root.
-sub testPathExistsInArchive(IO::Path $path) is export {
+sub testPathExistsInArchive($path) is export {
     my $root = appPath('root');
-    return if $path.absolute.starts-with($root) && ($path ~~ :e);
+
+    return True if $path.IO.absolute.starts-with($root) && $path ~~ :e;
+    return True if $root.IO.add($path) ~~ :e;
     die ImageArchive::Exception::PathNotFoundInArchive.new(
         :path($path)
     );

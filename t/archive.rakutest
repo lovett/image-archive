@@ -1,0 +1,25 @@
+#!/usr/bin/env rakudo
+
+use Test;
+use File::Temp;
+
+use lib $*PROGRAM.parent(2).add("lib");
+
+
+my $path = tempfile.first.IO;
+my $root = $path.dirname;
+%*ENV<IA_ROOT> = $root;
+
+use ImageArchive::Archive;
+
+plan 1;
+
+subtest "testPathExistsInArchive", {
+    ok testPathExistsInArchive($path), "Absolute file path within root";
+    ok testPathExistsInArchive($path.basename), "Relative file path within root";
+    dies-ok { testPathExistsInArchive($*PROGRAM) }, "File outside root";
+    dies-ok { testPathExistsInArchive("fake") }, "Non-existant relative path";
+    dies-ok { testPathExistsInArchive($root.IO.add("fake")) }, "Non-existant absolute path";
+}
+
+done-testing;

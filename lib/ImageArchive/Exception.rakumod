@@ -103,7 +103,7 @@ class ImageArchive::Exception::OrphanedWorkspace is ImageArchive::Exception is e
 
 # A file or directory thought to be in the archive does not exist.
 class ImageArchive::Exception::PathNotFoundInArchive is ImageArchive::Exception is export {
-    has IO::Path $.path;
+    has $.path;
 
     method message {
         my $message = "Path not found in archive";
