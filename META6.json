@@ -65,6 +65,7 @@
     "Template::Mustache"
   ],
   "test-depends" : [
+    "App::Prove6",
     "File::Temp"
   ],
   "tags": []
