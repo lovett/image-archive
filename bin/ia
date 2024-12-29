@@ -47,6 +47,11 @@ multi sub MAIN("find", "inprogress") {
     run-command("find", "inprogress");
 }
 
+#| Files that are not in the database.
+multi sub MAIN("find", "unindexed") {
+    run-command("find", "unindexed");
+}
+
 #| Perform cleanup chores on the archive.
 multi sub MAIN("fixup", Bool :$dryrun = False) {
     run-command("fixup", $dryrun);
@@ -137,11 +142,6 @@ multi sub MAIN("tag", Str $target, Bool :$dryrun = False, *@keywords) {
 #| List out TODO lines in workspace history files.
 multi sub MAIN("todo", Str $directory?) {
     run-command("todo", $directory);
-}
-
-#| Find file that are not in the database.
-multi sub MAIN("unindexed") {
-    run-command("unindexed");
 }
 
 #| Remove a group name.

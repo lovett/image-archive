@@ -34,7 +34,6 @@
     "ImageArchive::Command::Tag": "lib/ImageArchive/Command/Tag.rakumod",
     "ImageArchive::Command::Todo": "lib/ImageArchive/Command/Todo.rakumod",
     "ImageArchive::Command::Ungroup": "lib/ImageArchive/Command/Ungroup.rakumod",
-    "ImageArchive::Command::Unindexed": "lib/ImageArchive/Command/Unindexed.rakumod",
     "ImageArchive::Command::Untag": "lib/ImageArchive/Command/Untag.rakumod",
     "ImageArchive::Command::Version": "lib/ImageArchive/Command/Version.rakumod",
     "ImageArchive::Command::View": "lib/ImageArchive/Command/View.rakumod",
