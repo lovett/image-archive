@@ -2,7 +2,7 @@ unit module ImageArchive::Command::Help;
 
 use ImageArchive::Config;
 
-our sub run(Str $command) {
+our sub make-it-so(Str $command) {
     unless ($command) {
         say $*USAGE;
         return;

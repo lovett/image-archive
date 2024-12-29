@@ -5,7 +5,7 @@ use Terminal::ANSIColor;
 use ImageArchive::Archive;
 use ImageArchive::Util;
 
-our sub run(Str $target, Str $substitue, Bool :$dryrun) {
+our sub make-it-so(Str $target, Str $substitue, Bool :$dryrun) {
     my @targets = resolveFileTarget($target);
     replaceFilePreservingName(@targets.first.IO, $substitue.IO, $dryrun);
 

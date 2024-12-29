@@ -8,7 +8,7 @@ use ImageArchive::Database;
 use ImageArchive::Util;
 
 #| Locate lines in log files matching a regex.
-our sub run(Str $directory?) {
+our sub make-it-so(Str $directory?) {
     my $root = appPath("root");
     my $matcher = /TODO/;
     my SetHash $cache = SetHash.new;

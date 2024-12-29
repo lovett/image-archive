@@ -3,7 +3,7 @@ unit module ImageArchive::Command::Setup;
 use ImageArchive::Config;
 use ImageArchive::Util;
 
-our sub run() {
+our sub make-it-so() {
     my IO::Path $root = appPath("root");
 
     unless ($root.d) {

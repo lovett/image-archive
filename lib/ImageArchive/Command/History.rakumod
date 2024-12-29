@@ -4,7 +4,7 @@ use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Util;
 
-our sub run(Str $target) {
+our sub make-it-so(Str $target) {
     my @targets = resolveFileTarget($target);
     my $pager = getPager();
 

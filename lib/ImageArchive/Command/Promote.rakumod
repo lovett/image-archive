@@ -4,7 +4,7 @@ use ImageArchive::Archive;
 use ImageArchive::Util;
 
 # Move a file out of the workspace.
-our sub run(Str $version, Bool :$dryrun) {
+our sub make-it-so(Str $version, Bool :$dryrun) {
     my $file = $version.IO;
 
     testPathExistsInWorkspace($file);

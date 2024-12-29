@@ -6,7 +6,7 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-our sub run(Str $target) {
+our sub make-it-so(Str $target) {
     my $root = appPath('root');
     my @targets = resolveFileTarget($target);
     my @rgb = getAverageColor(@targets.first.IO);

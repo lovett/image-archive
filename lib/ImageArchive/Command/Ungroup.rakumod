@@ -6,7 +6,7 @@ use ImageArchive::Database;
 use ImageArchive::Tagging;
 
 #| Remove a JobRef tag.
-our sub run(Str $target, Str $name, Bool :$dryrun) {
+our sub make-it-so(Str $target, Str $name, Bool :$dryrun) {
     my @targets = resolveFileTarget($target);
     my %aliases = readConfig('aliases');
     my $formalTag = %aliases<group>;

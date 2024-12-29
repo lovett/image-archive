@@ -2,6 +2,6 @@ unit module ImageArchive::Command::Scrub;
 
 use ImageArchive::Archive;
 
-our sub run(Str $term, Str $value = '', Bool :$dryrun) {
+our sub make-it-so(Str $term, Str $value = '', Bool :$dryrun) {
     untagTerm($term, $value, $dryrun);
 }

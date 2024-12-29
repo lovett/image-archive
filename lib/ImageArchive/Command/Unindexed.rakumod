@@ -6,7 +6,7 @@ use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Util;
 
-our sub run() {
+our sub make-it-so() {
     my $root = appPath("root");
     my $pager = getPager();
 

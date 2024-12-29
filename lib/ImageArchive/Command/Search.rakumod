@@ -4,7 +4,7 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-our sub run(@terms, Int $limit, Bool $debug = False) {
+our sub make-it-so(@terms, Int $limit, Bool $debug = False) {
     my $root = appPath('root');
 
     unless (@terms) {

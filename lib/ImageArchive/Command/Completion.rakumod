@@ -37,7 +37,7 @@ our %commands = %(
     'yearcount' => Nil,
 );
 
-our sub run() {
+our sub make-it-so() {
     my $root = appPath('root');
     my $appVersion = applicationVersion();
 

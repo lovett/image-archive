@@ -13,7 +13,7 @@ multi sub run("finished") is export {
     printSearchResults(@results, $pager, $root);
 }
 
-multi sub run("inprogress") {
+multi sub make-it-so("inprogress") {
     my $root = appPath('root');
     my @results = walkWorkspaces("active");
     my $pager = getPager();

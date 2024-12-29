@@ -31,7 +31,7 @@ multi sub run("years") {
     $pager.in.close;
 }
 
-multi sub run("months", Int $year) {
+multi sub make-it-so("months", Int $year) {
     my $grandTotal = 0;
 
     my $table = Prettier::Table.new(

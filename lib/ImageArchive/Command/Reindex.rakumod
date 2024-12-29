@@ -5,7 +5,7 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Tagging;
 
-multi sub run(Str $target) is export {
+multi sub make-it-so(Str $target) is export {
     my @paths = resolveFileTarget($target);
     run(@paths);
 }
