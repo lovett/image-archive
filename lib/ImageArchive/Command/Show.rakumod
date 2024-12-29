@@ -4,7 +4,7 @@ use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Tagging;
 
-our sub make-it-so(Str $target) {
+sub make-it-so(Str $target) is export {
     my @targets = resolveFileTarget($target);
     my %aliases = readConfig('aliases');
 

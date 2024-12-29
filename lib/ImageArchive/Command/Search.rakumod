@@ -4,15 +4,15 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-our sub make-it-so(@terms, Int $limit, Bool $debug = False) {
+sub make-it-so(Str $query, Int $limit, Bool $debug = False) is export {
     my $root = appPath('root');
 
-    unless (@terms) {
+    unless ($query) {
         note "No search terms were provided.";
         exit 1;
     }
 
-    my @result = do given @terms.head {
+    my @result = do given $query.words.head {
         when "lastimport" {
             findNewest(1, "searchresult")
         }
@@ -22,7 +22,6 @@ our sub make-it-so(@terms, Int $limit, Bool $debug = False) {
         }
 
         default {
-            my $query = @terms.join(" ");
             findByTag($query, "searchresult", $debug);
         }
     }

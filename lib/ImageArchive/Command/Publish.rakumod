@@ -7,7 +7,7 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-our sub make-it-so() {
+sub make-it-so() is export {
     my @results = dumpStash('searchresult');
     my $path = publishHtml(@results);
     my $command = viewCommand("html");

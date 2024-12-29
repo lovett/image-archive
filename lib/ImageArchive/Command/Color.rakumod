@@ -9,7 +9,7 @@ use ImageArchive::Database;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
-our sub make-it-so(Str $target) {
+sub make-it-so(Str $target) is export {
     my @targets = resolveFileTarget($target);
     printColorTable(@targets);
 }

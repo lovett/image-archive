@@ -4,7 +4,7 @@ use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Util;
 
-our sub make-it-so(Str $target) {
+sub make-it-so(Str $target) is export {
     my @targets = resolveFileTarget($target);
     my $workspace = copyToWorkspace(@targets.first);
     my $command = viewCommand("directory");

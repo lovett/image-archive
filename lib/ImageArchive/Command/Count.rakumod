@@ -7,9 +7,7 @@ use ImageArchive::Config;
 use ImageArchive::Database;
 use ImageArchive::Util;
 
-our proto run(Str $subcommand, |) {*};
-
-multi sub run("years") {
+multi sub make-it-so("years") is export {
     my $grandTotal = 0;
 
     my $table = Prettier::Table.new(
@@ -31,7 +29,7 @@ multi sub run("years") {
     $pager.in.close;
 }
 
-multi sub make-it-so("months", Int $year) {
+multi sub make-it-so("months", Int $year) is export {
     my $grandTotal = 0;
 
     my $table = Prettier::Table.new(
@@ -52,7 +50,7 @@ multi sub make-it-so("months", Int $year) {
     $pager.in.close;
 }
 
-multi sub run("files") {
+multi sub make-it-so("files") is export {
     my $root = appPath('root');
 
     my $fileCount = 0;

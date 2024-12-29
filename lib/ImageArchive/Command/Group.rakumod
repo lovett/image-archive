@@ -5,7 +5,7 @@ use ImageArchive::Database;
 use ImageArchive::Tagging;
 
 #| Add a JobRef tag, which is a keyword describing a project or workflow.
-our sub make-it-so(Str $target, Str $name, Bool :$dryrun) {
+sub make-it-so(Str $target, Str $name, Bool $dryrun) is export {
     my @targets = resolveFileTarget($target);
 
     # Skipping Id and URL for the moment and only using Name.

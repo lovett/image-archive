@@ -4,7 +4,7 @@ use ImageArchive::Archive;
 use ImageArchive::Database;
 use ImageArchive::Tagging;
 
-our sub make-it-so($target, Bool :$dryrun) {
+sub make-it-so($target, Bool $dryrun) is export {
     my @targets = resolveFileTarget($target);
     for @targets -> $target {
         my %newTags = askQuestions($target);

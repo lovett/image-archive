@@ -9,7 +9,7 @@ use ImageArchive::Exception;
 use ImageArchive::Tagging;
 use ImageArchive::Util;
 
-our sub make-it-so(Str $target, Bool :$dryrun, *@keywords) {
+sub make-it-so(Str $target, Bool $dryrun, *@keywords) is export {
     my @targets = resolveFileTarget($target);
     tagAndImport(@targets, @keywords, $dryrun);
 

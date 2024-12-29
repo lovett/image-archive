@@ -2,7 +2,7 @@ unit module ImageArchive::Command::Help;
 
 use ImageArchive::Config;
 
-our sub make-it-so(Str $command) {
+sub make-it-so(Str $command) is export {
     unless ($command) {
         say $*USAGE;
         return;

@@ -1,5 +1,5 @@
 unit module ImageArchive::Command::Version;
 
-our sub make-it-so() {
+sub make-it-so() is export {
     say $?DISTRIBUTION.meta<ver>.Str;
 }

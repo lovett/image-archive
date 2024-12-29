@@ -6,7 +6,7 @@ use ImageArchive::Database;
 use ImageArchive::Exception;
 use ImageArchive::Util;
 
-our sub make-it-so(Str $target, Bool :$dryrun) {
+sub make-it-so(Str $target, Bool $dryrun) is export {
     my @targets = resolveFileTarget($target);
     deportFiles(@targets, $*CWD.IO, $dryrun);
 }

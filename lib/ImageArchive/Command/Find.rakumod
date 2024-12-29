@@ -6,14 +6,14 @@ use ImageArchive::Util;
 
 our proto run(Str $subcommand) {*};
 
-multi sub run("finished") is export {
+multi sub make-it-so("finished") is export {
     my $root = appPath('root');
     my @results = walkWorkspaces("inactive");
     my $pager = getPager();
     printSearchResults(@results, $pager, $root);
 }
 
-multi sub make-it-so("inprogress") {
+sub make-it-so("inprogress") is export {
     my $root = appPath('root');
     my @results = walkWorkspaces("active");
     my $pager = getPager();

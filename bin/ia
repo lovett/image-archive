@@ -4,143 +4,121 @@ use lib $*PROGRAM.IO.parent(2).add('lib');
 
 #| Display a target's average color.
 multi sub MAIN("color", Str $target) {
-    need ImageArchive::Command::Color;
-    ImageArchive::Command::Color::make-it-so($target);
+    run-command("color", $target);
 }
 
 #| Find files by color similarity.
 multi sub MAIN("colormatch", Str $target) {
-    need ImageArchive::Command::Colormatch;
-    ImageArchive::Command::Colormatch::make-it-so($target);
+    run-command("colormatch", $target);
 }
 
 #| Generate the shell completion file.
 multi sub MAIN("completion") {
-    need ImageArchive::Command::Completion;
-    ImageArchive::Command::Completion::make-it-so();
+    run-command("completion");
 }
 
 #| Number of files in the archive.
 multi sub MAIN("count", "files") {
-    need ImageArchive::Command::Count;
-    ImageArchive::Command::Count::make-it-so("files");
-}
-
-#| Number of files per year.
-multi sub MAIN("count", "years") {
-    need ImageArchive::Command::Count;
-    ImageArchive::Command::Count::make-it-so("years");
+    run-command("count", "files");
 }
 
 #| Number of files per month in a given year.
 multi sub MAIN("count", "months", Int $year) {
-    need ImageArchive::Command::Count;
-    ImageArchive::Command::Count::make-it-so("months", $year.Int);
+    run-command("count", "months", $year);
+}
+
+#| Number of files per year.
+multi sub MAIN("count", "years") {
+    run-command("count", "years");
 }
 
 #| Take a target out of the archive.
 multi sub MAIN("deport", Str $target, Bool :$dryrun = False) {
-    need ImageArchive::Command::Deport;
-    ImageArchive::Command::Deport::make-it-so($target, $dryrun);
+    run-command("deport", $target, :$dryrun);
 }
 
 #| Files with dormant workspaces.
 multi sub MAIN("find", "finished") {
-    need ImageArchive::Command::Find;
-    ImageArchive::Command::Find::make-it-so("finished");
+    run-command("find", "finished");
 }
 
 #| Files that have edits in progress.
 multi sub MAIN("find", "inprogress") {
-    need ImageArchive::Command::Find;
-    ImageArchive::Command::Find::make-it-so("inprogress");
+    run-command("find", "inprogress");
 }
 
 #| Perform cleanup chores on the archive.
 multi sub MAIN("fixup", Bool :$dryrun = False) {
-    need ImageArchive::Command::Fixup;
-    ImageArchive::Command::Fixup::make-it-so($dryrun);
+    run-command("fixup", $dryrun);
 }
 
 #| Associate images based on a task or project.
 multi sub MAIN("group", Str $target, Str $name, Bool :$dryrun = False) {
-    need ImageArchive::Command::Group;
-    ImageArchive::Command::Group::make-it-so($target, $name, $dryrun);
+    run-command("group", $target, $name, $dryrun);
 }
 
 #| Command-specific documentation.
 multi sub MAIN("help", Str $command?) {
-    need ImageArchive::Command::Help;
-    ImageArchive::Command::Help::make-it-so($command);
+    run-command("help", $command);
 }
 
 #| Display a target's edit history.
 multi sub MAIN("history", Str $target) {
-    need ImageArchive::Command::History;
-    ImageArchive::Command::History::make-it-so($target);
+    run-command("history", $target);
 }
 
 #| Bring a file into the archive.
 multi sub MAIN("import", Str $file where *.IO.f, Bool :$dryrun = False) {
-    ImageArchive::Command::Import;
-    ImageArchive::Command::import($file, $dryrun);
+    run-command("import", $file, $dryrun);
 }
 
 #| Redisplay the results of the previous search.
 multi sub MAIN("lastsearch") {
-    need ImageArchive::Command::Lastsearch;
-    ImageArchive::Command::Lastsearch::make-it-so();
+    run-command("lastsearch");
 }
 
 #| Replace an archive file with a workspace version.
 multi sub MAIN("promote", Str $version where *.IO.f, Bool :$dryrun = False) {
-    need ImageArchive::Command::Promote;
-    ImageArchive::Command::Promote::make-it-so($version, $dryrun);
+    run-command("promote", $version, $dryrun);
 }
 
 #| View the previous search in a web browser.
 multi sub MAIN("publish") {
-    need ImageArchive::Command::Publish;
-    ImageArchive::Command::Publish::make-it-so();
+    run-command("publish");
 }
 
 #| Re-add imported files to the database.
 multi sub MAIN("reindex", Str $target?) {
-    need ImageArchive::Command::Reindex;
-    ImageArchive::Command::Reindex::make-it-so($target);
+    run-command("reindex", $target);
 }
 
 #| Overwrite an imported file.
 multi sub MAIN("replace", Str $target, Str $substitue where *.IO.f, Bool :$dryrun = False) {
-    need ImageArchive::Command::Replace;
-    ImageArchive::Command::Replace::make-it-so($target, $substitue, $dryrun);
+    run-command("replace", $target, $substitue, $dryrun);
 }
 
 #| Redo question-and-answer taging.
 multi sub MAIN("reprompt", Str $target, Bool :$dryrun = False) {
-    need ImageArchive::Command::Reprompt;
-    ImageArchive::Command::Reprompt::make-it-so($target, $dryrun);
+    run-command("reprompt", $target, $dryrun);
 }
 
 #| Archive-wide untag by keyword or alias.
 multi sub MAIN("scrub", Str $term, Str $value = '', Bool :$dryrun = False) {
-    need ImageArchive::Command::Scrub;
+    require ImageArchive::Command::Scrub;
     ImageArchive::Command::Scrub::make-it-so($term, $value, $dryrun);
 }
 
 #| Find files within the archive.
 multi sub MAIN("search", Int :$limit = 10, Bool :$debug = False, *@terms) {
-    need ImageArchive::Command::Search;
-    ImageArchive::Command::Search::make-it-so(@terms, $limit, $debug);
+    my $query = @terms.join(" ");
+    run-command("search", $query, $limit, $debug);
 }
 
 #| Create a new archive.
 multi sub MAIN("setup", Str $path?) {
     %*ENV<IA_ROOT> = $path.IO.absolute if $path;
-    need ImageArchive::Command::Setup;
-    need ImageArchive::Command::Completion;
-    ImageArchive::Command::Setup::make-it-so();
-    ImageArchive::Command::Completion::make-it-so();
+    run-command("setup");
+    run-command("completion");
     if ($path) {
         say "Be sure to set the IA_ROOT environment variable to {$path.IO.absolute} in your shell.";
     }
@@ -148,62 +126,57 @@ multi sub MAIN("setup", Str $path?) {
 
 #| Display a file's tags.
 multi sub MAIN("show", Str $target) {
-    need ImageArchive::Command::Show;
-    ImageArchive::Command::Show::make-it-so($target);
+    run-command("show", $target);
 }
 
 #| Add tags to a file.
 multi sub MAIN("tag", Str $target, Bool :$dryrun = False, *@keywords) {
-    need ImageArchive::Command::Tag;
-    ImageArchive::Command::Tag::make-it-so($target);
+    run-command("tag", $target, $dryrun, @keywords);
 }
 
 #| List out TODO lines in workspace history files.
 multi sub MAIN("todo", Str $directory?) {
-    need ImageArchive::Command::Todo;
-    ImageArchive::Command::Todo::make-it-so($directory);
+    run-command("todo", $directory);
 }
 
 #| Find file that are not in the database.
 multi sub MAIN("unindexed") {
-    need ImageArchive::Command::Unindexed;
-    ImageArchive::Command::Unindexed::make-it-so();
+    run-command("unindexed");
 }
 
 #| Remove a group name.
 multi sub MAIN("ungroup", Str $target, Str $name, Bool :$dryrun = False) {
-    need ImageArchive::Command::Ungroup;
-    ImageArchive::Command::Ungroup::make-it-so($target, $name, $dryrun);
+    run-command("ungroup", $target, $name, $dryrun);
 }
 
 #| Remove tags by keyword or alias.
 multi sub MAIN("untag", Str $target, Str $term, Str $value = '', Bool :$dryrun = False) {
-    need ImageArchive::Command::Untag;
-    ImageArchive::Command::Untag::make-it-so($target, $term, $value, $dryrun);
+    run-command("untag", $target, $term, $value, $dryrun);
 }
 
 #| Display a file.
 multi sub MAIN("view", Str $target, Bool :$original) {
-    need ImageArchive::Command::View;
-    ImageArchive::Command::View::make-it-so($target);
+    run-command("view", $target, $original);
 }
 
 #| Navigate to a file.
 multi sub MAIN("visit", Str $target) {
-    need ImageArchive::Command::Visit;
-    ImageArchive::Command::Visit::make-it-so($target);
+    run-command("visit", $target);
 }
 
 #| Set up or return to a file's editing workspace.
 multi sub MAIN("workon", Str $target) {
-    need ImageArchive::Command::Workon;
-    ImageArchive::Command::Workon::make-it-so($target);
+    run-command("workon", $target);
 }
 
 #| Display the application version.
 multi sub MAIN("version") {
-    need ImageArchive::Command::Version;
-    ImageArchive::Command::Version::make-it-so();
+    run-command("version");
+}
+
+sub run-command(Str $command, *@args) {
+    require ::("ImageArchive::Command::{$command.tc}") <&make-it-so>;
+    make-it-so(|@args);
 }
 
 # Local Variables:
