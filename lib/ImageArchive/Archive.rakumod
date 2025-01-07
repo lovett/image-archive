@@ -94,9 +94,8 @@ sub findUnindexed() returns Supply is export {
     my $root = appPath('root');
 
     return walkArchive($root).grep({
-        my $query = 'sourcefile:' ~ relativePath($_);
-        my $count = countRecordsByTag($query);
-        $count == 0;
+        my $query = 'sourcefile:' ~ relativePath($_, $root);
+        countRecordsByTag($query) == 0;
     });
 }
 
@@ -171,7 +170,7 @@ sub importFile(IO $file, Bool $dryrun? = False) returns IO::Path is export {
 
     my $newPath = $destination.add($file.basename);
 
-    if (relativePath($newPath) eq relativePath($file, $root)) {
+    if (relativePath($newPath, $root) eq relativePath($file, $root)) {
         return Nil;
     }
 
@@ -243,7 +242,7 @@ sub pruneEmptyDirsUpward(IO::Path $origin) is export {
 sub testPathExistsInArchive($path) is export {
     my $root = appPath('root');
 
-    return True if $path.IO.absolute.starts-with($root) && $path ~~ :e;
+    return True if $path.IO.absolute.starts-with($root) && $path.IO.f;
     return True if $root.IO.add($path) ~~ :e;
     die ImageArchive::Exception::PathNotFoundInArchive.new(
         :path($path)

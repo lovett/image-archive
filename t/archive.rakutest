@@ -6,20 +6,43 @@ use File::Temp;
 use lib $*PROGRAM.parent(2).add("lib");
 
 
-my $path = tempfile.first.IO;
-my $root = $path.dirname;
+my $root = tempdir();
 %*ENV<IA_ROOT> = $root;
 
-use ImageArchive::Archive;
+my ($path, $handle) = tempfile(:tempdir($root));
+$handle.say('this is a test file');
+$handle.close();
 
-plan 1;
+use ImageArchive::Archive;
+use ImageArchive::Database;
+use ImageArchive::Util;
+use ImageArchive::Command::Setup;
+
+plan 2;
+
+make-it-so();
 
 subtest "testPathExistsInArchive", {
     ok testPathExistsInArchive($path), "Absolute file path within root";
-    ok testPathExistsInArchive($path.basename), "Relative file path within root";
+    ok testPathExistsInArchive($path.IO.basename), "Relative file path within root";
     dies-ok { testPathExistsInArchive($*PROGRAM) }, "File outside root";
     dies-ok { testPathExistsInArchive("fake") }, "Non-existant relative path";
     dies-ok { testPathExistsInArchive($root.IO.add("fake")) }, "Non-existant absolute path";
+}
+
+subtest "findUnindexed", {
+    indexFile($path.IO);
+    my $count = 0;
+    my $supply = findUnindexed();
+    $supply.tap(-> $v { $count++ }, done => { is $count, 0, "Indexed file is ignored" });
+
+    my ($path2, $handle2) = tempfile(:tempdir($root));
+    $handle2.say('this is another test file');
+    $handle2.close();
+
+    $count = 0;
+    $supply = findUnindexed();
+    $supply.tap(-> $v { $count++ }, done => { is $count, 1, "Uninidexed file is found" });
 }
 
 done-testing;

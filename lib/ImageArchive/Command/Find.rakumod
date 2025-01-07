@@ -6,8 +6,6 @@ use ImageArchive::Archive;
 use ImageArchive::Config;
 use ImageArchive::Util;
 
-our proto run(Str $subcommand) {*};
-
 multi sub make-it-so("finished") is export {
     my $root = appPath('root');
     my @results = walkWorkspaces("inactive");
@@ -25,7 +23,6 @@ multi sub make-it-so("inprogress") is export {
 multi sub make-it-so("unindexed") is export {
     my $root = appPath("root");
     my $pager = getPager();
-
     my $counter = 0;
 
     for findUnindexed() -> $path {
