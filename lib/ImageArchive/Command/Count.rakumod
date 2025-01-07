@@ -67,13 +67,16 @@ multi sub make-it-so("files") is export {
         my $recordCountWithLabel = pluralize($recordCount, 'database record', 'database records');
 
         say qq:to/END/;
-        ⚠️  Found {$fileCountWithLabel} but {$recordCountWithLabel}.
+        Found {$fileCountWithLabel} but {$recordCountWithLabel}.
 
-        This can be fixed by reindexing the archive:
+        To list the files that aren't in the database:
+          {$*PROGRAM-NAME.IO.basename} find unindexed
+
+        To list the files that missing:
+          {$*PROGRAM-NAME.IO.basename} find lost
+
+        To rebuild the database:
           {$*PROGRAM-NAME.IO.basename} reindex
-
-        To list the missing files:
-          {$*PROGRAM-NAME.IO.basename} search:unindexed
 
         END
     }
