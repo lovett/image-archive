@@ -27,8 +27,6 @@
     "ImageArchive::Command::Reindex": "lib/ImageArchive/Command/Reindex.rakumod",
     "ImageArchive::Command::Replace": "lib/ImageArchive/Command/Replace.rakumod",
     "ImageArchive::Command::Reprompt": "lib/ImageArchive/Command/Reprompt.rakumod",
-    "ImageArchive::Command::Scrub": "lib/ImageArchive/Command/Scrub.rakumod",
-    "ImageArchive::Command::Search": "lib/ImageArchive/Command/Search.rakumod",
     "ImageArchive::Command::Search": "lib/ImageArchive/Command/Search.rakumod",
     "ImageArchive::Command::Setup": "lib/ImageArchive/Command/Setup.rakumod",
     "ImageArchive::Command::Tag": "lib/ImageArchive/Command/Tag.rakumod",
